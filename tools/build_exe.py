@@ -9,7 +9,6 @@ import sys
 import subprocess
 import os
 import argparse
-import shutil
 
 
 def parse_arguments():
@@ -22,6 +21,7 @@ def parse_arguments():
     parser.add_argument("--icon", help="图标文件路径")
     parser.add_argument("--workdir", help="工作目录")
     parser.add_argument("--additional", help="附加PyInstaller参数")
+    parser.add_argument("--onefile", help="生成单文件模式的可执行文件", action="store_true")
     
     return parser.parse_args()
 
@@ -78,10 +78,21 @@ def build_executable(args):
         cmd = [
             sys.executable, 
             "-m", 
-            "PyInstaller", 
-            "--onefile",  # 单文件模式
-            "--name", args.name,  # 可执行文件名称
+            "PyInstaller"
         ]
+        
+        # 选择打包模式 (单文件或目录模式)
+        if args.onefile:
+            cmd.append("--onefile")
+            print("使用单文件模式打包")
+        else:
+            cmd.append("--onedir")
+            # 为目录模式添加 contents-directory 参数，确保资源文件与可执行文件在同一目录
+            cmd.extend(["--contents-directory", "."])
+            print("使用目录模式打包，资源文件将与可执行文件处于同一级目录")
+            
+        # 添加应用名称
+        cmd.extend(["--name", args.name])
         
         # 添加图标参数
         if args.icon and os.path.exists(args.icon):
@@ -92,22 +103,39 @@ def build_executable(args):
         # 添加钩子目录
         if args.hooks:
             hooks_dir = ensure_hook_dir(args.hooks)
-            cmd.extend(["--add-data", f"{hooks_dir};{os.path.basename(hooks_dir)}"])
+            cmd.extend(["--add-data", 
+                        f"{hooks_dir};{os.path.basename(hooks_dir)}"])
+        
+        # 添加额外的PyInstaller参数
+        if args.additional:
+            print(f"添加额外的PyInstaller参数: {args.additional}")
+            # 处理可能包含引号的参数
+            additional_args = args.additional
+            # 如果参数被引号包裹，去除外层引号
+            if ((additional_args.startswith('"') and 
+                 additional_args.endswith('"')) or
+                (additional_args.startswith("'") and 
+                 additional_args.endswith("'"))):
+                additional_args = additional_args[1:-1]
+            
+            cmd.extend(additional_args.split())
         
         # 添加入口文件
         cmd.append(args.entry)
-        
-        # 添加其他参数
-        if args.additional:
-            cmd.extend(args.additional.split())
     
     # 执行命令
     try:
         subprocess.check_call(cmd)
         print("\n打包完成！")
         
-        # 检查是否成功生成了可执行文件
-        exe_path = os.path.join("dist", f"{args.name}.exe")
+        # 根据打包模式检查可执行文件
+        if args.onefile:
+            # 单文件模式，可执行文件直接位于dist目录
+            exe_path = os.path.join("dist", f"{args.name}.exe")
+        else:
+            # 目录模式，可执行文件位于dist/app_name目录下
+            exe_path = os.path.join("dist", args.name, f"{args.name}.exe")
+        
         if os.path.exists(exe_path):
             print(f"可执行文件生成成功: {os.path.abspath(exe_path)}")
             print(f"文件大小: {os.path.getsize(exe_path) / (1024*1024):.2f} MB")

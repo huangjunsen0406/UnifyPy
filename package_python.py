@@ -44,6 +44,8 @@ def parse_arguments():
     parser.add_argument("--skip-exe", help="跳过exe打包步骤", action="store_true")
     parser.add_argument(
         "--skip-installer", help="跳过安装程序生成步骤", action="store_true")
+    parser.add_argument(
+        "--onefile", help="生成单文件模式的可执行文件 (默认为目录模式)", action="store_true")
     
     return parser.parse_args()
 
@@ -132,7 +134,14 @@ def prepare_build_environment(args, config):
         "{{DISPLAY_NAME}}", display_name)
     
     # 添加dist目录和installer目录的绝对路径
-    source_path = os.path.abspath(os.path.join(args.project_dir, "dist"))
+    if args.onefile:
+        # 单文件模式，可执行文件直接位于dist目录
+        source_path = os.path.abspath(os.path.join(args.project_dir, "dist"))
+    else:
+        # 目录模式，可执行文件位于dist/app_name目录下
+        source_path = os.path.abspath(
+            os.path.join(args.project_dir, "dist", app_name))
+    
     template_content = template_content.replace(
         "{{SOURCE_PATH}}", source_path)
     
@@ -167,6 +176,9 @@ def prepare_build_environment(args, config):
         shutil.copy(args.readme, readme_path)
         print(f"已复制自述文件: {args.readme}")
     
+    # 获取配置中的额外PyInstaller参数
+    additional_args = config.get("additional_pyinstaller_args", "")
+    
     return {
         "app_name": app_name,
         "display_name": display_name,
@@ -174,7 +186,9 @@ def prepare_build_environment(args, config):
         "entry_file": args.entry,
         "project_dir": args.project_dir,
         "hooks_dir": args.hooks,
-        "installer_dir": installer_dir
+        "installer_dir": installer_dir,
+        "onefile": args.onefile,  # 添加单文件模式标志
+        "additional_args": additional_args  # 添加额外的PyInstaller参数
     }
 
 
@@ -194,6 +208,20 @@ def build_executable(env):
     # 添加钩子目录参数
     if env["hooks_dir"]:
         build_cmd.extend(["--hooks", env["hooks_dir"]])
+    
+    # 添加单文件模式参数(如果启用)
+    if env.get("onefile", False):
+        build_cmd.append("--onefile")
+        print("使用单文件模式打包")
+    else:
+        print("使用目录模式打包，资源文件将与可执行文件处于同一级目录")
+    
+    # 添加额外的PyInstaller参数
+    if env.get("additional_args"):
+        # 将额外参数用引号包装，作为一个整体传递
+        additional_args = env["additional_args"].replace('"', '\\"')  # 转义引号
+        build_cmd.extend(["--additional", f'"{additional_args}"'])
+        print(f"添加额外PyInstaller参数: {env['additional_args']}")
     
     # 执行构建
     return run_command(' '.join(build_cmd), "构建可执行文件")
@@ -266,6 +294,12 @@ def main():
             args.readme = config["readme"]
         if "hooks" in config and not args.hooks:
             args.hooks = config["hooks"]
+        if "onefile" in config and not args.onefile:
+            args.onefile = config["onefile"]
+        # 读取额外的PyInstaller参数
+        if "additional_pyinstaller_args" in config:
+            additional_args = config["additional_pyinstaller_args"]
+            print(f"从配置文件加载额外PyInstaller参数: {additional_args}")
     
     # 准备构建环境
     env = prepare_build_environment(args, config)
@@ -283,8 +317,16 @@ def main():
     time.sleep(1)
     
     # 检查可执行文件是否存在
-    exe_path = os.path.join(
-        args.project_dir, "dist", f"{env['app_name']}.exe")
+    if args.onefile:
+        # 单文件模式，可执行文件直接位于dist目录
+        exe_path = os.path.join(
+            args.project_dir, "dist", f"{env['app_name']}.exe")
+    else:
+        # 目录模式，可执行文件位于dist/app_name目录下
+        exe_path = os.path.join(
+            args.project_dir, "dist", env['app_name'], 
+            f"{env['app_name']}.exe")
+    
     if not os.path.exists(exe_path):
         print(f"❌ 找不到可执行文件: {exe_path}")
         print("打包过程中断！")
@@ -303,10 +345,7 @@ def main():
     else:
         print("跳过安装程序构建步骤")
     
-    # 打包完成 - 尝试多种可能的安装程序名称
-    installer_pattern = f"{env['app_name']}_Setup.exe"
-    installer_path = os.path.join(env["installer_dir"], installer_pattern)
-    
+    # 打包完成
     # 列出installer目录中的所有文件
     print("\n检查installer目录内容:")
     found_installer = None

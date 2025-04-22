@@ -4,7 +4,7 @@
 
 ## 功能特点
 
-- 自动打包Python项目为单文件可执行程序（使用PyInstaller）
+- 自动打包Python项目为单文件或目录模式可执行程序（使用PyInstaller）
 - 自动生成Windows安装程序（使用Inno Setup）
 - 支持自定义应用名称、版本、图标等
 - 自动检测并安装所需的依赖工具
@@ -12,12 +12,14 @@
 - 支持自定义许可证文件和自述文件
 - 支持JSON配置文件方式配置打包参数
 - 一键完成整个打包流程
+- 目录模式下，资源文件与可执行文件保持在同一级目录（适合创建安装程序）
 
 ## 安装要求
 
 - Python 3.6或更高版本
 - 联网环境（首次使用时需要下载依赖）
 - Windows操作系统（仅安装程序生成部分需要）
+- PyInstaller 6.1.0或更高版本（如需目录模式）
 
 ## 目录结构
 
@@ -37,13 +39,19 @@ python_packager/
 
 ### 基本用法
 
-将项目打包为可执行文件和安装程序：
+将项目打包为可执行文件和安装程序（默认使用目录模式）：
 
 ```bash
 python package_python.py 你的项目路径
 ```
 
 这将使用默认配置打包你的项目，入口文件默认为`main.py`，应用名称默认为项目目录名称。
+
+### 打包为单文件模式
+
+```bash
+python package_python.py 你的项目路径 --onefile
+```
 
 ### 高级用法
 
@@ -67,6 +75,7 @@ python package_python.py 你的项目路径 --name "应用名称" --entry app.py
 | --hooks | 运行时钩子目录 | (无) |
 | --skip-exe | 跳过exe打包步骤 | (否) |
 | --skip-installer | 跳过安装程序生成步骤 | (否) |
+| --onefile | 生成单文件模式的可执行文件 | (否) |
 
 ### 使用配置文件
 
@@ -81,7 +90,8 @@ python package_python.py 你的项目路径 --name "应用名称" --entry app.py
   "icon": "assets/icon.ico",
   "license": "LICENSE.txt",
   "readme": "README.md",
-  "hooks": "hooks"
+  "hooks": "hooks",
+  "onefile": false
 }
 ```
 
@@ -96,9 +106,23 @@ python package_python.py 你的项目路径 --config config.json
 打包过程分为以下几个步骤：
 
 1. **环境准备**：检查项目目录，创建临时工作目录，准备模板文件
-2. **构建可执行文件**：使用PyInstaller将项目打包为独立可执行文件
+2. **构建可执行文件**：使用PyInstaller将项目打包为独立可执行文件（单文件或目录模式）
 3. **构建安装程序**：使用Inno Setup将可执行文件打包为Windows安装程序
 4. **清理临时文件**：删除打包过程中生成的临时文件
+
+## 打包模式说明
+
+本工具支持两种打包模式：
+
+1. **目录模式（默认）**：
+   - 将生成一个包含主可执行文件和所有资源文件的目录
+   - 所有资源文件与可执行文件位于同一级别（适合制作安装程序）
+   - 适合较复杂的应用，特别是需要访问外部资源文件的应用
+
+2. **单文件模式**：
+   - 将应用及所有依赖打包成单个可执行文件
+   - 运行时会解压到临时目录
+   - 适合分发简单的应用程序
 
 ## 安装程序功能
 
@@ -116,7 +140,7 @@ python package_python.py 你的项目路径 --config config.json
 ### 找不到PyInstaller
 如果出现找不到PyInstaller的错误，程序会自动尝试安装。如果安装失败，请手动执行：
 ```bash
-pip install pyinstaller
+pip install pyinstaller>=6.1.0
 ```
 
 ### 找不到Inno Setup
@@ -127,6 +151,9 @@ pip install pyinstaller
 
 ### 安装程序生成失败
 请检查setup.iss文件是否有语法错误，以及是否有权限创建安装程序文件。
+
+### 资源文件位于_internal目录内
+如果使用的PyInstaller版本是6.0.0-6.0.x，资源文件可能会被放置在_internal目录内。请升级到PyInstaller>=6.1.0以使用--contents-directory参数，或使用5.x版本。
 
 ## 自定义钩子
 

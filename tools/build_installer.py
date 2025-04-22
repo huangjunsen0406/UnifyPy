@@ -164,10 +164,24 @@ def build_installer(inno_path, args):
     
     # 确认dist目录中有可执行文件
     exe_name = f"{args.name}.exe"
-    exe_path = args.exe if args.exe else os.path.join("dist", exe_name)
-    if not os.path.exists(exe_path):
-        print(f"错误: 找不到可执行文件 {exe_path}")
-        return False
+    
+    # 如果提供了exe路径，则使用它，否则尝试在多个位置查找
+    if args.exe and os.path.exists(args.exe):
+        exe_path = args.exe
+    else:
+        # 首先在直接目录模式下查找
+        exe_path = os.path.join("dist", args.name, exe_name)
+        
+        # 如果不存在，则尝试单文件模式路径
+        if not os.path.exists(exe_path):
+            exe_path = os.path.join("dist", exe_name)
+        
+        # 如果两种路径都不存在，则报错
+        if not os.path.exists(exe_path):
+            print("错误: 找不到可执行文件，已尝试以下路径:")
+            print(f"  - {os.path.join('dist', args.name, exe_name)}")
+            print(f"  - {os.path.join('dist', exe_name)}")
+            return False
     
     print(f"已确认可执行文件存在: {exe_path}")
     
@@ -239,7 +253,7 @@ def build_installer(inno_path, args):
                 
                 # 如果是新创建的文件，标记为可能的安装程序
                 if full_path in new_files:
-                    print(f"    (新创建的文件)")
+                    print("    (新创建的文件)")
                     setup_file = full_path
         
         # 如果找到了新创建的文件
