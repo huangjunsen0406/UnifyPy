@@ -1,0 +1,149 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+可执行文件构建工具
+使用PyInstaller将Python项目打包为独立可执行文件
+"""
+
+import sys
+import subprocess
+import os
+import argparse
+import shutil
+
+
+def parse_arguments():
+    """解析命令行参数"""
+    parser = argparse.ArgumentParser(description="构建Python项目为可执行文件")
+    
+    parser.add_argument("--name", required=True, help="应用程序名称")
+    parser.add_argument("--entry", required=True, help="入口Python文件")
+    parser.add_argument("--hooks", help="钩子目录路径")
+    parser.add_argument("--icon", help="图标文件路径")
+    parser.add_argument("--workdir", help="工作目录")
+    parser.add_argument("--additional", help="附加PyInstaller参数")
+    
+    return parser.parse_args()
+
+
+def check_pyinstaller():
+    """检查是否已安装PyInstaller"""
+    try:
+        # 尝试导入PyInstaller来检查是否已安装
+        __import__("PyInstaller")
+        return True
+    except ImportError:
+        return False
+
+
+def install_pyinstaller():
+    """安装PyInstaller"""
+    print("正在安装PyInstaller...")
+    cmd = [sys.executable, "-m", "pip", "install", "pyinstaller"]
+    subprocess.check_call(cmd)
+    print("PyInstaller安装完成！")
+
+
+def ensure_hook_dir(hooks_dir):
+    """确保钩子目录存在"""
+    if not os.path.exists(hooks_dir):
+        print(f"警告: 钩子目录 {hooks_dir} 不存在，将创建...")
+        os.makedirs(hooks_dir)
+        
+    return hooks_dir
+
+
+def build_executable(args):
+    """使用PyInstaller打包程序"""
+    print("正在打包程序...")
+    
+    # 确保工作目录存在
+    work_dir = args.workdir if args.workdir else "."
+    
+    # 创建spec文件路径
+    spec_file = f"{args.name}.spec"
+    spec_path = os.path.join(work_dir, spec_file)
+    
+    # 构建命令
+    if os.path.exists(spec_path):
+        print(f"发现已存在的spec文件: {spec_path}，将使用此文件打包")
+        cmd = [
+            sys.executable,
+            "-m",
+            "PyInstaller",
+            spec_path
+        ]
+    else:
+        print("创建新的打包配置...")
+        cmd = [
+            sys.executable, 
+            "-m", 
+            "PyInstaller", 
+            "--onefile",  # 单文件模式
+            "--name", args.name,  # 可执行文件名称
+        ]
+        
+        # 添加图标参数
+        if args.icon and os.path.exists(args.icon):
+            cmd.extend(["--icon", args.icon])
+        else:
+            cmd.extend(["--icon", "NONE"])  # 不使用图标
+        
+        # 添加钩子目录
+        if args.hooks:
+            hooks_dir = ensure_hook_dir(args.hooks)
+            cmd.extend(["--add-data", f"{hooks_dir};{os.path.basename(hooks_dir)}"])
+        
+        # 添加入口文件
+        cmd.append(args.entry)
+        
+        # 添加其他参数
+        if args.additional:
+            cmd.extend(args.additional.split())
+    
+    # 执行命令
+    try:
+        subprocess.check_call(cmd)
+        print("\n打包完成！")
+        
+        # 检查是否成功生成了可执行文件
+        exe_path = os.path.join("dist", f"{args.name}.exe")
+        if os.path.exists(exe_path):
+            print(f"可执行文件生成成功: {os.path.abspath(exe_path)}")
+            print(f"文件大小: {os.path.getsize(exe_path) / (1024*1024):.2f} MB")
+            return True
+        else:
+            print(f"警告: 可执行文件 {exe_path} 不存在，打包可能失败")
+            return False
+    except subprocess.CalledProcessError as e:
+        print(f"打包失败，错误码: {e.returncode}")
+        return False
+
+
+def main():
+    """主函数"""
+    print("=" * 50)
+    print("Python项目可执行文件构建工具")
+    print("=" * 50)
+    
+    # 解析命令行参数
+    args = parse_arguments()
+    
+    # 检查并安装PyInstaller
+    if not check_pyinstaller():
+        print("未检测到PyInstaller，准备安装...")
+        install_pyinstaller()
+    else:
+        print("已检测到PyInstaller，准备打包...")
+    
+    # 打包程序
+    if build_executable(args):
+        print("\n可执行文件构建成功!")
+        return 0
+    else:
+        print("\n可执行文件构建失败!")
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main()) 

@@ -1,0 +1,68 @@
+#define MyAppName "{{APP_NAME}}"
+#define MyAppVersion "{{APP_VERSION}}"
+#define MyAppPublisher "{{APP_PUBLISHER}}"
+#define MyAppURL "https://example.com/"
+#define MyAppExeName "{{APP_NAME}}.exe"
+#define SourcePath "{{SOURCE_PATH}}"
+#define OutputPath "{{OUTPUT_PATH}}"
+#define AppDisplayName "{{DISPLAY_NAME}}"
+
+[Setup]
+; 应用程序信息
+AppId={{{{05DBB87C-AE34-4F2F-AEC5-3CD2AFE9DC90}}}}
+AppName={#AppDisplayName}
+AppVersion={#MyAppVersion}
+AppPublisher={#MyAppPublisher}
+AppPublisherURL={#MyAppURL}
+AppSupportURL={#MyAppURL}
+AppUpdatesURL={#MyAppURL}
+DefaultDirName={autopf}\{#AppDisplayName}
+DefaultGroupName={#AppDisplayName}
+DisableProgramGroupPage=yes
+; 许可证文件设置，使用条件编译
+#ifdef LicenseFile
+LicenseFile=LICENSE.txt
+#endif
+; 安装程序界面设置
+OutputDir={#OutputPath}
+OutputBaseFilename={#MyAppName}_Setup
+; 图标设置，使用条件编译
+#ifdef SetupIconFile
+SetupIconFile=app.ico
+#endif
+Compression=lzma
+SolidCompression=yes
+WizardStyle=modern
+
+[Languages]
+Name: "chinese"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+Name: "english"; MessagesFile: "compiler:Default.isl"
+
+[CustomMessages]
+chinese.CreateDesktopIcon=创建桌面快捷方式
+chinese.LaunchProgram=启动 {#AppDisplayName}
+english.CreateDesktopIcon=Create desktop icon
+english.LaunchProgram=Launch {#AppDisplayName}
+
+[Tasks]
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "startupicon"; Description: "开机自动启动"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+
+[Files]
+Source: "{#SourcePath}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+#ifdef ReadmeFile
+Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
+#endif
+#ifdef LicenseFile
+Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
+#endif
+; 添加自定义文件区域 - 可在此处添加需要打包的其他文件
+
+[Icons]
+Name: "{group}\{#AppDisplayName}"; Filename: "{app}\{#MyAppExeName}"
+Name: "{group}\{cm:UninstallProgram,{#AppDisplayName}}"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\{#AppDisplayName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{commonstartup}\{#AppDisplayName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: startupicon
+
+[Run]
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram}"; Flags: nowait postinstall skipifsilent 
