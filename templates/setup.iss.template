@@ -33,6 +33,12 @@ SetupIconFile=app.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
+; 卸载选项
+UninstallDisplayIcon={app}\{#MyAppExeName}
+UninstallDisplayName={#AppDisplayName}
+UsePreviousAppDir=yes
+CloseApplications=yes
+CloseApplicationsFilter=*.*
 
 [Languages]
 Name: "chinese"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
@@ -41,12 +47,18 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [CustomMessages]
 chinese.CreateDesktopIcon=创建桌面快捷方式
 chinese.LaunchProgram=启动 {#AppDisplayName}
+chinese.DeleteUserData=删除所有用户数据和配置文件
+chinese.UninstallQuestion=确定要卸载 {#AppDisplayName} 吗？
 english.CreateDesktopIcon=Create desktop icon
 english.LaunchProgram=Launch {#AppDisplayName}
+english.DeleteUserData=Delete all user data and configuration files
+english.UninstallQuestion=Are you sure you want to uninstall {#AppDisplayName}?
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 Name: "startupicon"; Description: "开机自动启动"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+; 卸载选项任务
+Name: "deleteUserData"; Description: "{cm:DeleteUserData}"; GroupDescription: "卸载选项:"; Flags: unchecked; Check: IsUninstaller
 
 [Files]
 ; 主执行文件
@@ -71,4 +83,46 @@ Name: "{autodesktop}\{#AppDisplayName}"; Filename: "{app}\{#MyAppExeName}"; Task
 Name: "{commonstartup}\{#AppDisplayName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: startupicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram}"; Flags: nowait postinstall skipifsilent 
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram}"; Flags: nowait postinstall skipifsilent
+
+[UninstallDelete]
+; 删除应用程序运行时生成的文件
+Type: files; Name: "{app}\*.log"
+Type: files; Name: "{app}\*.tmp"
+Type: files; Name: "{app}\*.dat"
+; 如果用户选择了删除用户数据，则删除所有文件和目录
+Type: filesandordirs; Name: "{app}\*"; Tasks: deleteUserData
+Type: dirifempty; Name: "{app}"
+
+[Code]
+// 检查是否处于卸载模式
+function IsUninstaller: Boolean;
+begin
+  Result := False;
+  
+  try
+    // 这种方式检测是否处于卸载模式
+    Result := ActiveLanguage <> '';  // 任何非安装时的函数调用
+    Result := UninstallSilent or not UninstallSilent;  // 总是为真，但只在卸载模式下有效
+  except
+    // 如果抛出异常，那么我们处于安装模式
+    Result := False;
+  end;
+end;
+
+// 卸载前的确认
+function InitializeUninstall: Boolean;
+var
+  Confirm: Integer;
+begin
+  Result := True;  // 默认继续卸载
+  
+  try
+    // 显示确认对话框
+    Confirm := MsgBox(ExpandConstant('{cm:UninstallQuestion}'), mbConfirmation, MB_YESNO);
+    Result := (Confirm = IDYES);
+  except
+    // 如果出现错误，继续卸载
+    Result := True;
+  end;
+end; 

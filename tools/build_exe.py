@@ -9,6 +9,7 @@ import sys
 import subprocess
 import os
 import argparse
+import shlex
 
 
 def parse_arguments():
@@ -100,9 +101,12 @@ def build_executable(args):
         else:
             cmd.extend(["--icon", "NONE"])  # 不使用图标
         
-        # 添加钩子目录
+        # 添加钩子目录参数
         if args.hooks:
             hooks_dir = ensure_hook_dir(args.hooks)
+            # 添加hook目录到PyInstaller的hookspath
+            cmd.extend(["--additional-hooks-dir", hooks_dir])
+            # 如果hooks目录需要作为数据文件添加
             cmd.extend(["--add-data", 
                         f"{hooks_dir};{os.path.basename(hooks_dir)}"])
         
@@ -118,7 +122,8 @@ def build_executable(args):
                  additional_args.endswith("'"))):
                 additional_args = additional_args[1:-1]
             
-            cmd.extend(additional_args.split())
+            # 正确分割参数，保留引号内的空格
+            cmd.extend(shlex.split(additional_args))
         
         # 添加入口文件
         cmd.append(args.entry)
