@@ -1,0 +1,41 @@
+{
+    "name": "my_app",
+    "display_name": "我的多平台应用",
+    "version": "1.0.0",
+    "publisher": "我的公司",
+    "entry": "main.py",
+    "icon": "assets/app_icon.ico",
+    "license": "LICENSE",
+    "readme": "README.md",
+    "hooks": "hooks",
+    "onefile": false,
+    "skip_installer": false,
+    "additional_pyinstaller_args": "--noconsole --add-binary assets/*.dll;.",
+    "inno_setup_path": "E:\\application\\Inno Setup 6\\ISCC.exe",
+    
+    "platform_specific": {
+        "windows": {
+            "additional_pyinstaller_args": "--noconsole --add-data assets;assets --add-data libs;libs --add-data src;src --add-data models;models --hidden-import=PyQt5",
+            "installer_options": {
+                "languages": ["ChineseSimplified", "English"],
+                "create_desktop_icon": true,
+                "allow_run_after_install": true
+            }
+        },
+        "macos": {
+            "additional_pyinstaller_args": "--windowed --add-data assets:assets --add-data libs:libs --add-data src:src --add-data models:models --hidden-import=PyQt5",
+            "app_bundle_name": "我的应用.app",
+            "bundle_identifier": "com.example.myapp",
+            "sign_bundle": false,
+            "create_dmg": true
+        },
+        "linux": {
+            "additional_pyinstaller_args": "--add-data assets:assets --add-data libs:libs --add-data src:src --add-data models:models --hidden-import=PyQt5",
+            "format": "deb",
+            "desktop_entry": true,
+            "categories": "Utility;Development;",
+            "description": "我的Python多平台应用程序",
+            "requires": "libc6"
+        }
+    }
+} 

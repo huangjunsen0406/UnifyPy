@@ -9,7 +9,7 @@
 
 [Setup]
 ; 应用程序信息
-AppId={{{{05DBB87C-AE34-4F2F-AEC5-3CD2AFE9DC90}}}}
+AppId={{05DBB87C-AE34-4F2F-AEC5-3CD2AFE9DC90}}
 AppName={#AppDisplayName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
@@ -41,24 +41,22 @@ CloseApplications=yes
 CloseApplicationsFilter=*.*
 
 [Languages]
-Name: "chinese"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
 
 [CustomMessages]
-chinese.CreateDesktopIcon=创建桌面快捷方式
-chinese.LaunchProgram=启动 {#AppDisplayName}
-chinese.DeleteUserData=删除所有用户数据和配置文件
-chinese.UninstallQuestion=确定要卸载 {#AppDisplayName} 吗？
-english.CreateDesktopIcon=Create desktop icon
-english.LaunchProgram=Launch {#AppDisplayName}
+; 只保留必要的自定义消息
+chinesesimplified.DeleteUserData=删除所有用户数据和配置文件
+chinesesimplified.UninstallOptions=卸载选项
+
 english.DeleteUserData=Delete all user data and configuration files
-english.UninstallQuestion=Are you sure you want to uninstall {#AppDisplayName}?
+english.UninstallOptions=Uninstall Options
 
 [Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "startupicon"; Description: "开机自动启动"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: desktopicon; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: startupicon; Description: "{cm:AutoStartProgram,{#AppDisplayName}}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 ; 卸载选项任务
-Name: "deleteUserData"; Description: "{cm:DeleteUserData}"; GroupDescription: "卸载选项:"; Flags: unchecked; Check: IsUninstaller
+Name: deleteUserData; Description: "{cm:DeleteUserData}"; GroupDescription: "{cm:UninstallOptions}"; Flags: unchecked; Check: IsUninstaller
 
 [Files]
 ; 主执行文件
@@ -83,7 +81,12 @@ Name: "{autodesktop}\{#AppDisplayName}"; Filename: "{app}\{#MyAppExeName}"; Task
 Name: "{commonstartup}\{#AppDisplayName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: startupicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#AppDisplayName}}"; Flags: nowait postinstall skipifsilent
+
+[Registry]
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
+    ValueType: string; ValueName: "{#AppDisplayName}"; \
+    ValueData: """{app}\{#MyAppExeName}"""; Flags: uninsdeletevalue
 
 [UninstallDelete]
 ; 删除应用程序运行时生成的文件
@@ -119,7 +122,7 @@ begin
   
   try
     // 显示确认对话框
-    Confirm := MsgBox(ExpandConstant('{cm:UninstallQuestion}'), mbConfirmation, MB_YESNO);
+    Confirm := MsgBox(ExpandConstant('{cm:ConfirmUninstall}'), mbConfirmation, MB_YESNO);
     Result := (Confirm = IDYES);
   except
     // 如果出现错误，继续卸载

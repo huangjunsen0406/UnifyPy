@@ -1,70 +1,184 @@
-# Python项目通用打包工具
+# UnifyPy
 
-这是一个通用的Python项目打包工具，可以将任何Python项目打包成独立的可执行文件和Windows安装程序。
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python: 3.6+](https://img.shields.io/badge/Python-3.6+-blue.svg)](https://www.python.org/downloads/)
+
+UnifyPy是一个强大的自动化解决方案，能将任何Python项目打包成跨平台的独立可执行文件和安装程序。支持Windows、macOS和Linux三大主流操作系统，提供统一的接口和丰富的配置选项。
 
 ## 功能特点
 
-- 自动打包Python项目为单文件或目录模式可执行程序（使用PyInstaller）
-- 自动生成Windows安装程序（使用Inno Setup）
-- 支持自定义应用名称、版本、图标等
-- 自动检测并安装所需的依赖工具
-- 支持包含自定义钩子、资源文件
-- 支持自定义许可证文件和自述文件
-- 支持JSON配置文件方式配置打包参数
-- 一键完成整个打包流程
-- 目录模式下，资源文件与可执行文件保持在同一级目录（适合创建安装程序）
+- **跨平台支持**：适配Windows、macOS和Linux三大主流平台
+- **多种安装包格式**：
+  - Windows: 可执行文件(.exe)和安装程序(Inno Setup)
+  - macOS: 应用程序包(.app)和磁盘镜像(.dmg)
+  - Linux: AppImage, DEB, RPM格式安装包
+- **灵活配置**：支持命令行参数和JSON配置文件两种配置方式
+- **打包模式**：支持单文件模式和目录模式
+- **自定义选项**：支持自定义图标、版本号、发布者等元数据
+- **资源打包**：自动处理资源文件、依赖库、自定义钩子等
+- **自动安装依赖**：自动检测并安装所需工具
 
 ## 安装要求
 
 - Python 3.6或更高版本
-- 联网环境（首次使用时需要下载依赖）
-- Windows操作系统（仅安装程序生成部分需要）
-- PyInstaller 6.1.0或更高版本（如需目录模式）
+- 各平台特定要求：
+  - **Windows**: 
+    - PyInstaller
+    - Inno Setup (用于创建安装程序)
+      - 下载地址: https://jrsoftware.org/isdl.php
+      - 安装后，可通过--inno-setup-path参数指定ISCC.exe路径
+      - 或设置INNO_SETUP_PATH环境变量
+  - **macOS**: 
+    - PyInstaller
+    - create-dmg (用于创建DMG镜像)
+  - **Linux**: 
+    - PyInstaller
+    - 对应格式的打包工具(dpkg-deb, rpmbuild, appimagetool)
 
-## 目录结构
+## 快速开始
 
-```
-python_packager/
-├── package_python.py     # 主打包脚本
-├── README.md             # 说明文档
-├── templates/            # 模板目录
-│   └── setup.iss.template # Inno Setup脚本模板
-└── tools/                # 工具脚本目录
-    ├── build_exe.py      # 可执行文件构建工具
-    ├── build_installer.py # 安装程序构建工具
-    └── create_icon.py    # 图标生成工具
-```
-
-## 使用方法
-
-### 基本用法
-
-将项目打包为可执行文件和安装程序（默认使用目录模式）：
+1. **克隆仓库**
 
 ```bash
-python package_python.py 你的项目路径
+git clone https://github.com/huangjunsen0406/UnifyPy.git
+cd python-packager
 ```
 
-这将使用默认配置打包你的项目，入口文件默认为`main.py`，应用名称默认为项目目录名称。
-
-### 打包为单文件模式
+2. **安装依赖**
 
 ```bash
-python package_python.py 你的项目路径 --onefile
+pip install -r requirements.txt
 ```
 
-### 高级用法
+3. **基本使用**
 
 ```bash
-python package_python.py 你的项目路径 --name "应用名称" --entry app.py --version "1.2.3" --publisher "发布者名称" --icon path/to/icon.ico --hooks hooks目录
+# 使用默认配置打包项目
+python main.py 你的项目路径
+
+# 使用JSON配置文件打包
+python main.py 你的项目路径 --config config.json
 ```
 
-### 参数说明
+## 使用示例
+
+### 命令行参数示例
+
+#### Windows平台
+
+```bash
+# 基本用法
+python main.py C:\Projects\MyApp --name "我的应用" --entry app.py
+
+# 高级用法
+python main.py C:\Projects\MyApp --name "我的应用" --entry app.py --version "1.2.3" --publisher "我的公司" --icon "assets/icon.ico" --hooks hooks目录
+```
+
+#### macOS平台
+
+```bash
+# 基本用法
+python3 main.py /Users/username/Projects/MyApp --name "我的应用" --entry app.py
+
+# 生成DMG镜像
+python3 main.py /Users/username/Projects/MyApp --config macos_config.json
+```
+
+#### Linux平台
+
+```bash
+# 生成AppImage格式
+python3 main.py /home/username/Projects/MyApp --config linux_appimage.json
+
+# 生成DEB包
+python3 main.py /home/username/Projects/MyApp --config linux_deb.json
+```
+
+### 配置文件示例
+
+创建一个包含打包参数的JSON配置文件：
+
+```json
+{
+  "name": "我的应用",
+  "display_name": "我的多平台应用",
+  "version": "1.0.0",
+  "publisher": "我的公司",
+  "entry": "main.py",
+  "icon": "assets/app_icon.ico",
+  "license": "LICENSE",
+  "readme": "README.md",
+  "hooks": "hooks",
+  "onefile": false,
+  "additional_pyinstaller_args": "--noconsole --add-binary assets/*.dll;.",
+  
+  "platform_specific": {
+    "windows": {
+      "additional_pyinstaller_args": "--noconsole --add-data assets;assets --add-data libs;libs",
+      "installer_options": {
+        "languages": ["ChineseSimplified", "English"],
+        "create_desktop_icon": true,
+        "allow_run_after_install": true
+      }
+    },
+    "macos": {
+      "additional_pyinstaller_args": "--windowed --add-data assets:assets --add-data libs:libs",
+      "app_bundle_name": "我的应用.app",
+      "bundle_identifier": "com.example.myapp",
+      "sign_bundle": false,
+      "create_dmg": true
+    },
+    "linux": {
+      "additional_pyinstaller_args": "--add-data assets:assets --add-data libs:libs",
+      "format": "deb",
+      "desktop_entry": true,
+      "categories": "Utility;Development;",
+      "description": "我的Python多平台应用程序",
+      "requires": "libc6,libgtk-3-0,libx11-6"
+    }
+  }
+}
+```
+
+## 安装打包后的应用
+
+### Windows
+
+- 直接运行`.exe`安装程序
+- 按照安装向导完成安装
+- 程序将安装在默认目录，并创建开始菜单和桌面快捷方式
+
+### macOS
+
+- 挂载`.dmg`文件
+- 将应用拖到Applications文件夹
+- 在Launchpad中启动应用
+
+### Linux
+
+**DEB包 (Debian/Ubuntu)**:
+```bash
+sudo apt install ./应用名称_版本_架构.deb
+```
+
+**RPM包 (Fedora/CentOS)**:
+```bash
+sudo rpm -i 应用名称-版本.架构.rpm
+```
+
+**AppImage**:
+```bash
+chmod +x 应用名称-版本-架构.AppImage
+./应用名称-版本-架构.AppImage
+```
+
+## 参数说明
 
 | 参数 | 说明 | 默认值 |
 |------|------|--------|
 | project_dir | Python项目根目录路径 | (必填) |
 | --name | 应用程序名称 | 项目目录名称 |
+| --display-name | 应用程序显示名称 | 与name相同 |
 | --entry | 入口Python文件 | main.py |
 | --version | 应用程序版本 | 1.0 |
 | --publisher | 发布者名称 | Python应用开发团队 |
@@ -77,88 +191,47 @@ python package_python.py 你的项目路径 --name "应用名称" --entry app.py
 | --skip-installer | 跳过安装程序生成步骤 | (否) |
 | --onefile | 生成单文件模式的可执行文件 | (否) |
 
-### 使用配置文件
+## 多平台路径分隔符注意事项
 
-你也可以通过JSON配置文件指定打包参数：
+在不同平台上指定资源路径时，注意使用正确的分隔符：
 
+- **Windows**: 使用分号 `;` (例如: `--add-data assets;assets`)
+- **macOS/Linux**: 使用冒号 `:` (例如: `--add-data assets:assets`)
+
+## 常见问题
+
+**Q: Windows平台构建安装程序时提示找不到Inno Setup**  
+A: 需要手动安装Inno Setup:
+1. 访问 https://jrsoftware.org/isdl.php 下载最新版
+2. 安装后，有以下方式指定ISCC.exe路径:
+   - 通过--inno-setup-path参数: `python main.py 项目路径 --inno-setup-path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"`
+   - 在config.json中配置: `"inno_setup_path": "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe"`
+   - 设置环境变量INNO_SETUP_PATH
+
+**Q: 打包后的Linux应用提示缺少依赖库**  
+A: 在Linux配置中添加所需依赖：
 ```json
-{
-  "name": "我的应用",
-  "entry": "app.py",
-  "version": "1.2.3",
-  "publisher": "我的公司",
-  "icon": "assets/icon.ico",
-  "license": "LICENSE.txt",
-  "readme": "README.md",
-  "hooks": "hooks",
-  "onefile": false
+"linux": {
+  "requires": "libc6,libgtk-3-0,libx11-6,libopenblas-dev"
 }
 ```
 
-然后使用以下命令打包：
+**Q: 如何解决MKL相关错误?**  
+A: 添加OpenBLAS作为替代依赖，或在打包前确保NumPy等库使用开源BLAS后端。
 
-```bash
-python package_python.py 你的项目路径 --config config.json
+**Q: macOS应用无法启动，提示"未识别的开发者"**  
+A: 可以尝试在配置中启用代码签名：
+```json
+"macos": {
+  "sign_bundle": true,
+  "identity": "你的开发者ID"
+}
 ```
 
-## 打包过程说明
+## 许可证
 
-打包过程分为以下几个步骤：
+本项目采用MIT许可证。Copyright (c) 2025 Junsen。
 
-1. **环境准备**：检查项目目录，创建临时工作目录，准备模板文件
-2. **构建可执行文件**：使用PyInstaller将项目打包为独立可执行文件（单文件或目录模式）
-3. **构建安装程序**：使用Inno Setup将可执行文件打包为Windows安装程序
-4. **清理临时文件**：删除打包过程中生成的临时文件
+MIT许可证允许任何人免费使用、复制、修改、合并、发布、分发、再许可和/或销售本软件的副本，但需在所有副本中包含上述版权声明和本许可声明。
 
-## 打包模式说明
-
-本工具支持两种打包模式：
-
-1. **目录模式（默认）**：
-   - 将生成一个包含主可执行文件和所有资源文件的目录
-   - 所有资源文件与可执行文件位于同一级别（适合制作安装程序）
-   - 适合较复杂的应用，特别是需要访问外部资源文件的应用
-
-2. **单文件模式**：
-   - 将应用及所有依赖打包成单个可执行文件
-   - 运行时会解压到临时目录
-   - 适合分发简单的应用程序
-
-## 安装程序功能
-
-生成的Windows安装程序具有以下功能：
-
-- 标准的Windows安装界面
-- 支持中文和英文安装界面
-- 可选创建桌面快捷方式
-- 可选设置开机自动启动
-- 完整的卸载功能
-- 安装完成后可选择立即启动程序
-
-## 常见问题解决
-
-### 找不到PyInstaller
-如果出现找不到PyInstaller的错误，程序会自动尝试安装。如果安装失败，请手动执行：
-```bash
-pip install pyinstaller>=6.1.0
-```
-
-### 找不到Inno Setup
-如果找不到Inno Setup，程序会自动下载并安装。如安装失败，请手动下载Inno Setup并安装。
-
-### 生成的可执行文件过大
-这是因为PyInstaller会包含所有依赖库。可以尝试添加`--additional "--exclude-module <模块名>"`参数排除不需要的模块。
-
-### 安装程序生成失败
-请检查setup.iss文件是否有语法错误，以及是否有权限创建安装程序文件。
-
-### 资源文件位于_internal目录内
-如果使用的PyInstaller版本是6.0.0-6.0.x，资源文件可能会被放置在_internal目录内。请升级到PyInstaller>=6.1.0以使用--contents-directory参数，或使用5.x版本。
-
-## 自定义钩子
-
-钩子目录可以包含在打包过程中需要执行的自定义Python脚本。这些脚本将被打包到可执行文件中，并在运行时执行。
-
-## 许可协议
-
-本工具使用MIT许可证发布，详见LICENSE文件。 
+完整许可证内容请参阅[LICENSE](LICENSE)文件。
