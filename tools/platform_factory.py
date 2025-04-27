@@ -619,13 +619,12 @@ class LinuxPackager(PlatformPackager):
 
         # 添加额外的PyInstaller参数
         if additional_args:
-            # 将额外参数用引号包装，作为一个整体传递
-            additional_args = additional_args.replace('"', '\\"')  # 转义引号
-            build_cmd.extend(["--additional", f'"{additional_args}"'])
+            # Linux平台不需要用额外引号包装参数，直接传递即可
+            build_cmd.extend(["--additional", additional_args])
             print(f"添加额外PyInstaller参数: {additional_args}")
 
-        # 执行构建
-        return self.run_command(build_cmd, "构建Linux可执行文件")
+        # 执行构建 - 对于Linux使用shell=False更安全
+        return self.run_command(build_cmd, "构建Linux可执行文件", shell=False)
 
     def build_installer(self) -> bool:
         """构建Linux安装包（AppImage或deb/rpm包）"""

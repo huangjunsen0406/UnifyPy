@@ -127,35 +127,36 @@ def build_executable(args):
         # 处理额外的PyInstaller参数
         if args.additional:
             print(f"添加额外的PyInstaller参数: {args.additional}")
-            # 处理可能包含引号的参数
+            
+            # 确保移除可能导致问题的外层引号
             additional_args = args.additional
-            # 如果参数被引号包裹，去除外层引号
-            if ((additional_args.startswith('"') and
-                 additional_args.endswith('"')) or
-                (additional_args.startswith("'") and
-                 additional_args.endswith("'"))):
+            if ((additional_args.startswith('"') and additional_args.endswith('"')) or
+                (additional_args.startswith("'") and additional_args.endswith("'"))):
                 additional_args = additional_args[1:-1]
-
-            # 检测当前平台
+            
+            # 检测当前平台，做适当处理
             if system == "linux":
-                # Linux平台特别处理，将空格格式转换为等号格式
-                splitted_args = shlex.split(additional_args)
-                converted_args = []
-                i = 0
-                while i < len(splitted_args):
-                    arg = splitted_args[i]
-                    if arg == "--add-data" or arg == "--add-binary":
-                        if i + 1 < len(splitted_args):
-                            # 将 --add-data SOURCE:DEST 转换为 --add-data=SOURCE:DEST
-                            converted_args.append(
-                                f"{arg}={splitted_args[i+1]}")
-                            i += 2  # 跳过下一个参数
-                            continue
-                    converted_args.append(arg)
-                    i += 1
-                # 添加转换后的参数
-                cmd.extend(converted_args)
-                print(f"Linux平台：转换后的参数: {converted_args}")
+                # Linux平台需要特别处理
+                try:
+                    # 使用shlex拆分参数，以处理复杂的引号和转义
+                    splitted_args = shlex.split(additional_args)
+                    
+                    # 将 --add-data SOURCE:DEST 转换为 --add-data=SOURCE:DEST
+                    i = 0
+                    while i < len(splitted_args):
+                        arg = splitted_args[i]
+                        if arg == "--add-data" or arg == "--add-binary":
+                            if i + 1 < len(splitted_args):
+                                cmd.append(f"{arg}={splitted_args[i+1]}")
+                                i += 2  # 跳过下一个参数
+                                continue
+                        cmd.append(arg)
+                        i += 1
+                except Exception as e:
+                    print(f"处理附加参数时出错: {e}")
+                    print("将使用原始附加参数")
+                    # 如果处理失败，回退到简单地拆分参数
+                    cmd.extend(additional_args.split())
             else:
                 # Windows和macOS平台使用原始的分割方式
                 cmd.extend(shlex.split(additional_args))
@@ -165,35 +166,47 @@ def build_executable(args):
 
     # 执行命令
     try:
-        subprocess.check_call(cmd)
-        print("\n打包完成！")
+        # 打印完整命令以便调试
+        print(f"执行完整命令: {' '.join(cmd)}")
+        
+        # 使用subprocess.run执行命令，不使用shell=True
+        result = subprocess.run(cmd)
+        
+        if result.returncode == 0:
+            print("\n打包完成！")
 
-        # 根据打包模式和平台检查可执行文件
-        if args.onefile:
-            # 单文件模式，可执行文件直接位于dist目录
-            exe_path = os.path.join("dist", f"{args.name}{exe_extension}")
-        else:
-            # 目录模式，可执行文件位于dist/app_name目录下
-            exe_path = os.path.join(
-                "dist", args.name, f"{args.name}{exe_extension}")
+            # 根据打包模式和平台检查可执行文件
+            if args.onefile:
+                # 单文件模式，可执行文件直接位于dist目录
+                exe_path = os.path.join("dist", f"{args.name}{exe_extension}")
+            else:
+                # 目录模式，可执行文件位于dist/app_name目录下
+                exe_path = os.path.join(
+                    "dist", args.name, f"{args.name}{exe_extension}")
 
-        if os.path.exists(exe_path):
-            print(f"可执行文件生成成功: {os.path.abspath(exe_path)}")
-            print(f"文件大小: {os.path.getsize(exe_path) / (1024*1024):.2f} MB")
-            return True
-        else:
-            # 尝试尝试不带扩展名的版本（适用于某些特殊情况）
-            if exe_extension and os.path.exists(os.path.splitext(exe_path)[0]):
-                alt_exe_path = os.path.splitext(exe_path)[0]
-                print(f"可执行文件生成成功: {os.path.abspath(alt_exe_path)}")
-                print(
-                    f"文件大小: {os.path.getsize(alt_exe_path) / (1024*1024):.2f} MB")
+            if os.path.exists(exe_path):
+                print(f"可执行文件生成成功: {os.path.abspath(exe_path)}")
+                print(f"文件大小: {os.path.getsize(exe_path) / (1024*1024):.2f} MB")
                 return True
+            else:
+                # 尝试尝试不带扩展名的版本（适用于某些特殊情况）
+                if exe_extension and os.path.exists(os.path.splitext(exe_path)[0]):
+                    alt_exe_path = os.path.splitext(exe_path)[0]
+                    print(f"可执行文件生成成功: {os.path.abspath(alt_exe_path)}")
+                    print(
+                        f"文件大小: {os.path.getsize(alt_exe_path) / (1024*1024):.2f} MB")
+                    return True
 
-            print(f"警告: 可执行文件 {exe_path} 不存在，打包可能失败")
+                print(f"警告: 可执行文件 {exe_path} 不存在，打包可能失败")
+                return False
+        else:
+            print(f"打包失败，错误码: {result.returncode}")
             return False
     except subprocess.CalledProcessError as e:
         print(f"打包失败，错误码: {e.returncode}")
+        return False
+    except Exception as e:
+        print(f"执行命令时出错: {e}")
         return False
 
 
