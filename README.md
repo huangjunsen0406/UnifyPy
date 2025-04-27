@@ -50,15 +50,32 @@ cd python-packager
 pip install -r requirements.txt
 ```
 
-3. **基本使用**
+3. **使用方式**
+
+有两种方式可以使用UnifyPy来打包你的项目：
+
+**方式一：从项目目录内执行（推荐）**
+
+进入你需要打包的项目目录，然后执行：
+```bash
+# 使用相对路径指向UnifyPy的main.py
+python /path/to/UnifyPy/main.py . --config build.json
+```
+
+例如：
+```bash
+# 示例：假设UnifyPy在/home/junsen/桌面/UnifyPy目录下
+python /home/junsen/桌面/UnifyPy/main.py . --config build.json
+```
+
+**方式二：从UnifyPy目录执行**
 
 ```bash
-# 使用默认配置打包项目
-python main.py 你的项目路径
-
-# 使用JSON配置文件打包
+# 使用项目路径和配置文件
 python main.py 你的项目路径 --config config.json
 ```
+
+> **注意**：如果使用方式二，配置文件中指定的路径必须使用绝对路径。
 
 ## 使用示例
 
@@ -139,6 +156,20 @@ python3 main.py /home/username/Projects/MyApp --config linux_deb.json
   }
 }
 ```
+
+### 配置文件路径注意事项
+
+根据使用方式不同，配置文件中的路径需要进行相应调整：
+
+1. **从项目目录内执行（方式一）**：
+   - 配置文件中的路径可以使用相对路径，相对于你的项目目录
+   - 例如：`"icon": "assets/app_icon.ico"`
+
+2. **从UnifyPy目录执行（方式二）**：
+   - 配置文件中的路径必须使用绝对路径
+   - 例如：`"icon": "C:/Users/username/Projects/MyApp/assets/app_icon.ico"`
+
+**注意**：Windows系统中的路径分隔符在JSON文件中需要使用双反斜杠`\\`或单正斜杠`/`。
 
 ## 安装打包后的应用
 

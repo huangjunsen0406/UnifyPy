@@ -37,7 +37,7 @@ UnifyPy is a powerful automated solution that can package any Python project int
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/yourusername/python-packager.git
+git clone https://github.com/huangjunsen0406/UnifyPy.git
 cd python-packager
 ```
 
@@ -47,15 +47,32 @@ cd python-packager
 pip install -r requirements.txt
 ```
 
-3. **Basic usage**
+3. **Usage Methods**
+
+There are two ways to use UnifyPy to package your project:
+
+**Method 1: Execute from within your project directory (Recommended)**
+
+Navigate to your project directory that needs to be packaged, then run:
+```bash
+# Use the relative path to UnifyPy's main.py
+python /path/to/UnifyPy/main.py . --config build.json
+```
+
+For example:
+```bash
+# Example: If UnifyPy is located at /home/junsen/Desktop/UnifyPy
+python /home/junsen/Desktop/UnifyPy/main.py . --config build.json
+```
+
+**Method 2: Execute from UnifyPy directory**
 
 ```bash
-# Package a project with default settings
-python main.py your_project_path
-
-# Package using a JSON configuration file
+# Using project path and configuration file
 python main.py your_project_path --config config.json
 ```
+
+> **Note**: If using Method 2, the paths specified in the configuration file must use absolute paths.
 
 ## Usage Examples
 
@@ -136,6 +153,20 @@ Create a JSON configuration file with packaging parameters:
   }
 }
 ```
+
+### Configuration File Path Notes
+
+Depending on how you use UnifyPy, the paths in your configuration file need to be adjusted accordingly:
+
+1. **When executing from your project directory (Method 1)**:
+   - Paths in the configuration file can use relative paths, relative to your project directory
+   - Example: `"icon": "assets/app_icon.ico"`
+
+2. **When executing from UnifyPy directory (Method 2)**:
+   - Paths in the configuration file must use absolute paths
+   - Example: `"icon": "C:/Users/username/Projects/MyApp/assets/app_icon.ico"`
+
+**Note**: Path separators in Windows systems must use double backslashes `\\` or single forward slashes `/` in JSON files.
 
 ## Installing Packaged Applications
 
