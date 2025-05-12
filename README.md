@@ -31,9 +31,19 @@ UnifyPy是一个强大的自动化解决方案，能将任何Python项目打包�
   - **macOS**: 
     - PyInstaller
     - create-dmg (用于创建DMG镜像)
+      - 安装命令: `brew install create-dmg`
+    - Xcode命令行工具: `xcode-select --install`
   - **Linux**: 
     - PyInstaller
-    - 对应格式的打包工具(dpkg-deb, rpmbuild, appimagetool)
+    - 对应格式的打包工具:
+      - DEB格式: `sudo apt-get install dpkg-dev fakeroot`
+      - RPM格式: `sudo dnf install rpm-build` 或 `sudo yum install rpm-build`
+      - AppImage格式: 
+        ```bash
+        wget -c https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+        chmod +x appimagetool-x86_64.AppImage
+        sudo mv appimagetool-x86_64.AppImage /usr/local/bin/appimagetool
+        ```
 
 ## 快速开始
 
@@ -41,7 +51,7 @@ UnifyPy是一个强大的自动化解决方案，能将任何Python项目打包�
 
 ```bash
 git clone https://github.com/huangjunsen0406/UnifyPy.git
-cd python-packager
+cd UnifyPy
 ```
 
 2. **安装依赖**
@@ -77,43 +87,87 @@ python main.py 你的项目路径 --config config.json
 
 > **注意**：如果使用方式二，配置文件中指定的路径必须使用绝对路径。
 
-## 使用示例
+## 配置文件详解
 
-### 命令行参数示例
+UnifyPy使用JSON格式的配置文件进行打包配置。以下是各配置项的详细说明：
 
-#### Windows平台
+### 基本配置
 
-```bash
-# 基本用法
-python main.py C:\Projects\MyApp --name "我的应用" --entry app.py
-
-# 高级用法
-python main.py C:\Projects\MyApp --name "我的应用" --entry app.py --version "1.2.3" --publisher "我的公司" --icon "assets/icon.ico" --hooks hooks目录
+```json
+{
+    "name": "我的应用",                  // 应用程序名称
+    "display_name": "我的多平台应用",     // 应用程序显示名称
+    "version": "1.0.0",                // 应用程序版本号
+    "publisher": "我的公司",             // 发布者名称
+    "entry": "main.py",                // 程序入口文件
+    "icon": "assets/app_icon.ico",     // 应用图标路径
+    "license": "LICENSE",              // 许可证文件
+    "readme": "README.md",             // 自述文件
+    "hooks": "hooks",                  // PyInstaller钩子目录
+    "onefile": false,                  // 是否生成单文件模式的可执行文件
+    "additional_pyinstaller_args": "--noconsole --add-binary assets/*.dll;.",  // 通用PyInstaller参数
+    
+    // 平台特定配置
+    "platform_specific": {
+        "windows": { ... },  // Windows平台配置
+        "macos": { ... },    // macOS平台配置
+        "linux": { ... }     // Linux平台配置
+    }
+}
 ```
 
-#### macOS平台
+> **注意**：JSON文件不支持注释，上述代码中的注释仅用于说明，实际配置文件中不应包含注释。
 
-```bash
-# 基本用法
-python3 main.py /Users/username/Projects/MyApp --name "我的应用" --entry app.py
+### 平台特定配置
 
-# 生成DMG镜像
-python3 main.py /Users/username/Projects/MyApp --config macos_config.json
+#### Windows平台配置
+
+```json
+"windows": {
+    "additional_pyinstaller_args": "--noconsole --add-data assets;assets --add-data libs;libs",
+    "installer_options": {
+        "languages": ["ChineseSimplified", "English"],  // 安装程序支持的语言
+        "create_desktop_icon": true,                    // 是否创建桌面图标
+        "allow_run_after_install": true,                // 安装后是否允许立即运行
+        "license_file": "LICENSE",                      // 许可证文件
+        "readme_file": "README.md",                     // 自述文件
+        "require_admin": false                          // 是否需要管理员权限
+    },
+    "inno_setup_path": "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe"  // Inno Setup路径
+}
 ```
 
-#### Linux平台
+#### macOS平台配置
 
-```bash
-# 生成AppImage格式
-python3 main.py /home/username/Projects/MyApp --config linux_appimage.json
+```json
+"macos": {
+    "additional_pyinstaller_args": "--windowed --add-data assets:assets --add-data libs:libs",
+    "app_bundle_name": "我的应用.app",                   // 应用包名称
+    "bundle_identifier": "com.example.myapp",          // 应用标识符
+    "sign_bundle": false,                              // 是否签名应用包
+    "identity": "Developer ID Application: 你的名称",    // 签名身份（如果签名）
+    "entitlements": "path/to/entitlements.plist",      // 授权文件（如果需要）
+    "create_dmg": true,                                // 是否创建DMG镜像
+    "create_zip": false                                // 是否创建ZIP压缩包
+}
+```
 
-# 生成DEB包
-python3 main.py /home/username/Projects/MyApp --config linux_deb.json
+#### Linux平台配置
+
+```json
+"linux": {
+    "additional_pyinstaller_args": "--add-data assets:assets --add-data libs:libs",
+    "format": "deb",                                   // 输出格式，可选值：deb, rpm, appimage
+    "desktop_entry": true,                             // 是否创建桌面快捷方式
+    "categories": "Utility;Development;",              // 应用程序类别
+    "description": "我的Python多平台应用程序",            // 应用描述
+    "requires": "libc6,libgtk-3-0,libx11-6"            // 依赖项
+}
 ```
 
 ### 配置文件示例
 
-创建一个包含打包参数的JSON配置文件：
+完整的配置文件示例：
 
 ```json
 {
@@ -171,6 +225,246 @@ python3 main.py /home/username/Projects/MyApp --config linux_deb.json
 
 **注意**：Windows系统中的路径分隔符在JSON文件中需要使用双反斜杠`\\`或单正斜杠`/`。
 
+## 平台特定打包指南
+
+### Windows平台打包
+
+#### 环境准备
+
+1. 安装PyInstaller：`pip install pyinstaller>=6.1.0`
+2. 安装Inno Setup：从[官网](https://jrsoftware.org/isdl.php)下载安装
+3. 配置Inno Setup路径（三种方式）：
+   - 在配置文件中指定：`"inno_setup_path": "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe"`
+   - 通过命令行参数：`--inno-setup-path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"`
+   - 设置环境变量：`INNO_SETUP_PATH=C:\Program Files (x86)\Inno Setup 6\ISCC.exe`
+
+#### 执行打包
+
+```bash
+python /path/to/UnifyPy/main.py . --config build.json
+```
+
+#### 常见问题
+
+1. **"无法定位程序输入点于动态链接库"错误**
+   - 确保包含所有必要的DLL文件
+   - 使用`--add-binary`选项添加DLL文件
+   - 安装Visual C++ Redistributable包
+
+2. **应用图标未显示**
+   - 确保图标文件是有效的.ico格式
+   - 使用`--icon`参数指定图标路径
+
+3. **找不到资源文件**
+   - Windows中使用分号(;)作为路径分隔符：`--add-data assets;assets`
+
+4. **安装程序中文显示乱码**
+   - 在installer_options中添加languages选项：`"languages": ["ChineseSimplified"]`
+   - 确保文本文件使用UTF-8编码
+
+### macOS平台打包
+
+#### 环境准备
+
+1. 安装PyInstaller：`pip install pyinstaller>=6.1.0`
+2. 安装create-dmg：`brew install create-dmg`
+3. 安装Xcode命令行工具：`xcode-select --install`
+
+#### 执行打包
+
+```bash
+python /path/to/UnifyPy/main.py . --config build.json
+```
+
+#### 应用签名与公证
+
+如果需要分发应用，建议进行签名和公证：
+
+1. **配置签名选项**：
+   ```json
+   "macos": {
+     "sign_bundle": true,
+     "identity": "Developer ID Application: 你的名称 (Team ID)"
+   }
+   ```
+
+2. **公证应用**（打包后手动执行）：
+   ```bash
+   xcrun altool --notarize-app --primary-bundle-id "com.example.myapp" --username "你的AppleID" --password "app-specific-password" --file "应用路径.dmg"
+   ```
+
+#### 常见问题
+
+1. **"无法验证开发者"警告**
+   - 右键点击应用，选择"打开"
+   - 或执行命令：`xattr -d com.apple.quarantine /Applications/应用名称.app`
+
+2. **应用无法找到资源文件**
+   - macOS中使用冒号(:)作为路径分隔符：`--add-data assets:assets`
+
+3. **依赖库问题（dylib无法加载）**
+   - 使用`--collect-all`参数收集所有依赖：`--collect-all numpy`
+
+### Linux平台打包
+
+#### 环境准备
+
+根据需要的打包格式，安装相应的工具：
+
+1. **DEB格式**：
+   ```bash
+   sudo apt-get install dpkg-dev fakeroot
+   ```
+
+2. **RPM格式**：
+   ```bash
+   # Fedora
+   sudo dnf install rpm-build
+   # CentOS/RHEL
+   sudo yum install rpm-build
+   ```
+
+3. **AppImage格式**：
+   ```bash
+   wget -c https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+   chmod +x appimagetool-x86_64.AppImage
+   sudo mv appimagetool-x86_64.AppImage /usr/local/bin/appimagetool
+   ```
+
+#### 执行打包
+
+##### DEB格式打包（适用于Debian/Ubuntu系统）
+
+1. **准备环境**
+
+   ```bash
+   # 更新系统并安装必要的依赖
+   sudo apt update
+   sudo apt install -y build-essential python3-dev python3-pip python3-setuptools libopenblas-dev liblapack-dev gfortran patchelf autoconf automake libtool cmake libssl-dev libatlas-base-dev
+   ```
+
+2. **执行打包**
+
+   确保build.json中linux.format设置为"deb"，然后执行：
+
+   ```bash
+   python3 /路径/到/UnifyPy/main.py . --config build.json
+   ```
+
+##### AppImage格式打包（适用于通用Linux系统）
+
+AppImage格式需要特别注意NumPy库的编译，以下是完整步骤：
+
+1. **升级pip和基本构建工具**
+
+   ```bash
+   python -m pip install --upgrade pip setuptools wheel
+   ```
+
+2. **安装必要的系统依赖**
+
+   ```bash
+   sudo apt update
+   sudo apt install -y build-essential python3-dev python3-pip python3-setuptools libopenblas-dev liblapack-dev gfortran patchelf autoconf automake libtool cmake libssl-dev libatlas-base-dev
+   ```
+
+3. **安装Meson和Ninja构建系统**
+
+   ```bash
+   pip install meson ninja
+   sudo apt install -y meson ninja-build
+   ```
+
+4. **准备NumPy编译环境**
+
+   ```bash
+   # 卸载现有NumPy
+   pip uninstall numpy -y
+   
+   # 设置环境变量
+   export BLAS=openblas
+   export LAPACK=openblas
+   export NPY_NUM_BUILD_JOBS=$(nproc)  # 使用所有CPU核心加速编译
+   
+   # 从源码编译安装NumPy
+   pip install numpy==1.26.4 --no-binary :all:
+   ```
+
+5. **执行打包**
+
+   确保build.json中linux.format设置为"appimage"，然后执行：
+
+   ```bash
+   python3 /路径/到/UnifyPy/main.py . --config build.json
+   ```
+
+#### 常见问题
+
+1. **动态库依赖问题**
+   - 使用`ldd`命令检查可执行文件依赖：`ldd dist/我的应用`
+   - 在`requires`中添加必要的系统依赖
+
+2. **GL/图形库问题**
+   - 添加特定的图形库依赖：`"requires": "libc6,libgtk-3-0,libx11-6,libgl1-mesa-glx"`
+
+3. **AppImage无法执行**
+   - 确保添加了执行权限：`chmod +x 我的应用-1.0.0-x86_64.AppImage`
+   - 检查是否安装了FUSE：`sudo apt-get install libfuse2`
+
+4. **NumPy编译失败**
+   - 确保已安装所有必要的开发库，特别是OpenBLAS、LAPACK和Fortran编译器
+
+5. **找不到appimagetool**
+   - 确保已正确安装并设置appimagetool的可执行权限
+
+## 打包输出
+
+成功打包后，将在项目根目录下的相应文件夹中找到打包的应用程序：
+
+- **Windows**: 
+  - 可执行文件(.exe)位于`dist/应用名称`目录
+  - 安装程序位于`installer`目录，命名为`应用名称-版本号-setup.exe`
+
+- **macOS**: 
+  - 应用程序包(.app)位于`dist/应用名称`目录
+  - 磁盘镜像(.dmg)位于`installer`目录，命名为`应用名称-版本号.dmg`
+
+- **Linux**: 
+  - 可执行文件位于`dist/应用名称`目录
+  - 安装包位于`installer`目录：
+    - DEB格式：`应用名称_版本号_amd64.deb`
+    - RPM格式：`应用名称-版本号-1.x86_64.rpm`
+    - AppImage格式：`应用名称-版本号-x86_64.AppImage`
+
+## 多平台架构支持
+
+UnifyPy会自动检测当前系统的CPU架构，并为当前架构生成对应的安装包。例如：
+
+- 在x86_64架构的Linux上运行，会生成x86_64/amd64的安装包
+- 在arm64架构的Linux上运行，会生成arm64的安装包
+
+如果需要为同一操作系统的不同架构（如Linux的arm64和x86_64）生成安装包，需要在对应架构的机器上分别运行打包命令，或使用虚拟机/容器/交叉编译环境。
+
+## 命令行参数说明
+
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| project_dir | Python项目根目录路径 | (必填) |
+| --name | 应用程序名称 | 项目目录名称 |
+| --display-name | 应用程序显示名称 | 与name相同 |
+| --entry | 入口Python文件 | main.py |
+| --version | 应用程序版本 | 1.0 |
+| --publisher | 发布者名称 | Python应用开发团队 |
+| --icon | 图标文件路径 | (自动生成) |
+| --license | 许可证文件路径 | (无) |
+| --readme | 自述文件路径 | (无) |
+| --config | 配置文件路径(JSON格式) | (无) |
+| --hooks | 运行时钩子目录 | (无) |
+| --skip-exe | 跳过exe打包步骤 | (否) |
+| --skip-installer | 跳过安装程序生成步骤 | (否) |
+| --onefile | 生成单文件模式的可执行文件 | (否) |
+| --inno-setup-path | Inno Setup可执行文件路径 | (无) |
+
 ## 安装打包后的应用
 
 ### Windows
@@ -203,31 +497,33 @@ chmod +x 应用名称-版本-架构.AppImage
 ./应用名称-版本-架构.AppImage
 ```
 
-## 参数说明
-
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| project_dir | Python项目根目录路径 | (必填) |
-| --name | 应用程序名称 | 项目目录名称 |
-| --display-name | 应用程序显示名称 | 与name相同 |
-| --entry | 入口Python文件 | main.py |
-| --version | 应用程序版本 | 1.0 |
-| --publisher | 发布者名称 | Python应用开发团队 |
-| --icon | 图标文件路径 | (自动生成) |
-| --license | 许可证文件路径 | (无) |
-| --readme | 自述文件路径 | (无) |
-| --config | 配置文件路径(JSON格式) | (无) |
-| --hooks | 运行时钩子目录 | (无) |
-| --skip-exe | 跳过exe打包步骤 | (否) |
-| --skip-installer | 跳过安装程序生成步骤 | (否) |
-| --onefile | 生成单文件模式的可执行文件 | (否) |
-
 ## 多平台路径分隔符注意事项
 
 在不同平台上指定资源路径时，注意使用正确的分隔符：
 
 - **Windows**: 使用分号 `;` (例如: `--add-data assets;assets`)
 - **macOS/Linux**: 使用冒号 `:` (例如: `--add-data assets:assets`)
+
+## 高级配置选项
+
+### PyInstaller参数
+
+在`additional_pyinstaller_args`字段中，您可以添加任何PyInstaller支持的参数。以下是一些常用参数：
+
+- `--noconsole`: 不显示控制台窗口（仅适用于图形界面程序）
+- `--windowed`: 等同于`--noconsole`
+- `--hidden-import=MODULE`: 添加隐式导入的模块
+- `--add-data SRC;DEST`: 添加数据文件（Windows平台使用分号分隔）
+- `--add-data SRC:DEST`: 添加数据文件（macOS/Linux平台使用冒号分隔）
+- `--icon=FILE.ico`: 设置应用程序图标
+
+### 处理特殊依赖
+
+某些Python库可能需要特殊处理才能正确打包，可以通过以下方式解决：
+
+1. **使用钩子文件**：在`hooks`目录中创建自定义钩子，处理特殊导入情况
+2. **添加隐式导入**：使用`--hidden-import`参数显式包含隐式导入的模块
+3. **添加数据文件**：使用`--add-data`参数包含程序运行所需的数据文件
 
 ## 常见问题
 
@@ -258,6 +554,20 @@ A: 可以尝试在配置中启用代码签名：
   "identity": "你的开发者ID"
 }
 ```
+或者右键点击应用，选择"打开"。
+
+**Q: 如何在同一个build.json中为Linux配置多个架构？**  
+A: 当前版本不支持在同一个配置文件中为Linux指定多个架构。UnifyPy会自动检测当前系统架构并生成对应的安装包。如需为不同架构生成安装包，需要在对应架构的机器上分别运行打包命令。
+
+## 最佳实践
+
+1. **清理项目**：打包前移除临时文件、缓存和不必要的大型文件
+2. **测试依赖**：确保所有依赖都正确安装并可以导入
+3. **确认文件路径**：检查代码中的文件路径是否使用相对路径或资源路径
+4. **验证配置**：确保build.json中的配置与您的环境一致
+5. **多平台测试**：如果条件允许，在多个平台上测试打包的应用程序
+6. **保存配置**：为不同的打包场景保存不同版本的配置文件，方便复用
+7. **版本管理**：每次发布前更新版本号，保持版本一致性
 
 ## 许可证
 
