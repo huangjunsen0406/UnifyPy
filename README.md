@@ -87,6 +87,33 @@ python main.py 你的项目路径 --config config.json
 
 > **注意**：如果使用方式二，配置文件中指定的路径必须使用绝对路径。
 
+## 使用GitHub Actions自动打包
+
+UnifyPy支持通过GitHub Actions自动打包Windows应用程序。以下是使用步骤：
+
+1. **复制工作流文件**
+
+   将UnifyPy仓库中的`.github/workflows/build-windows.yml`文件复制到你的项目的`.github/workflows/`目录下。
+
+2. **配置工作流**
+
+   在你的GitHub仓库中，进入"Actions"标签页，选择"Build Windows Package"工作流。
+
+3. **运行工作流**
+
+   点击"Run workflow"按钮，在弹出的表单中：
+   - `project_repo`：要打包的项目仓库（格式：用户名/仓库名），留空表示当前仓库
+   - `project_path`：填写要打包的项目路径（默认为当前仓库根目录）
+   - `config_file`：填写配置文件路径（默认为`build.json`）
+   - `requirements_file`：项目依赖文件路径（如：requirements.txt），留空表示不安装额外依赖
+   - `python_version`：选择Python版本（默认为3.10）
+
+4. **获取打包结果**
+
+   工作流执行完成后，可以在工作流运行记录中下载打包好的应用程序和安装程序。
+
+> **注意**：GitHub Actions自动安装了Inno Setup，无需手动配置Inno Setup路径。
+
 ## 配置文件详解
 
 UnifyPy使用JSON格式的配置文件进行打包配置。以下是各配置项的详细说明：
@@ -576,3 +603,120 @@ A: 当前版本不支持在同一个配置文件中为Linux指定多个架构。
 MIT许可证允许任何人免费使用、复制、修改、合并、发布、分发、再许可和/或销售本软件的副本，但需在所有副本中包含上述版权声明和本许可声明。
 
 完整许可证内容请参阅[LICENSE](LICENSE)文件。
+
+# 使用GitHub Actions打包py-xiaozhi
+
+本指南将帮助你使用GitHub Actions和UnifyPy自动打包py-xiaozhi项目。
+
+## 步骤1：添加工作流文件
+
+将以下文件添加到你的py-xiaozhi仓库中：
+
+路径: `.github/workflows/build-windows-with-unifypy.yml`
+
+```yaml
+name: Build Windows Package with UnifyPy
+
+on:
+  workflow_dispatch:
+    inputs:
+      python_version:
+        description: 'Python版本'
+        required: false
+        default: '3.10'
+        type: choice
+        options:
+          - '3.9'
+          - '3.10'
+          - '3.11'
+          - '3.12'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout py-xiaozhi
+        uses: actions/checkout@v4
+        
+      - name: Checkout UnifyPy
+        uses: actions/checkout@v4
+        with:
+          repository: huangjunsen0406/UnifyPy
+          path: UnifyPy
+          
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ github.event.inputs.python_version }}
+          
+      - name: Install PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller>=6.1.0
+          
+      - name: Install py-xiaozhi dependencies
+        run: |
+          pip install -r requirements.txt
+          
+      - name: Install Inno Setup
+        shell: powershell
+        run: |
+          # 下载Inno Setup安装程序
+          Invoke-WebRequest -Uri "https://files.jrsoftware.org/is/6/innosetup-6.2.1.exe" -OutFile "innosetup-6.2.1.exe"
+          
+          # 使用静默安装模式安装Inno Setup
+          Start-Process -FilePath "innosetup-6.2.1.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES" -Wait
+          
+          # 设置环境变量
+          echo "INNO_SETUP_PATH=C:\Program Files (x86)\Inno Setup 6\ISCC.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          
+      - name: Run UnifyPy
+        shell: cmd
+        run: |
+          python UnifyPy\main.py . --config build.json
+          
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: xiaozhi-windows-package
+          path: |
+            dist/**/*.exe
+            installer/**/*.exe
+```
+
+## 步骤2：运行工作流
+
+1. 在GitHub上进入你的py-xiaozhi仓库
+2. 点击"Actions"选项卡
+3. 选择左侧的"Build Windows Package with UnifyPy"工作流
+4. 点击"Run workflow"按钮
+5. 在弹出的表单中填写：
+   - `target_repo`：要打包的目标仓库（格式：用户名/仓库名），留空表示当前仓库
+   - `python_version`：选择Python版本（默认为3.10）
+6. 点击绿色的"Run workflow"按钮开始构建
+
+## 步骤3：下载打包结果
+
+1. 等待工作流完成（通常需要5-10分钟）
+2. 在工作流运行记录中点击"xiaozhi-windows-package"构件
+3. 下载构件压缩包，其中包含：
+   - `dist/xiaozhi/xiaozhi.exe`：可执行文件
+   - `installer/xiaozhi-1.0.0-setup.exe`：安装程序
+
+## 注意事项
+
+- 确保你的py-xiaozhi仓库中有正确的`build.json`文件
+- 工作流会自动处理依赖项和Inno Setup的安装
+- 如果遇到问题，可以查看工作流运行日志进行排查
+
+## 自定义打包
+
+如果需要自定义打包过程，可以修改：
+
+1. `build.json`文件中的配置选项
+2. `.github/workflows/build-windows-with-unifypy.yml`工作流文件
+
+## 相关链接
+
+- [UnifyPy项目](https://github.com/huangjunsen0406/UnifyPy)
+- [py-xiaozhi项目](https://github.com/huangjunsen0406/py-xiaozhi)

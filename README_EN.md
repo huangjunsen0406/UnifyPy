@@ -576,3 +576,32 @@ This project is licensed under the MIT License. Copyright (c) 2025 Junsen.
 The MIT License allows anyone to freely use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the software, provided that the above copyright notice and permission notice are included in all copies.
 
 See the [LICENSE](LICENSE) file for the complete license text.
+
+## Using GitHub Actions for Automated Packaging
+
+UnifyPy supports automated Windows application packaging through GitHub Actions. Here's how to use it:
+
+1. **Copy the Workflow File**
+
+   Copy the `.github/workflows/build-windows.yml` file from the UnifyPy repository to your project's `.github/workflows/` directory.
+
+2. **Configure the Workflow**
+
+   In your GitHub repository, go to the "Actions" tab and select the "Build Windows Package" workflow.
+
+3. **Run the Workflow**
+
+   Click the "Run workflow" button and in the form that appears:
+   - `project_repo`: The repository to package (format: username/repository), leave empty for current repository
+   - `project_path`: Enter the path to the project you want to package (defaults to the repository root)
+   - `config_file`: Enter the path to the configuration file (defaults to `build.json`)
+   - `requirements_file`: Path to the project dependencies file (e.g., requirements.txt), leave empty to skip installing extra dependencies
+   - `python_version`: Select Python version (default is 3.10)
+
+4. **Get the Packaging Results**
+
+   After the workflow completes, you can download the packaged application and installer from the workflow run record.
+
+> **Note**: GitHub Actions automatically installs Inno Setup, so you don't need to manually configure the Inno Setup path.
+
+## Configuration File Details

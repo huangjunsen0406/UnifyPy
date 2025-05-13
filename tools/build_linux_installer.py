@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8-sig -*-
 """
 Linux安装包构建工具
 用于将PyInstaller生成的文件打包为AppImage或deb/rpm包
@@ -82,7 +82,7 @@ def create_desktop_entry(args, target_dir):
         icon_path = os.path.basename(new_icon_path)
 
     # 创建桌面快捷方式文件
-    with open(desktop_file, 'w', encoding='utf-8') as f:
+    with open(desktop_file, 'w', encoding='utf-8-sig') as f:
         f.write(f"""[Desktop Entry]
 Type=Application
 Name={args.name}
@@ -122,7 +122,7 @@ def create_appimage(args):
 
     # 在复制文件后，创建桌面文件前添加以下代码
     apprun_path = os.path.join(app_dir, "AppRun")
-    with open(apprun_path, 'w', encoding='utf-8') as f:
+    with open(apprun_path, 'w', encoding='utf-8-sig') as f:
         f.write(f"""#!/bin/sh
 # 获取AppImage或AppDir的路径
 SELF_DIR=$(dirname "$(readlink -f "$0")")
@@ -213,7 +213,7 @@ def create_deb_package(args):
 
     # 创建启动脚本
     launcher_script = os.path.join(bin_dir, args.name)
-    with open(launcher_script, 'w', encoding='utf-8') as f:
+    with open(launcher_script, 'w', encoding='utf-8-sig') as f:
         f.write(f"""#!/bin/sh
 exec /usr/share/{args.name}/{args.name} "$@"
 """)
@@ -223,7 +223,7 @@ exec /usr/share/{args.name}/{args.name} "$@"
 
     # 创建桌面文件
     desktop_file = os.path.join(desktop_dir, f"{args.name}.desktop")
-    with open(desktop_file, 'w', encoding='utf-8') as f:
+    with open(desktop_file, 'w', encoding='utf-8-sig') as f:
         f.write(f"""[Desktop Entry]
 Type=Application
 Name={args.name}
@@ -253,7 +253,7 @@ Version={args.version}
     if args.requires:
         depends += ", " + args.requires
 
-    with open(control_file, 'w', encoding='utf-8') as f:
+    with open(control_file, 'w', encoding='utf-8-sig') as f:
         f.write(f"""Package: {args.name}
 Version: {args.version}
 Section: utils
@@ -351,7 +351,7 @@ def create_rpm_package(args):
     if args.requires:
         requires = "Requires: " + args.requires
 
-    with open(spec_file, 'w', encoding='utf-8') as f:
+    with open(spec_file, 'w', encoding='utf-8-sig') as f:
         f.write(f"""Name:           {args.name}
 Version:        {args.version}
 Release:        1%{{?dist}}

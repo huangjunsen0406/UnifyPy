@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8-sig -*-
 """
 多平台打包工厂
 为Windows、MacOS和Linux提供特定的打包实现
@@ -97,7 +97,7 @@ class WindowsPackager(PlatformPackager):
             return False
 
         # 读取模板内容
-        with open(setup_iss_template, 'r', encoding='utf-8') as f:
+        with open(setup_iss_template, 'r', encoding='utf-8-sig') as f:
             template_content = f.read()
 
         # 替换模板变量
@@ -136,7 +136,7 @@ class WindowsPackager(PlatformPackager):
             "{{OUTPUT_PATH}}", output_path)
 
         # 写入处理后的模板
-        with open(setup_iss_path, 'w', encoding='utf-8') as f:
+        with open(setup_iss_path, 'w', encoding='utf-8-sig') as f:
             f.write(template_content)
 
         return True
@@ -679,7 +679,7 @@ class LinuxPackager(PlatformPackager):
                 self.env["temp_dir"], f"{self.env['app_name']}.desktop")
 
             # 创建桌面快捷方式文件
-            with open(desktop_file, 'w', encoding='utf-8') as f:
+            with open(desktop_file, 'w', encoding='utf-8-sig') as f:
                 f.write(f"""[Desktop Entry]
 Name={self.env['display_name']}
 Comment={self.platform_config.get('description', 'Python Application')}
@@ -739,7 +739,7 @@ Categories={self.platform_config.get('categories', 'Utility')}
 
             # 创建AppRun文件
             apprun_path = os.path.join(app_dir, "AppRun")
-            with open(apprun_path, 'w', encoding='utf-8') as f:
+            with open(apprun_path, 'w', encoding='utf-8-sig') as f:
                 f.write(f"""#!/bin/sh
 # 获取AppImage或AppDir的路径
 SELF_DIR=$(dirname "$(readlink -f "$0")")
@@ -854,7 +854,7 @@ exec "$SELF_DIR/{self.env['app_name']}" "$@"
 
         # 创建启动脚本
         launcher_script = os.path.join(bin_dir, self.env["app_name"])
-        with open(launcher_script, 'w', encoding='utf-8') as f:
+        with open(launcher_script, 'w', encoding='utf-8-sig') as f:
             f.write(f"""#!/bin/sh
 exec /usr/share/{self.env["app_name"]}/{self.env["app_name"]} "$@"
 """)
@@ -865,7 +865,7 @@ exec /usr/share/{self.env["app_name"]}/{self.env["app_name"]} "$@"
         # 创建桌面文件
         desktop_file = os.path.join(
             desktop_dir, f"{self.env['app_name']}.desktop")
-        with open(desktop_file, 'w', encoding='utf-8') as f:
+        with open(desktop_file, 'w', encoding='utf-8-sig') as f:
             f.write(f"""[Desktop Entry]
 Type=Application
 Name={self.env['display_name']}
@@ -910,7 +910,7 @@ Version={self.env['version']}
         if self.platform_config.get("requires"):
             depends += ", " + self.platform_config.get("requires")
 
-        with open(control_file, 'w', encoding='utf-8') as f:
+        with open(control_file, 'w', encoding='utf-8-sig') as f:
             f.write(f"""Package: {self.env["app_name"]}
 Version: {self.env['version']}
 Section: utils
@@ -991,7 +991,7 @@ Description: {self.platform_config.get('description', 'Python Application')}
         # 创建桌面文件
         desktop_file = os.path.join(
             app_temp_dir, f"{self.env['app_name']}.desktop")
-        with open(desktop_file, 'w', encoding='utf-8') as f:
+        with open(desktop_file, 'w', encoding='utf-8-sig') as f:
             f.write(f"""[Desktop Entry]
 Type=Application
 Name={self.env['display_name']}
@@ -1016,7 +1016,7 @@ Version={self.env['version']}
         if self.platform_config.get("requires"):
             requires = "Requires: " + self.platform_config.get("requires")
 
-        with open(spec_file, 'w', encoding='utf-8') as f:
+        with open(spec_file, 'w', encoding='utf-8-sig') as f:
             f.write(f"""Name:           {self.env['app_name']}
 Version:        {self.env['version']}
 Release:        1%{{?dist}}

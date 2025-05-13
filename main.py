@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8-sig -*-
 """
 UnifyPy
 用于将Python项目打包为独立可执行文件和多平台安装程序
@@ -65,7 +65,7 @@ def parse_arguments():
 def load_config(config_path):
     """加载JSON配置文件"""
     try:
-        with open(config_path, 'r', encoding='utf-8') as f:
+        with open(config_path, 'r', encoding='utf-8-sig') as f:
             return json.load(f)
     except Exception as e:
         print(f"加载配置文件失败: {e}")

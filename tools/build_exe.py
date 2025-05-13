@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8-sig -*-
 """
 可执行文件构建工具
 使用PyInstaller将Python项目打包为独立可执行文件

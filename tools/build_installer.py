@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8-sig -*-
 """
 Windows安装程序构建工具
 使用Inno Setup将可执行文件打包为Windows安装程序
@@ -227,7 +227,7 @@ def build_installer(inno_path, args):
             return False
 
         # 创建临时ISS文件，替换路径为绝对路径
-        with open(args.iss, 'r', encoding='utf-8') as f:
+        with open(args.iss, 'r', encoding='utf-8-sig') as f:
             iss_content = f.read()
 
         # 获取绝对路径
@@ -240,7 +240,7 @@ def build_installer(inno_path, args):
 
         # 写入临时文件
         temp_iss = args.iss + ".temp"
-        with open(temp_iss, 'w', encoding='utf-8') as f:
+        with open(temp_iss, 'w', encoding='utf-8-sig') as f:
             f.write(iss_content)
 
         # 运行Inno Setup命令
