@@ -854,7 +854,7 @@ exec "$SELF_DIR/{self.env['app_name']}" "$@"
 
         # 创建启动脚本
         launcher_script = os.path.join(bin_dir, self.env["app_name"])
-        with open(launcher_script, 'w', encoding='utf-8-sig') as f:
+        with open(launcher_script, 'w', encoding='utf-8') as f:
             f.write(f"""#!/bin/sh
 exec /usr/share/{self.env["app_name"]}/{self.env["app_name"]} "$@"
 """)
@@ -865,7 +865,7 @@ exec /usr/share/{self.env["app_name"]}/{self.env["app_name"]} "$@"
         # 创建桌面文件
         desktop_file = os.path.join(
             desktop_dir, f"{self.env['app_name']}.desktop")
-        with open(desktop_file, 'w', encoding='utf-8-sig') as f:
+        with open(desktop_file, 'w', encoding='utf-8') as f:
             f.write(f"""[Desktop Entry]
 Type=Application
 Name={self.env['display_name']}
@@ -910,7 +910,7 @@ Version={self.env['version']}
         if self.platform_config.get("requires"):
             depends += ", " + self.platform_config.get("requires")
 
-        with open(control_file, 'w', encoding='utf-8-sig') as f:
+        with open(control_file, 'w', encoding='utf-8') as f:
             f.write(f"""Package: {self.env["app_name"]}
 Version: {self.env['version']}
 Section: utils
