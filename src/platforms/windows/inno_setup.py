@@ -567,6 +567,9 @@ AddonHostProgramNotFound=%1 无法在您选择的文件夹中找到。%n%n无论
         if not app_id.startswith('{'):
             app_id = f"{{{app_id}}}"
         
+        # 处理路径中的反斜杠
+        output_dir = str(output_path.parent).replace('/', '\\')
+        
         setup_section = f"""[Setup]
 AppId={app_id}
 AppName={app_name}
@@ -576,7 +579,7 @@ AppPublisher={publisher}
 DefaultDirName={{autopf}}\\{app_name}
 DefaultGroupName={app_name}
 AllowNoIcons=yes
-OutputDir={str(output_path.parent).replace('/', '\\')}
+OutputDir={output_dir}
 OutputBaseFilename={output_path.stem}
 Compression=lzma
 SolidCompression=yes
@@ -590,11 +593,13 @@ WizardStyle=modern"""
 
         license_file = config.get('license_file', '')
         if license_file and os.path.exists(license_file):
-            setup_section += f"\nLicenseFile={str(Path(license_file)).replace('/', '\\')}"
+            license_path = str(Path(license_file)).replace('/', '\\')
+            setup_section += f"\nLicenseFile={license_path}"
 
         setup_icon = config.get('setup_icon', '')
         if setup_icon and os.path.exists(setup_icon):
-            setup_section += f"\nSetupIconFile={str(Path(setup_icon)).replace('/', '\\')}"
+            setup_icon_path = str(Path(setup_icon)).replace('/', '\\')
+            setup_section += f"\nSetupIconFile={setup_icon_path}"
 
         # 语言支持
         languages_section = "[Languages]"
