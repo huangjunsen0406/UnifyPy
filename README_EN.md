@@ -1,607 +1,377 @@
-# UnifyPy
+# UnifyPy 2.0
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python: 3.6+](https://img.shields.io/badge/Python-3.6+-blue.svg)](https://www.python.org/downloads/)
+> Professional Cross-Platform Python Application Packaging Solution
 
-UnifyPy is a powerful automated solution that can package any Python project into standalone executables and installers across platforms. It supports Windows, macOS, and Linux, providing a unified interface and rich configuration options.
+## 🚀 Project Overview
 
-## Features
+UnifyPy 2.0 is an enterprise-grade cross-platform Python application packaging tool that supports packaging Python projects into native installers for Windows, macOS, and Linux platforms.
 
-- **Cross-platform support**: Compatible with Windows, macOS, and Linux
-- **Multiple installer formats**:
-  - Windows: Executable (.exe) and installer (Inno Setup)
-  - macOS: Application bundle (.app) and disk image (.dmg)
-  - Linux: AppImage, DEB, RPM packages
-- **Flexible configuration**: Supports both command-line arguments and JSON configuration files
-- **Packaging modes**: Supports both single-file and directory modes
-- **Customization options**: Supports custom icons, version numbers, publisher info, and more
-- **Resource bundling**: Automatically handles resource files, dependencies, and custom hooks
-- **Automatic dependency installation**: Detects and installs required tools
+### ✨ Core Features
 
-## Requirements
+- **🔄 Multi-Platform Support**: Windows (EXE+MSI), macOS (DMG+PKG+ZIP), Linux (DEB+RPM+AppImage+TarGZ)
+- **⚡ Parallel Building**: Support multi-format parallel generation, significantly improving build efficiency
+- **🛡️ Enterprise Features**: Automatic rollback, session management, intelligent error handling
+- **🎨 Excellent Experience**: Rich progress bars, staged display, detailed logging
+- **🔧 Complete Configuration**: Support 30+ PyInstaller parameters, JSON configuration
+- **📦 Automated Tools**: Automatic download and management of third-party tools
 
-- Python 3.6 or higher
-- Platform-specific requirements:
-  - **Windows**: 
-    - PyInstaller
-    - Inno Setup (for creating installers)
-      - Download: https://jrsoftware.org/isdl.php
-      - After installation, specify ISCC.exe path via --inno-setup-path parameter
-      - Or set the INNO_SETUP_PATH environment variable
-  - **macOS**: 
-    - PyInstaller
-    - create-dmg (for creating DMG images)
-      - Install command: `brew install create-dmg`
-    - Xcode Command Line Tools: `xcode-select --install`
-  - **Linux**: 
-    - PyInstaller
-    - Format-specific packaging tools:
-      - DEB format: `sudo apt-get install dpkg-dev fakeroot`
-      - RPM format: `sudo dnf install rpm-build` or `sudo yum install rpm-build`
-      - AppImage format:
-        ```bash
-        wget -c https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-        chmod +x appimagetool-x86_64.AppImage
-        sudo mv appimagetool-x86_64.AppImage /usr/local/bin/appimagetool
-        ```
+## 📦 Installation Requirements
 
-## Quick Start
+### System Requirements
+- Python 3.8+
+- Windows 10+ / macOS 10.14+ / Linux (Ubuntu 18.04+)
 
-1. **Clone the repository**
-
-```bash
-git clone https://github.com/huangjunsen0406/UnifyPy.git
-cd UnifyPy
-```
-
-2. **Install dependencies**
-
+### Dependency Installation
 ```bash
 pip install -r requirements.txt
 ```
 
-3. **Usage Methods**
+Main dependencies:
+- pyinstaller >= 6.0
+- rich >= 12.0
+- requests >= 2.28
+- packaging >= 21.0
 
-There are two ways to use UnifyPy to package your project:
+## 🚀 Quick Start
 
-**Method 1: Execute from within your project directory (Recommended)**
-
-Navigate to your project directory that needs to be packaged, then run:
-```bash
-# Use the relative path to UnifyPy's main.py
-python /path/to/UnifyPy/main.py . --config build.json
-```
-
-For example:
-```bash
-# Example: If UnifyPy is located at /home/junsen/Desktop/UnifyPy
-python /home/junsen/Desktop/UnifyPy/main.py . --config build.json
-```
-
-**Method 2: Execute from UnifyPy directory**
+### Basic Usage
 
 ```bash
-# Using project path and configuration file
-python main.py your_project_path --config config.json
-```
+# Package using configuration file
+python main.py . --config build.json
 
-> **Note**: If using Method 2, the paths specified in the configuration file must use absolute paths.
+# Quick packaging via command line
+python main.py . --name myapp --version 1.0.0 --entry main.py --onefile
 
-## Configuration File Guide
+# Multi-format parallel build
+python main.py . --config build_multiformat.json --parallel --max-workers 4
 
-UnifyPy uses JSON format configuration files for packaging. Here's a detailed explanation of the configuration options:
+# Verbose output mode
+python main.py . --config build.json --verbose
 
-### Basic Configuration
+# Clean rebuild
+python main.py . --config build.json --clean --verbose
 
-```json
-{
-    "name": "MyApp",                    // Application name
-    "display_name": "My Multi-Platform App",  // Display name
-    "version": "1.0.0",                 // Version number
-    "publisher": "My Company",          // Publisher name
-    "entry": "main.py",                 // Entry Python file
-    "icon": "assets/app_icon.ico",      // Application icon path
-    "license": "LICENSE",               // License file
-    "readme": "README.md",              // README file
-    "hooks": "hooks",                   // PyInstaller hooks directory
-    "onefile": false,                   // Whether to generate single-file executable
-    "additional_pyinstaller_args": "--noconsole --add-binary assets/*.dll;.",  // Common PyInstaller arguments
-    
-    // Platform-specific configurations
-    "platform_specific": {
-        "windows": { ... },  // Windows platform configuration
-        "macos": { ... },    // macOS platform configuration
-        "linux": { ... }     // Linux platform configuration
-    }
-}
-```
+# Generate executable only, skip installer
+python main.py . --config build.json --skip-installer
 
-> **Note**: JSON files don't support comments. The comments above are for explanation only and should not be included in actual configuration files.
+# Specify specific format
+python main.py . --config build.json --format dmg --parallel
 
-### Platform-Specific Configurations
-
-#### Windows Platform Configuration
-
-```json
-"windows": {
-    "additional_pyinstaller_args": "--noconsole --add-data assets;assets --add-data libs;libs",
-    "installer_options": {
-        "languages": ["English", "ChineseSimplified"],  // Supported languages
-        "create_desktop_icon": true,                    // Create desktop icon
-        "allow_run_after_install": true,                // Allow running after installation
-        "license_file": "LICENSE",                      // License file
-        "readme_file": "README.md",                     // README file
-        "require_admin": false                          // Require admin privileges
-    },
-    "inno_setup_path": "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe"  // Inno Setup path
-}
-```
-
-#### macOS Platform Configuration
-
-```json
-"macos": {
-    "additional_pyinstaller_args": "--windowed --add-data assets:assets --add-data libs:libs",
-    "app_bundle_name": "MyApp.app",                    // App bundle name
-    "bundle_identifier": "com.example.myapp",          // Bundle identifier
-    "sign_bundle": false,                              // Sign the app bundle
-    "identity": "Developer ID Application: Your Name", // Signing identity (if signing)
-    "entitlements": "path/to/entitlements.plist",      // Entitlements file (if needed)
-    "create_dmg": true,                                // Create DMG image
-    "create_zip": false                                // Create ZIP archive
-}
-```
-
-#### Linux Platform Configuration
-
-```json
-"linux": {
-    "additional_pyinstaller_args": "--add-data assets:assets --add-data libs:libs",
-    "format": "deb",                                   // Output format: deb, rpm, or appimage
-    "desktop_entry": true,                             // Create desktop shortcut
-    "categories": "Utility;Development;",              // Application categories
-    "description": "My Python Multi-Platform Application",  // Application description
-    "requires": "libc6,libgtk-3-0,libx11-6"            // Dependencies
-}
+# macOS development mode (automatic permission configuration)
+python main.py . --config py-xiaozhi.json --development --verbose
 ```
 
 ### Configuration File Example
 
-Complete configuration file example:
+Create `build.json` configuration file:
 
 ```json
 {
   "name": "MyApp",
-  "display_name": "My Multi-Platform App",
+  "display_name": "My Application",
   "version": "1.0.0",
   "publisher": "My Company",
   "entry": "main.py",
-  "icon": "assets/app_icon.ico",
-  "license": "LICENSE",
-  "readme": "README.md",
-  "hooks": "hooks",
-  "onefile": false,
-  "additional_pyinstaller_args": "--noconsole --add-binary assets/*.dll;.",
+  "icon": "assets/app_icon.png",
   
-  "platform_specific": {
+  "pyinstaller": {
+    "onefile": false,
+    "windowed": true,
+    "clean": true,
+    "noconfirm": true,
+    "add_data": ["assets:assets"],
+    "hidden_import": ["requests", "json"]
+  },
+  
+  "platforms": {
     "windows": {
-      "additional_pyinstaller_args": "--noconsole --add-data assets;assets --add-data libs;libs",
-      "installer_options": {
-        "languages": ["English", "ChineseSimplified"],
+      "inno_setup": {
         "create_desktop_icon": true,
-        "allow_run_after_install": true
+        "languages": ["english", "chinesesimplified"]
       }
     },
     "macos": {
-      "additional_pyinstaller_args": "--windowed --add-data assets:assets --add-data libs:libs",
-      "app_bundle_name": "MyApp.app",
-      "bundle_identifier": "com.example.myapp",
-      "sign_bundle": false,
-      "create_dmg": true
+      "bundle_identifier": "com.mycompany.myapp",
+      "dmg": {
+        "volname": "MyApp Installer",
+        "window_size": [600, 400]
+      }
     },
     "linux": {
-      "additional_pyinstaller_args": "--add-data assets:assets --add-data libs:libs",
-      "format": "deb",
-      "desktop_entry": true,
-      "categories": "Utility;Development;",
-      "description": "My Python Multi-Platform Application",
-      "requires": "libc6,libgtk-3-0,libx11-6"
+      "deb": {
+        "package": "myapp",
+        "depends": ["python3 (>= 3.8)"]
+      }
     }
   }
 }
 ```
 
-### Configuration File Path Notes
+## 🔧 Command Line Arguments
 
-Depending on how you use UnifyPy, the paths in your configuration file need to be adjusted accordingly:
-
-1. **When executing from your project directory (Method 1)**:
-   - Paths in the configuration file can use relative paths, relative to your project directory
-   - Example: `"icon": "assets/app_icon.ico"`
-
-2. **When executing from UnifyPy directory (Method 2)**:
-   - Paths in the configuration file must use absolute paths
-   - Example: `"icon": "C:/Users/username/Projects/MyApp/assets/app_icon.ico"`
-
-**Note**: Path separators in Windows systems must use double backslashes `\\` or single forward slashes `/` in JSON files.
-
-## Platform-Specific Packaging Guides
-
-### Windows Platform Packaging
-
-#### Environment Setup
-
-1. Install PyInstaller: `pip install pyinstaller>=6.1.0`
-2. Install Inno Setup: Download from [official website](https://jrsoftware.org/isdl.php)
-3. Configure Inno Setup path (three methods):
-   - Specify in configuration file: `"inno_setup_path": "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe"`
-   - Via command line parameter: `--inno-setup-path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"`
-   - Set environment variable: `INNO_SETUP_PATH=C:\Program Files (x86)\Inno Setup 6\ISCC.exe`
-
-#### Execute Packaging
-
+### Basic Syntax
 ```bash
-python /path/to/UnifyPy/main.py . --config build.json
+python main.py <project_dir> [options]
 ```
 
-#### Common Issues
+### Basic Information Parameters
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `project_dir` | Python project root directory path (required) | `. or /path/to/project` |
+| `--config CONFIG` | Configuration file path (JSON format) | `--config build.json` |
+| `--name NAME` | Application name | `--name MyApp` |
+| `--display-name DISPLAY_NAME` | Application display name | `--display-name "My Application"` |
+| `--entry ENTRY` | Entry Python file | `--entry main.py` |
+| `--version VERSION` | Application version | `--version 1.0.0` |
+| `--publisher PUBLISHER` | Publisher name | `--publisher "My Company"` |
 
-1. **"Unable to locate program entry point in DLL" error**
-   - Ensure all necessary DLL files are included
-   - Use the `--add-binary` option to add DLL files
-   - Install Visual C++ Redistributable package
+### File and Resource Parameters
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `--icon ICON` | Icon file path | `--icon assets/app.png` |
+| `--license LICENSE` | License file path | `--license LICENSE.txt` |
+| `--readme README` | README file path | `--readme README.md` |
+| `--hooks HOOKS` | Runtime hooks directory | `--hooks hooks/` |
 
-2. **Application icon not showing**
-   - Ensure the icon file is a valid .ico format
-   - Use the `--icon` parameter to specify the icon path
+### PyInstaller Options
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `--onefile` | Generate single-file executable | `--onefile` |
+| `--windowed` | Windowed mode (no console) | `--windowed` |
+| `--console` | Console mode | `--console` |
 
-3. **Resource files not found**
-   - Windows uses semicolon (;) as path separator: `--add-data assets;assets`
+### Build Control Options
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `--skip-exe` | Skip executable build | `--skip-exe` |
+| `--skip-installer` | Skip installer build | `--skip-installer` |
+| `--clean` | Clean previous build files | `--clean` |
+| `--format FORMAT` | Specify output format | `--format dmg` |
 
-4. **Installer shows garbled text for non-English languages**
-   - Add languages option in installer_options: `"languages": ["ChineseSimplified"]`
-   - Ensure text files use UTF-8 encoding
+### Tool Path Options
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `--inno-setup-path INNO_SETUP_PATH` | Inno Setup executable path | `--inno-setup-path /path/to/ISCC.exe` |
 
-### macOS Platform Packaging
+### Output Control Options
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `--verbose, -v` | Show verbose output | `--verbose` or `-v` |
+| `--quiet, -q` | Silent mode | `--quiet` or `-q` |
 
-#### Environment Setup
+### Performance Optimization Options
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `--parallel` | Enable parallel building | `--parallel` |
+| `--max-workers MAX_WORKERS` | Maximum parallel worker threads | `--max-workers 4` |
 
-1. Install PyInstaller: `pip install pyinstaller>=6.1.0`
-2. Install create-dmg: `brew install create-dmg`
-3. Install Xcode Command Line Tools: `xcode-select --install`
+### Rollback System Options
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `--no-rollback` | Disable automatic rollback | `--no-rollback` |
+| `--rollback SESSION_ID` | Execute rollback for specified session | `--rollback abc123` |
+| `--list-rollback` | List available rollback sessions | `--list-rollback` |
 
-#### Execute Packaging
+### macOS Development Options
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `--development` | Force development version (enable debug permissions) | `--development` |
+| `--production` | Production version (disable debug permissions, for signed apps only) | `--production` |
 
-```bash
-python /path/to/UnifyPy/main.py . --config build.json
-```
+### Help Options
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `-h, --help` | Show help information and exit | `--help` |
 
-#### App Signing and Notarization
-
-If you need to distribute your application, it's recommended to sign and notarize it:
-
-1. **Configure signing options**:
-   ```json
-   "macos": {
-     "sign_bundle": true,
-     "identity": "Developer ID Application: Your Name (Team ID)"
-   }
-   ```
-
-2. **Notarize the application** (manually execute after packaging):
-   ```bash
-   xcrun altool --notarize-app --primary-bundle-id "com.example.myapp" --username "your_apple_id" --password "app-specific-password" --file "app_path.dmg"
-   ```
-
-#### Common Issues
-
-1. **"Cannot verify developer" warning**
-   - Right-click the application and select "Open"
-   - Or run the command: `xattr -d com.apple.quarantine /Applications/AppName.app`
-
-2. **Application cannot find resource files**
-   - macOS uses colon (:) as path separator: `--add-data assets:assets`
-
-3. **Library dependency issues (dylib cannot load)**
-   - Use the `--collect-all` parameter to collect all dependencies: `--collect-all numpy`
-
-### Linux Platform Packaging
-
-#### Environment Setup
-
-Install the appropriate tools based on your desired packaging format:
-
-1. **DEB format**:
-   ```bash
-   sudo apt-get install dpkg-dev fakeroot
-   ```
-
-2. **RPM format**:
-   ```bash
-   # Fedora
-   sudo dnf install rpm-build
-   # CentOS/RHEL
-   sudo yum install rpm-build
-   ```
-
-3. **AppImage format**:
-   ```bash
-   wget -c https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-   chmod +x appimagetool-x86_64.AppImage
-   sudo mv appimagetool-x86_64.AppImage /usr/local/bin/appimagetool
-   ```
-
-#### Execute Packaging
-
-##### DEB Package Format (for Debian/Ubuntu systems)
-
-1. **Prepare the environment**
-
-   ```bash
-   # Update system and install necessary dependencies
-   sudo apt update
-   sudo apt install -y build-essential python3-dev python3-pip python3-setuptools libopenblas-dev liblapack-dev gfortran patchelf autoconf automake libtool cmake libssl-dev libatlas-base-dev
-   ```
-
-2. **Execute packaging**
-
-   Ensure that linux.format is set to "deb" in your build.json, then run:
-
-   ```bash
-   python3 /path/to/UnifyPy/main.py . --config build.json
-   ```
-
-##### AppImage Format (for universal Linux distribution)
-
-AppImage format requires special attention to NumPy library compilation. Here are the complete steps:
-
-1. **Upgrade pip and basic build tools**
-
-   ```bash
-   python -m pip install --upgrade pip setuptools wheel
-   ```
-
-2. **Install necessary system dependencies**
-
-   ```bash
-   sudo apt update
-   sudo apt install -y build-essential python3-dev python3-pip python3-setuptools libopenblas-dev liblapack-dev gfortran patchelf autoconf automake libtool cmake libssl-dev libatlas-base-dev
-   ```
-
-3. **Install Meson and Ninja build systems**
-
-   ```bash
-   pip install meson ninja
-   sudo apt install -y meson ninja-build
-   ```
-
-4. **Prepare NumPy compilation environment**
-
-   ```bash
-   # Uninstall existing NumPy
-   pip uninstall numpy -y
-   
-   # Set environment variables
-   export BLAS=openblas
-   export LAPACK=openblas
-   export NPY_NUM_BUILD_JOBS=$(nproc)  # Use all CPU cores to speed up compilation
-   
-   # Compile and install NumPy from source
-   pip install numpy==1.26.4 --no-binary :all:
-   ```
-
-5. **Execute packaging**
-
-   Ensure that linux.format is set to "appimage" in your build.json, then run:
-
-   ```bash
-   python3 /path/to/UnifyPy/main.py . --config build.json
-   ```
-
-#### Common Issues
-
-1. **Dynamic library dependency issues**
-   - Use the `ldd` command to check executable dependencies: `ldd dist/myapp`
-   - Add necessary system dependencies in the `requires` field
-
-2. **GL/Graphics library issues**
-   - Add specific graphics library dependencies: `"requires": "libc6,libgtk-3-0,libx11-6,libgl1-mesa-glx"`
-
-3. **AppImage cannot execute**
-   - Ensure execution permissions are set: `chmod +x MyApp-1.0.0-x86_64.AppImage`
-   - Check if FUSE is installed: `sudo apt-get install libfuse2`
-
-4. **NumPy compilation failure**
-   - Ensure all necessary development libraries are installed, especially OpenBLAS, LAPACK, and Fortran compiler
-
-5. **Cannot find appimagetool**
-   - Ensure appimagetool is correctly installed and has proper execution permissions
-
-## Packaging Output
-
-After successful packaging, you'll find the packaged application in the respective folders in your project root directory:
-
-- **Windows**: 
-  - Executable file (.exe) in the `dist/app_name` directory
-  - Installer in the `installer` directory, named `app_name-version-setup.exe`
-
-- **macOS**: 
-  - Application bundle (.app) in the `dist/app_name` directory
-  - Disk image (.dmg) in the `installer` directory, named `app_name-version.dmg`
-
-- **Linux**: 
-  - Executable file in the `dist/app_name` directory
-  - Installation package in the `installer` directory:
-    - DEB format: `app_name_version_amd64.deb`
-    - RPM format: `app_name-version-1.x86_64.rpm`
-    - AppImage format: `app_name-version-x86_64.AppImage`
-
-## Multi-Platform Architecture Support
-
-UnifyPy automatically detects the current system's CPU architecture and generates installation packages accordingly. For example:
-
-- When running on Linux x86_64, it generates x86_64/amd64 packages
-- When running on Linux arm64, it generates arm64 packages
-
-If you need to generate packages for different architectures of the same operating system (e.g., Linux arm64 and x86_64), you need to run the packaging command on separate machines with the corresponding architectures, or use virtual machines/containers/cross-compilation environments.
-
-## Command Line Parameters
-
-| Parameter | Description | Default Value |
-|-----------|-------------|---------------|
-| project_dir | Python project root directory path | (Required) |
-| --name | Application name | Project directory name |
-| --display-name | Application display name | Same as name |
-| --entry | Entry Python file | main.py |
-| --version | Application version | 1.0 |
-| --publisher | Publisher name | Python Application Team |
-| --icon | Icon file path | (Auto-generated) |
-| --license | License file path | (None) |
-| --readme | README file path | (None) |
-| --config | Configuration file path (JSON format) | (None) |
-| --hooks | Runtime hooks directory | (None) |
-| --skip-exe | Skip executable packaging step | (No) |
-| --skip-installer | Skip installer generation step | (No) |
-| --onefile | Generate single-file executable | (No) |
-| --inno-setup-path | Inno Setup executable path | (None) |
-
-## Installing Packaged Applications
+## 📋 Supported Packaging Formats
 
 ### Windows
+- **EXE** (Inno Setup) - Standard installer
+- **MSI** - Windows Installer package
 
-- Run the `.exe` installer
-- Follow the installation wizard
-- The program will be installed in the default directory with Start menu and desktop shortcuts
-
-### macOS
-
-- Mount the `.dmg` file
-- Drag the application to the Applications folder
-- Launch the app from Launchpad
+### macOS  
+- **DMG** - Disk image installer
+- **PKG** - macOS native installer
+- **ZIP** - Portable archive
 
 ### Linux
+- **DEB** - Debian/Ubuntu package
+- **RPM** - Red Hat/CentOS package
+- **AppImage** - Portable application image
+- **TAR.GZ** - Source archive
 
-**DEB packages (Debian/Ubuntu)**:
-```bash
-sudo apt install ./appname_version_architecture.deb
-```
+## ⚙️ Configuration File Details
 
-**RPM packages (Fedora/CentOS)**:
-```bash
-sudo rpm -i appname-version.architecture.rpm
-```
-
-**AppImage**:
-```bash
-chmod +x AppName-version-architecture.AppImage
-./AppName-version-architecture.AppImage
-```
-
-## Path Separator Notes for Different Platforms
-
-When specifying resource paths on different platforms, use the correct separator:
-
-- **Windows**: Use semicolon `;` (e.g., `--add-data assets;assets`)
-- **macOS/Linux**: Use colon `:` (e.g., `--add-data assets:assets`)
-
-## Advanced Configuration Options
-
-### PyInstaller Parameters
-
-In the `additional_pyinstaller_args` field, you can add any parameters supported by PyInstaller. Here are some commonly used parameters:
-
-- `--noconsole`: Hide the console window (only for GUI applications)
-- `--windowed`: Same as `--noconsole`
-- `--hidden-import=MODULE`: Add implicitly imported modules
-- `--add-data SRC;DEST`: Add data files (Windows platform uses semicolon)
-- `--add-data SRC:DEST`: Add data files (macOS/Linux platform uses colon)
-- `--icon=FILE.ico`: Set application icon
-
-### Handling Special Dependencies
-
-Some Python libraries may require special handling to package correctly. This can be resolved through:
-
-1. **Using hook files**: Create custom hooks in the `hooks` directory to handle special import cases
-2. **Adding implicit imports**: Use the `--hidden-import` parameter to explicitly include implicitly imported modules
-3. **Adding data files**: Use the `--add-data` parameter to include data files needed by the program
-
-## Common Issues
-
-**Q: Windows platform shows "Inno Setup not found" when building installer**  
-A: You need to manually install Inno Setup:
-1. Visit https://jrsoftware.org/isdl.php to download the latest version
-2. After installation, specify the ISCC.exe path using one of these methods:
-   - Via --inno-setup-path parameter: `python main.py project_path --inno-setup-path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"`
-   - In config.json: `"inno_setup_path": "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe"`
-   - Set the INNO_SETUP_PATH environment variable
-
-**Q: Linux application shows missing dependencies after packaging**  
-A: Add required dependencies in the Linux configuration:
+### Global Configuration
 ```json
-"linux": {
-  "requires": "libc6,libgtk-3-0,libx11-6,libopenblas-dev"
+{
+  "name": "Application Name",
+  "display_name": "Display Name", 
+  "version": "Version Number",
+  "publisher": "Publisher",
+  "entry": "Entry File",
+  "icon": "Icon File",
+  "license": "License File",
+  "readme": "README File"
 }
 ```
 
-**Q: How to resolve MKL-related errors?**  
-A: Add OpenBLAS as an alternative dependency, or ensure NumPy and other libraries use open-source BLAS backends before packaging.
-
-**Q: macOS app won't start, showing "unidentified developer" warning**  
-A: Try enabling code signing in the configuration:
+### PyInstaller Configuration
 ```json
-"macos": {
-  "sign_bundle": true,
-  "identity": "Your Developer ID"
+{
+  "pyinstaller": {
+    "onefile": false,
+    "windowed": true,
+    "clean": true,
+    "noconfirm": true,
+    "optimize": 2,
+    "strip": true,
+    "add_data": ["source_path:target_path"],
+    "hidden_import": ["module_name"],
+    "exclude_module": ["excluded_module"]
+  }
 }
 ```
-Or right-click the application and select "Open".
 
-**Q: How to configure multiple architectures for Linux in a single build.json?**  
-A: The current version doesn't support specifying multiple architectures in a single configuration file. UnifyPy automatically detects the current system architecture and generates the corresponding package. To generate packages for different architectures, you need to run the packaging command on separate machines with the corresponding architectures.
+### macOS Specific Configuration
+```json
+{
+  "platforms": {
+    "macos": {
+      "bundle_identifier": "com.company.app",
+      "minimum_system_version": "10.14.0",
+      "category": "public.app-category.productivity",
+      
+      "microphone_usage_description": "Microphone access required for voice features",
+      "camera_usage_description": "Camera access required for video features",
+      
+      "dmg": {
+        "volname": "Installer Name",
+        "window_size": [600, 400],
+        "icon_size": 100
+      }
+    }
+  }
+}
+```
 
-## Best Practices
+## 🔄 Parallel Building
 
-1. **Clean your project**: Remove temporary files, caches, and unnecessary large files before packaging
-2. **Test dependencies**: Ensure all dependencies are correctly installed and can be imported
-3. **Verify file paths**: Check if file paths in your code use relative paths or resource paths
-4. **Validate configuration**: Ensure the configuration in build.json matches your environment
-5. **Test on multiple platforms**: If possible, test the packaged application on multiple platforms
-6. **Save configurations**: Save different versions of configuration files for different packaging scenarios for easy reuse
-7. **Version management**: Update version numbers before each release to maintain version consistency
+UnifyPy 2.0 supports multi-format parallel building to significantly improve build efficiency:
 
-## License
+```bash
+# Enable parallel building
+python main.py . --config build_multiformat.json --parallel
 
-This project is licensed under the MIT License. Copyright (c) 2025 Junsen.
+# Specify number of worker threads
+python main.py . --parallel --max-workers 4
 
-The MIT License allows anyone to freely use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the software, provided that the above copyright notice and permission notice are included in all copies.
+# View parallel building effects
+python main.py . --config build_comprehensive.json --parallel --verbose
+```
 
-See the [LICENSE](LICENSE) file for the complete license text.
+## 🛡️ Rollback System
 
-## Using GitHub Actions for Automated Packaging
+Automatically track build operations with one-click rollback support:
 
-UnifyPy supports automated Windows application packaging through GitHub Actions. Here's how to use it:
+```bash
+# List available rollback sessions
+python main.py . --list-rollback
 
-1. **Copy the Workflow File**
+# Execute rollback
+python main.py . --rollback SESSION_ID
 
-   Copy the `.github/workflows/build-windows.yml` file from the UnifyPy repository to your project's `.github/workflows/` directory.
+# Disable automatic rollback
+python main.py . --config build.json --no-rollback
+```
 
-2. **Configure the Workflow**
+## 📁 Project Structure
 
-   In your GitHub repository, go to the "Actions" tab and select the "Build Windows Package" workflow.
+```
+UnifyPy/
+├── main.py                 # Main entry file
+├── requirements.txt        # Python dependencies
+├── build.json             # Standard configuration example
+├── build_multiformat.json # Multi-format configuration
+├── build_comprehensive.json # Complete configuration example
+├── py-xiaozhi.json        # Real project configuration example
+└── src/                   # Source code
+    ├── core/             # Core modules (configuration management)
+    ├── platforms/        # Platform packagers
+    ├── pyinstaller/      # PyInstaller integration
+    ├── tools/            # Built-in tools (create-dmg, etc.)
+    └── utils/            # Utility modules
+```
 
-3. **Run the Workflow**
+## 🔍 Troubleshooting
 
-   Click the "Run workflow" button and in the form that appears:
-   - `project_repo`: The repository to package (format: username/repository), leave empty for current repository
-   - `project_path`: Enter the path to the project you want to package (defaults to the repository root)
-   - `config_file`: Enter the path to the configuration file (defaults to `build.json`)
-   - `requirements_file`: Path to the project dependencies file (e.g., requirements.txt), leave empty to skip installing extra dependencies
-   - `python_version`: Select Python version (default is 3.10)
+### Common Issues
 
-4. **Get the Packaging Results**
+**Q: PyInstaller packaging failed?**
+```bash
+# Check dependencies
+pip install pyinstaller>=5.0
 
-   After the workflow completes, you can download the packaged application and installer from the workflow run record.
+# Clean and retry
+python main.py . --config build.json --clean --verbose
+```
 
-> **Note**: GitHub Actions automatically installs Inno Setup, so you don't need to manually configure the Inno Setup path.
+**Q: macOS permission configuration issues?**
+- Check permission descriptions in configuration file
+- Ensure Bundle ID format is correct
+- Refer to `build_macos_permissions_example.json`
 
-## Configuration File Details
+**Q: Linux dependencies missing?**
+```bash
+# Ubuntu/Debian
+sudo apt-get install dpkg-dev fakeroot
+
+# CentOS/RHEL  
+sudo yum install rpm-build
+```
+
+**Q: Parallel build failed?**
+```bash
+# Reduce number of worker threads
+python main.py . --parallel --max-workers 2
+
+# Or disable parallel building
+python main.py . --config build.json
+```
+
+### Debugging Tips
+
+1. **Enable verbose output**: `--verbose`
+2. **Check logs**: View detailed build process information
+3. **Step-by-step build**: Use `--skip-exe` or `--skip-installer`
+4. **Rollback testing**: Use `--list-rollback` to view history
+
+## 📝 Best Practices
+
+### Configuration File Management
+- Use different configuration files for different environments (development, testing, production)
+- Include configuration file templates in version control
+- Use environment variables for sensitive information
+
+### Build Optimization
+- Enable parallel building to improve efficiency
+- Configure `exclude_module` appropriately to reduce package size
+- Use `clean` to ensure clean build environment
+
+### Cross-Platform Compatibility
+- Use `/` for path separators or let tools handle automatically
+- Let tools automatically convert icon formats
+- Test dependency compatibility across different platforms
+
+## 📄 License
+
+MIT License - See [LICENSE](LICENSE) file for details
+
+## 🤝 Contributing
+
+Issues and Pull Requests are welcome!
+
+---
+
+UnifyPy 2.0 - Making Python Application Packaging Simple and Efficient 🚀

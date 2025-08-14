@@ -58,19 +58,34 @@ class DMGPackager(BasePackager):
         # 查找.app bundle
         app_path = self._find_app_bundle(source_path)
 
-        # 如果没有找到.app bundle，且源路径是单个可执行文件，需要创建.app结构
-        if not app_path and source_path.is_file():
-            app_path = self._create_app_bundle(source_path, dmg_config)
+        # 如果没有找到.app bundle，尝试创建.app结构
+        if not app_path:
+            if source_path.is_file():
+                # 单个可执行文件
+                app_path = self._create_app_bundle(source_path, dmg_config)
+            elif source_path.is_dir():
+                # PyInstaller目录输出，查找主可执行文件
+                app_name = self.config.get('name', 'MyApp')
+                exe_path = source_path / app_name
+                if exe_path.exists() and exe_path.is_file():
+                    app_path = self._create_app_bundle(exe_path, dmg_config)
+                else:
+                    self.progress.on_error(
+                        Exception(
+                            f"在PyInstaller输出目录中找不到可执行文件: {exe_path}"
+                        ),
+                        "macOS DMG打包",
+                    )
+                    return False
+            
             if not app_path:
+                self.progress.on_error(
+                    Exception(
+                        f"无法创建 .app bundle，DMG 打包失败：{source_path}"
+                    ),
+                    "macOS DMG打包",
+                )
                 return False
-        elif not app_path:
-            self.progress.on_error(
-                Exception(
-                    f"无法找到 .app bundle，DMG 打包需要 .app 文件：{source_path}"
-                ),
-                "macOS DMG打包",
-            )
-            return False
 
         # 构建create-dmg命令
         command = self._build_create_dmg_command(
@@ -109,9 +124,9 @@ class DMGPackager(BasePackager):
             if source_path.name.endswith(".app"):
                 return source_path
 
-            # 在目录中查找.app bundle
-            for item in source_path.iterdir():
-                if item.is_dir() and item.name.endswith(".app"):
+            # 在目录中查找.app bundle（递归查找）
+            for item in source_path.rglob("*.app"):
+                if item.is_dir():
                     return item
 
             # 如果源路径是PyInstaller输出目录，检查父目录中是否有同名的.app文件
@@ -121,6 +136,12 @@ class DMGPackager(BasePackager):
                 app_path = parent / app_name
                 if app_path.exists() and app_path.is_dir():
                     return app_path
+
+            # 检查父目录中是否有与项目名称匹配的.app文件
+            app_name = self.config.get('name', 'MyApp')
+            app_path = source_path.parent / f"{app_name}.app"
+            if app_path.exists() and app_path.is_dir():
+                return app_path
 
         return None
 
@@ -147,25 +168,32 @@ class DMGPackager(BasePackager):
             macos_dir.mkdir(exist_ok=True)
             resources_dir.mkdir(exist_ok=True)
 
-            # 复制可执行文件
-            app_exe = macos_dir / app_name
-            shutil.copy2(exe_path, app_exe)
-            app_exe.chmod(0o755)  # 确保可执行
+            # 复制可执行文件和相关资源
+            if exe_path.parent.name == app_name:
+                # PyInstaller目录输出模式 - 复制整个目录内容
+                pyinstaller_dir = exe_path.parent
+                for item in pyinstaller_dir.iterdir():
+                    if item.is_file():
+                        shutil.copy2(item, macos_dir / item.name)
+                    elif item.is_dir():
+                        shutil.copytree(item, macos_dir / item.name)
+                # 确保主可执行文件有执行权限
+                app_exe = macos_dir / app_name
+                if app_exe.exists():
+                    app_exe.chmod(0o755)
+            else:
+                # 单个可执行文件模式
+                app_exe = macos_dir / app_name
+                shutil.copy2(exe_path, app_exe)
+                app_exe.chmod(0o755)  # 确保可执行
+
+            # 处理图标文件（必须在创建Info.plist之前）
+            icon_filename = self._handle_icon_for_app(resources_dir, exe_path, config)
 
             # 创建Info.plist
-            info_plist = self._create_info_plist(config)
+            info_plist = self._create_info_plist(config, icon_filename)
             with open(contents_dir / "Info.plist", "w") as f:
                 f.write(info_plist)
-
-            # 复制图标文件（如果有）
-            icon_path = config.get("icon") or self.config.get("icon")
-            if icon_path and os.path.exists(icon_path):
-                icon_ext = Path(icon_path).suffix.lower()
-                if icon_ext == ".icns":
-                    shutil.copy2(icon_path, resources_dir / "app.icns")
-                elif icon_ext in [".png", ".jpg", ".jpeg"]:
-                    # 转换为icns格式（如果可能）
-                    self._convert_icon_to_icns(icon_path, resources_dir / "app.icns")
 
             return app_dir
 
@@ -173,13 +201,23 @@ class DMGPackager(BasePackager):
             self.progress.on_error(Exception(f"创建.app包失败: {e}"), "macOS DMG打包")
             return None
 
-    def _create_info_plist(self, config: Dict[str, Any]) -> str:
+    def _create_info_plist(self, config: Dict[str, Any], icon_filename: str = None) -> str:
         """
         创建Info.plist文件内容.
+        
+        Args:
+            config: 配置字典
+            icon_filename: 图标文件名（不含路径），如果为None则不添加图标配置
         """
         app_name = self.config.get("name", "MyApp")
         app_version = self.config.get("version", "1.0.0")
         bundle_id = config.get("bundle_identifier", f"com.example.{app_name.lower()}")
+
+        # 图标配置部分
+        icon_config = ""
+        if icon_filename:
+            icon_config = f"""    <key>CFBundleIconFile</key>
+    <string>{icon_filename}</string>"""
 
         return f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -188,9 +226,7 @@ class DMGPackager(BasePackager):
     <key>CFBundleDisplayName</key>
     <string>{app_name}</string>
     <key>CFBundleExecutable</key>
-    <string>{app_name}</string>
-    <key>CFBundleIconFile</key>
-    <string>app.icns</string>
+    <string>{app_name}</string>{icon_config}
     <key>CFBundleIdentifier</key>
     <string>{bundle_id}</string>
     <key>CFBundleInfoDictionaryVersion</key>
@@ -256,6 +292,63 @@ class DMGPackager(BasePackager):
 
         except Exception as e:
             self.progress.warning(f"图标转换失败: {e}")
+
+    def _handle_icon_for_app(self, resources_dir: Path, exe_path: Path, config: Dict[str, Any]) -> str:
+        """
+        处理应用程序包的图标文件.
+        
+        Args:
+            resources_dir: Resources目录路径
+            exe_path: 可执行文件路径
+            config: 配置字典
+            
+        Returns:
+            str: 最终的图标文件名（不含路径），用于Info.plist引用
+        """
+        # 1. 首先检查PyInstaller是否已经生成了图标
+        pyinstaller_icon = None
+        if exe_path.parent.name == self.config.get("name", "MyApp"):
+            # PyInstaller目录模式，检查_internal或Resources中的图标
+            possible_icon_paths = [
+                exe_path.parent / "_internal" / "icon-windowed.icns",
+                exe_path.parent / "_internal" / "icon.icns",
+                exe_path.parent / "icon-windowed.icns",
+                exe_path.parent / "icon.icns",
+            ]
+            for icon_path in possible_icon_paths:
+                if icon_path.exists():
+                    pyinstaller_icon = icon_path
+                    break
+        
+        # 2. 如果找到PyInstaller生成的图标，保持原文件名
+        if pyinstaller_icon:
+            target_name = pyinstaller_icon.name
+            shutil.copy2(pyinstaller_icon, resources_dir / target_name)
+            self.progress.info(f"使用PyInstaller生成的图标: {target_name}")
+            return target_name
+            
+        # 3. 否则使用配置中指定的图标
+        icon_path = config.get("icon") or self.config.get("icon")
+        if icon_path and os.path.exists(icon_path):
+            source_path = Path(icon_path)
+            icon_ext = source_path.suffix.lower()
+            
+            if icon_ext == ".icns":
+                # 已经是icns格式，保持原文件名
+                target_name = source_path.name
+                shutil.copy2(icon_path, resources_dir / target_name)
+                self.progress.info(f"使用配置中的图标: {target_name}")
+                return target_name
+            elif icon_ext in [".png", ".jpg", ".jpeg"]:
+                # 需要转换格式，保持文件名但改扩展名
+                target_name = source_path.stem + ".icns"
+                target_path = resources_dir / target_name
+                self._convert_icon_to_icns(icon_path, target_path)
+                self.progress.info(f"转换图标 {source_path.name} -> {target_name}")
+                return target_name
+        
+        self.progress.warning("未找到图标文件")
+        return None
 
     def _build_create_dmg_command(
         self,
@@ -337,8 +430,9 @@ class DMGPackager(BasePackager):
             command.append("--hdiutil-verbose")
 
         # 自动打开设置（默认禁用自动打开以避免干扰）
-        if not config.get("auto_open", False):
-            command.append("--sandbox-safe")
+        # 注意：--sandbox-safe 参数可能导致DMG创建问题，暂时移除
+        # if not config.get("auto_open", False):
+        #     command.append("--sandbox-safe")
 
         # 输出文件和源文件
         command.extend([str(output_path), str(app_path)])

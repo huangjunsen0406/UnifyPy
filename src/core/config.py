@@ -7,6 +7,7 @@
 import json
 import os
 import platform
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 
@@ -27,12 +28,36 @@ class ConfigManager:
         self.raw_config = {}
         self.merged_config = {}
         self.current_platform = self._detect_platform()
+        
+        # 获取项目目录用于路径解析
+        if "project_dir" in self.args:
+            self.project_dir = Path(self.args["project_dir"]).resolve()
+        else:
+            self.project_dir = Path.cwd()
 
         if config_path:
             self.raw_config = self._load_config(config_path)
 
         self.merged_config = self._merge_all_configs()
         self._validate_config()
+    
+    def resolve_path(self, path: str) -> Path:
+        """
+        解析配置中的路径，相对路径相对于项目目录.
+        
+        Args:
+            path: 配置中的路径
+            
+        Returns:
+            Path: 解析后的绝对路径
+        """
+        if not path:
+            return Path()
+        
+        if os.path.isabs(path):
+            return Path(path)
+        else:
+            return self.project_dir / path
 
     def _detect_platform(self) -> str:
         """
@@ -190,12 +215,25 @@ class ConfigManager:
 
         # 检查文件路径
         entry_file = self.merged_config.get("entry")
-        if entry_file and not os.path.exists(entry_file):
-            errors.append(f"入口文件不存在: {entry_file}")
+        if entry_file:
+            entry_full_path = self.resolve_path(entry_file)
+            if not entry_full_path.exists():
+                errors.append(f"入口文件不存在: {entry_file}")
 
         icon_file = self.merged_config.get("icon")
-        if icon_file and not os.path.exists(icon_file):
-            warnings.append(f"图标文件不存在: {icon_file}")
+        if icon_file:
+            icon_full_path = self.resolve_path(icon_file)
+            if not icon_full_path.exists():
+                warnings.append(f"图标文件不存在: {icon_file}")
+        
+        # 检查其他可能的文件路径
+        file_fields = ["license", "readme"]
+        for field in file_fields:
+            file_path = self.merged_config.get(field)
+            if file_path:
+                full_path = self.resolve_path(file_path)
+                if not full_path.exists():
+                    warnings.append(f"{field}文件不存在: {file_path}")
 
         # 检查重复配置
         duplicates = self._check_duplicate_configs()

@@ -236,7 +236,7 @@ class UnifyPyBuilder:
         self.progress.update_stage(stage, 20, "检查入口文件", absolute=True)
 
         # 检查入口文件
-        entry_file = self.project_dir / self.config.get("entry")
+        entry_file = self.config.resolve_path(self.config.get("entry"))
         if not entry_file.exists():
             raise FileNotFoundError(f"入口文件不存在: {entry_file}")
 
@@ -314,7 +314,16 @@ class UnifyPyBuilder:
         准备图标文件.
         """
         icon_path = self.config.get("icon")
-        if not icon_path or not os.path.exists(icon_path):
+        if not icon_path:
+            # 不使用图标，避免创建无效的ico文件
+            self.config.merged_config.pop("icon", None)
+            if "pyinstaller" in self.config.merged_config:
+                self.config.merged_config["pyinstaller"].pop("icon", None)
+            return
+        
+        # 使用 ConfigManager 的路径解析方法
+        icon_full_path = self.config.resolve_path(icon_path)
+        if not icon_full_path.exists():
             # 不使用图标，避免创建无效的ico文件
             self.config.merged_config.pop("icon", None)
             if "pyinstaller" in self.config.merged_config:
@@ -680,12 +689,15 @@ class UnifyPyBuilder:
             self.progress.warning(f"未找到 {platform}/{format_type} 格式的打包器")
             return False
 
+        # 预处理配置中的路径
+        processed_config = self._preprocess_config_paths(self.config.merged_config)
+        
         # 创建打包器实例
         packager = packager_class(
             self.progress,
             self.runner,
             self.tool_manager,
-            self.config.merged_config,
+            processed_config,
         )
 
         # 验证配置
@@ -743,6 +755,9 @@ class UnifyPyBuilder:
                     self.project_dir,
                 )
 
+                # 预处理配置中的路径
+                processed_config = self._preprocess_config_paths(self.config.merged_config)
+                
                 # 并行构建多种格式
                 results = parallel_builder.build_multiple_formats(
                     platform,
@@ -750,7 +765,7 @@ class UnifyPyBuilder:
                     self.packager_registry,
                     source_path,
                     self.installer_dir,
-                    self.config.merged_config,
+                    processed_config,
                 )
 
                 # 统计成功数量
@@ -766,6 +781,130 @@ class UnifyPyBuilder:
         except Exception as e:
             self.progress.on_error(Exception(f"并行构建失败: {e}"), "安装包生成")
             return 0
+
+    def _preprocess_config_paths(self, config: dict) -> dict:
+        """
+        预处理配置中的文件路径，将相对路径转换为绝对路径.
+        
+        Args:
+            config: 原始配置字典
+            
+        Returns:
+            dict: 处理后的配置字典
+        """
+        import copy
+        processed_config = copy.deepcopy(config)
+        
+        # 需要处理的文件路径字段
+        path_fields = [
+            "icon", "license", "readme", "entry",
+            "setup_icon", "license_file", "readme_file", 
+            "volicon", "version_file", "manifest"
+        ]
+        
+        # 需要处理的数组路径字段
+        array_path_fields = ["add_data", "add_binary", "datas", "binaries"]
+        
+        # 处理顶级路径字段
+        for field in path_fields:
+            if field in processed_config and processed_config[field]:
+                path = processed_config[field]
+                if not os.path.isabs(path):
+                    processed_config[field] = str(self.project_dir / path)
+        
+        # 处理数组路径字段
+        for field in array_path_fields:
+            if field in processed_config and processed_config[field]:
+                processed_list = []
+                for item in processed_config[field]:
+                    if isinstance(item, str):
+                        # 处理 "source:dest" 格式
+                        if ":" in item or ";" in item:
+                            separator = ":" if ":" in item else ";"
+                            parts = item.split(separator, 1)
+                            if len(parts) == 2:
+                                source, dest = parts
+                                if not os.path.isabs(source):
+                                    source = str(self.project_dir / source)
+                                processed_list.append(f"{source}{separator}{dest}")
+                            else:
+                                processed_list.append(item)
+                        else:
+                            # 单个路径
+                            if not os.path.isabs(item):
+                                item = str(self.project_dir / item)
+                            processed_list.append(item)
+                    else:
+                        processed_list.append(item)
+                processed_config[field] = processed_list
+        
+        # 处理嵌套配置中的路径（如平台特定配置）
+        for platform_key in ["windows", "macos", "linux", "platforms"]:
+            if platform_key in processed_config:
+                platform_config = processed_config[platform_key]
+                if isinstance(platform_config, dict):
+                    self._process_nested_paths(platform_config)
+        
+        # 处理 PyInstaller 配置中的路径
+        if "pyinstaller" in processed_config:
+            pyinstaller_config = processed_config["pyinstaller"]
+            if isinstance(pyinstaller_config, dict):
+                self._process_nested_paths(pyinstaller_config)
+        
+        return processed_config
+    
+    def _process_nested_paths(self, config: dict):
+        """
+        递归处理嵌套配置中的文件路径.
+        
+        Args:
+            config: 配置字典
+        """
+        path_fields = [
+            "icon", "license", "readme", "entry",
+            "setup_icon", "license_file", "readme_file", 
+            "volicon", "version_file", "manifest"
+        ]
+        
+        array_path_fields = ["add_data", "add_binary", "datas", "binaries"]
+        
+        # 处理单个路径字段
+        for field in path_fields:
+            if field in config and config[field]:
+                path = config[field]
+                if isinstance(path, str) and not os.path.isabs(path):
+                    config[field] = str(self.project_dir / path)
+        
+        # 处理数组路径字段
+        for field in array_path_fields:
+            if field in config and config[field]:
+                processed_list = []
+                for item in config[field]:
+                    if isinstance(item, str):
+                        # 处理 "source:dest" 格式
+                        if ":" in item or ";" in item:
+                            separator = ":" if ":" in item else ";"
+                            parts = item.split(separator, 1)
+                            if len(parts) == 2:
+                                source, dest = parts
+                                if not os.path.isabs(source):
+                                    source = str(self.project_dir / source)
+                                processed_list.append(f"{source}{separator}{dest}")
+                            else:
+                                processed_list.append(item)
+                        else:
+                            # 单个路径
+                            if not os.path.isabs(item):
+                                item = str(self.project_dir / item)
+                            processed_list.append(item)
+                    else:
+                        processed_list.append(item)
+                config[field] = processed_list
+        
+        # 递归处理嵌套字典
+        for key, value in config.items():
+            if isinstance(value, dict):
+                self._process_nested_paths(value)
 
     def _show_success(self):
         """
