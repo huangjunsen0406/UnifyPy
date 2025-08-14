@@ -1,0 +1,119 @@
+{
+  "name": "MyApp",
+  "display_name": "我的应用程序",
+  "version": "1.0.0",
+  "publisher": "我的公司",
+  "entry": "main.py",
+  "icon": "assets/app_icon.icns",
+  
+  "pyinstaller": {
+    "onefile": false,
+    "windowed": true,
+    "clean": true,
+    "noconfirm": true
+  },
+  
+  "platforms": {
+    "macos": {
+      "pyinstaller": {
+        "windowed": true,
+        "add_data": [
+          "assets:assets",
+          "configs:configs"
+        ],
+        "osx_bundle_identifier": "com.mycompany.myapp",
+        "osx_entitlements_file": "entitlements.plist"
+      },
+      
+      // ==================== macOS 应用基本配置 ====================
+      "bundle_identifier": "com.mycompany.myapp",
+      "minimum_system_version": "10.15.0",
+      "category": "public.app-category.productivity",
+      "copyright": "Copyright © 2024 我的公司",
+      "high_resolution_capable": true,
+      "supports_automatic_graphics_switching": true,
+      "ui_element": false,
+      "sandboxed": false,
+      
+      // ==================== 隐私权限描述配置 ====================
+      // 📱 媒体访问权限
+      "microphone_usage_description": "此应用需要访问麦克风来进行语音识别和音频录制功能",
+      "camera_usage_description": "此应用需要访问摄像头来拍摄照片、录制视频或进行视频通话",
+      "photo_library_usage_description": "此应用需要访问照片库来选择、编辑和分享图片",
+      "photo_library_add_usage_description": "此应用需要向照片库添加处理后的图片和视频",
+      
+      // 📍 位置服务权限
+      "location_when_in_use_usage_description": "此应用在使用时需要访问您的位置信息来提供基于位置的服务和功能",
+      // "location_always_and_when_in_use_usage_description": "此应用需要始终访问您的位置信息以提供后台位置服务",
+      
+      // 📇 个人信息访问权限
+      // "contacts_usage_description": "此应用需要访问通讯录来导入联系人信息，便于分享和通信功能",
+      // "calendars_usage_description": "此应用需要访问日历来创建事件、设置提醒和管理日程",
+      // "reminders_usage_description": "此应用需要访问提醒事项来创建和管理任务列表",
+      
+      // 🏃 运动和健康权限
+      // "motion_usage_description": "此应用需要访问运动数据来跟踪您的活动和健身统计",
+      // "health_share_usage_description": "此应用需要读取健康数据来提供个性化的健康建议",
+      // "health_update_usage_description": "此应用需要写入健康数据来记录您的健康指标",
+      
+      // 🎵 娱乐和服务权限
+      // "music_usage_description": "此应用需要访问音乐库来播放您的音乐收藏",
+      // "siri_usage_description": "此应用需要与Siri集成来提供语音命令功能",
+      // "speech_recognition_usage_description": "此应用需要使用语音识别来转换语音为文本",
+      
+      // 📶 连接和通信权限
+      "bluetooth_always_usage_description": "此应用需要蓝牙访问来连接外部设备和传输数据",
+      // "bluetooth_peripheral_usage_description": "此应用需要作为蓝牙外设来与其他设备通信",
+      "local_network_usage_description": "此应用需要访问本地网络来发现和连接同一网络上的设备",
+      
+      // ==================== 系统访问权限配置 ====================
+      // ⚠️  这些权限需要特别谨慎，通常需要用户明确授权
+      // "apple_events_usage_description": "此应用需要控制其他应用来提供自动化工作流和集成功能",
+      // "system_administration_usage_description": "此应用需要系统管理权限来修改系统设置和配置",
+      // "accessibility_usage_description": "此应用需要辅助功能权限来提供无障碍支持和界面自动化",
+      
+      // ==================== 文件夹访问权限配置 ====================
+      // 📁 特定文件夹访问权限（仅在沙盒模式下需要）
+      "desktop_folder_usage_description": "此应用需要访问桌面文件夹来保存和读取桌面上的文件",
+      "documents_folder_usage_description": "此应用需要访问文档文件夹来管理用户文档",
+      "downloads_folder_usage_description": "此应用需要访问下载文件夹来保存下载的内容",
+      // "network_volumes_usage_description": "此应用需要访问网络卷来处理网络存储上的文件",
+      // "removable_volumes_usage_description": "此应用需要访问可移动卷来处理外部存储设备上的文件",
+      
+      // ==================== 网络传输安全配置 ====================
+      "app_transport_security": {
+        // 推荐配置：只为特定域名允许例外
+        "NSExceptionDomains": {
+          "api.mycompany.com": {
+            "NSExceptionAllowsInsecureHTTPLoads": false,
+            "NSExceptionMinimumTLSVersion": "TLSv1.2",
+            "NSExceptionRequiresForwardSecrecy": true
+          },
+          "legacy-api.example.com": {
+            "NSExceptionAllowsInsecureHTTPLoads": true,
+            "NSExceptionMinimumTLSVersion": "TLSv1.0"
+          }
+        }
+        // ❌ 不推荐使用全局例外：
+        // "NSAllowsArbitraryLoads": true
+      },
+      
+      // ==================== DMG 打包配置 ====================
+      "create_dmg": {
+        "volname": "MyApp 安装器",
+        "background": "assets/dmg_background.png",
+        "window_size": [600, 400],
+        "window_pos": [200, 120],
+        "icon_size": 100,
+        "app_drop_link": true,
+        "format": "UDZO",
+        "filesystem": "HFS+",
+        "eula": "LICENSE",
+        "icon": {
+          "MyApp.app": [140, 200],
+          "Applications": [460, 200]
+        }
+      }
+    }
+  }
+}

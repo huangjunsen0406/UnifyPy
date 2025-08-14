@@ -5,4 +5,4 @@
 from .config import ConfigManager
 from .environment import EnvironmentManager
 
-__all__ = ['ConfigManager', 'EnvironmentManager']
+__all__ = ["ConfigManager", "EnvironmentManager"]

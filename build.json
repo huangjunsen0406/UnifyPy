@@ -1,46 +1,174 @@
 {
-    "name": "xiaozhi",
-    "version": "1.0.0",
-    "publisher": "Junsen",
-    "entry": "main.py",
-    "icon": "assets/xiaozhi_icon.ico",
-    "hooks": "hooks",
+  "name": "ExampleApp",
+  "display_name": "示例应用程序",
+  "version": "2.0.0",
+  "publisher": "UnifyPy开发团队",
+  "entry": "main.py",
+  "icon": "assets/app_icon.ico",
+  "license": "LICENSE",
+  "readme": "README.md",
+  
+  "pyinstaller": {
     "onefile": false,
-    "additional_pyinstaller_args": "--add-data assets;assets --add-data libs;libs --add-data src;src --add-data models;models --hidden-import=PyQt5",
-    "inno_setup_path": "E:\\application\\Inno Setup 6\\ISCC.exe",
-    "platform_specific": {
-        "windows": {
-            "format": "exe",
-            "additional_pyinstaller_args": "--add-data assets;assets --add-data libs;libs --add-data src;src --add-data models;models --hidden-import=PyQt5 --noconsole",
-            "desktop_entry": true,
-            "installer_options": {
-                "languages": ["ChineseSimplified", "English"],
-                "license_file": "LICENSE",
-                "readme_file": "README.md",
-                "create_desktop_icon": true,
-                "allow_run_after_install": true
-            }
-        },
-        "linux": {
-            "format": "deb",
-            "desktop_entry": true,
-            "categories": "Utility;Development;",
-            "description": "小智Ai客户端",
-            "requires": "libc6,libgtk-3-0,libx11-6,libopenblas-dev",
-            "additional_pyinstaller_args": "--add-data assets:assets --add-data libs:libs --add-data src:src --add-data models:models --hidden-import=PyQt5"
-        },
-        "macos": {
-            "format": "app",
-            "additional_pyinstaller_args": "--add-data assets:assets --add-data libs:libs --add-data src:src --add-data models:models --hidden-import=PyQt5 --windowed",
-            "app_bundle_name": "XiaoZhi.app",
-            "bundle_identifier": "com.junsen.xiaozhi",
-            "sign_bundle": false,
-            "create_dmg": true,
-            "installer_options": {
-                "license_file": "LICENSE",
-                "readme_file": "README.md"
-            }
-        }
+    "windowed": true,
+    "clean": true,
+    "noconfirm": true,
+    "add_data": [
+      "assets:assets",
+      "configs:configs"
+    ],
+    "hidden_import": [
+      "PyQt5",
+      "requests",
+      "json"
+    ],
+    "exclude_module": [
+      "tkinter",
+      "unittest"
+    ],
+    "optimize": "2",
+    "strip": false,
+    "upx_exclude": [
+      "*.dll"
+    ]
+  },
+  
+  "platforms": {
+    "windows": {
+      "pyinstaller": {
+        "add_data": [
+          "assets;assets",
+          "configs;configs"
+        ],
+        "icon": "assets/app_icon.ico",
+        "version_file": "version_info.txt"
+      },
+      "inno_setup": {
+        "app_name": "示例应用程序",
+        "app_version": "2.0.0",
+        "app_publisher": "UnifyPy开发团队",
+        "app_url": "https://github.com/huangjunsen0406/UnifyPy",
+        "languages": ["english", "chinesesimplified"],
+        "license_file": "LICENSE",
+        "readme_file": "README.md",
+        "create_desktop_icon": true,
+        "create_start_menu_icon": true,
+        "allow_run_after_install": true,
+        "require_admin": false,
+        "compression": "lzma2",
+        "solid_compression": true
+      }
     },
-    "build_installer": true
+    
+    "macos": {
+      "pyinstaller": {
+        "windowed": true,
+        "add_data": [
+          "assets:assets",
+          "configs:configs"
+        ],
+        "osx_bundle_identifier": "com.unifypy.exampleapp",
+        "osx_entitlements_file": "entitlements.plist"
+      },
+      
+      "bundle_identifier": "com.unifypy.exampleapp",
+      "minimum_system_version": "10.15.0",
+      "category": "public.app-category.productivity",
+      "copyright": "Copyright © 2024 UnifyPy开发团队",
+      "high_resolution_capable": true,
+      "supports_automatic_graphics_switching": true,
+      "sandboxed": false,
+      
+      "microphone_usage_description": "此应用需要访问麦克风来录制音频内容",
+      "camera_usage_description": "此应用需要访问摄像头来拍摄照片或录制视频",
+      "local_network_usage_description": "此应用需要访问本地网络来发现和连接设备",
+      "app_transport_security": {
+        "NSExceptionDomains": {
+          "example.com": {
+            "NSExceptionAllowsInsecureHTTPLoads": true,
+            "NSExceptionMinimumTLSVersion": "TLSv1.0"
+          }
+        }
+      },
+      
+      "create_dmg": {
+        "volname": "示例应用程序安装器",
+        "background": "assets/dmg_background.png",
+        "window_size": [600, 400],
+        "window_pos": [200, 120],
+        "icon_size": 100,
+        "icon": {
+          "ExampleApp.app": [140, 200],
+          "Applications": [460, 200]
+        },
+        "format": "UDZO",
+        "filesystem": "HFS+",
+        "eula": "LICENSE"
+      },
+      "pkg": {
+        "identifier": "com.unifypy.exampleapp",
+        "install_location": "/Applications",
+        "sign": false,
+        "scripts": {
+          "preinstall": "scripts/preinstall.sh",
+          "postinstall": "scripts/postinstall.sh"
+        }
+      }
+    },
+    
+    "linux": {
+      "pyinstaller": {
+        "add_data": [
+          "assets:assets",
+          "configs:configs"
+        ]
+      },
+      "deb": {
+        "package": "exampleapp",
+        "architecture": "amd64",
+        "section": "utils",
+        "priority": "optional",
+        "description": "一个使用UnifyPy打包的示例应用程序",
+        "long_description": "这是一个展示UnifyPy 2.0功能的示例应用程序，支持跨平台打包和分发。",
+        "depends": [
+          "python3 (>= 3.6)",
+          "libqt5core5a",
+          "libqt5gui5"
+        ],
+        "recommends": [
+          "python3-pip"
+        ],
+        "maintainer": "UnifyPy Team <support@unifypy.com>",
+        "homepage": "https://github.com/huangjunsen0406/UnifyPy",
+        "scripts": {
+          "preinst": "scripts/preinst.sh",
+          "postinst": "scripts/postinst.sh",
+          "prerm": "scripts/prerm.sh",
+          "postrm": "scripts/postrm.sh"
+        }
+      },
+      "appimage": {
+        "desktop_entry": true,
+        "categories": "Utility;Development;",
+        "mime_types": [
+          "application/x-python"
+        ],
+        "update_information": "gh-releases-zsync|huangjunsen0406|UnifyPy|latest|ExampleApp-*-x86_64.AppImage.zsync"
+      },
+      "rpm": {
+        "name": "exampleapp",
+        "summary": "示例应用程序",
+        "license": "MIT",
+        "url": "https://github.com/huangjunsen0406/UnifyPy",
+        "requires": [
+          "python3 >= 3.6",
+          "qt5-qtbase"
+        ],
+        "build_requires": [
+          "python3-devel"
+        ],
+        "group": "Applications/Utilities"
+      }
+    }
+  }
 }

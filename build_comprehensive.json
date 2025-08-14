@@ -1,0 +1,406 @@
+{
+  "name": "UnifyPyComplete",
+  "display_name": "UnifyPy 2.0 完整功能演示",
+  "version": "2.0.0",
+  "publisher": "UnifyPy开发团队",
+  "entry": "main.py",
+  "icon": "assets/app_icon.png",
+  "license": "LICENSE.txt",
+  "readme": "README.md",
+  
+  // ==================== 并行构建配置 ====================
+  "parallel": true,
+  "max_workers": 4,
+  
+  // ==================== PyInstaller 完整配置 ====================
+  "pyinstaller": {
+    // 基本选项
+    "onefile": true,
+    "console": false,
+    "windowed": true,
+    "clean": true,
+    "noconfirm": true,
+    "ascii": false,
+    
+    // 优化选项
+    "optimize": 2,
+    "strip": true,
+    "noupx": false,
+    "debug": false,
+    
+    // 路径配置
+    "distpath": "dist",
+    "workpath": "build",
+    "specpath": ".",
+    
+    // 数据和模块包含
+    "add_data": [
+      "assets:assets",
+      "configs:configs",
+      "docs:docs"
+    ],
+    "add_binary": [],
+    "hidden_import": [
+      "requests",
+      "rich",
+      "packaging",
+      "importlib_metadata",
+      "pathlib",
+      "typing",
+      "concurrent.futures",
+      "threading",
+      "multiprocessing"
+    ],
+    "exclude_module": [
+      "tkinter",
+      "matplotlib",
+      "numpy",
+      "pandas",
+      "scipy",
+      "PIL.ImageTk",
+      "PyQt5",
+      "PyQt6",
+      "PySide2",
+      "PySide6"
+    ],
+    
+    // 高级收集选项
+    "collect_submodules": ["requests", "rich", "packaging"],
+    "collect_data": ["rich", "packaging"],
+    "collect_binaries": [],
+    "collect_all": [],
+    "copy_metadata": ["rich", "requests", "packaging"],
+    "recursive_copy_metadata": [],
+    
+    // 钩子和运行时配置
+    "additional_hooks_dir": ["hooks"],
+    "runtime_hook": ["hooks/runtime_hook.py"],
+    
+    // UI和资源
+    "splash": "assets/splash.png",
+    "version_file": "version_info.txt",
+    "manifest": "app.manifest",
+    
+    // UPX压缩配置
+    "upx_exclude": [
+      "*.dll",
+      "*.dylib",
+      "*.so",
+      "python*.dll",
+      "vcruntime*.dll",
+      "msvcp*.dll",
+      "concrt*.dll"
+    ],
+    
+    // 日志配置
+    "log_level": "INFO",
+    "quiet": false,
+    
+    // 加密配置
+    "key": null
+  },
+  
+  "platforms": {
+    "windows": {
+      "pyinstaller": {
+        "add_data": ["assets;assets", "configs;configs", "docs;docs"],
+        "icon": "assets/app_icon.ico",
+        "uac_admin": false,
+        "uac_uiaccess": false,
+        "version_file": "version_info.txt",
+        "manifest": "app.manifest",
+        "key": null,
+        "exclude_module": ["tkinter"]
+      },
+      
+      "inno_setup": {
+        "app_id": "{A1B2C3D4-E5F6-7890-ABCD-123456789012}",
+        "app_name": "UnifyPy 2.0 完整功能演示",
+        "app_version": "2.0.0",
+        "app_publisher": "UnifyPy开发团队",
+        "app_url": "https://github.com/huangjunsen0406/UnifyPy",
+        "app_support_url": "https://github.com/huangjunsen0406/UnifyPy/issues",
+        "app_updates_url": "https://github.com/huangjunsen0406/UnifyPy/releases",
+        "languages": ["english", "chinesesimplified"],
+        "create_desktop_icon": true,
+        "create_start_menu_icon": true,
+        "create_quick_launch_icon": false,
+        "run_after_install": false,
+        "allow_run_after_install": true,
+        "require_admin": false,
+        "license_file": "LICENSE.txt",
+        "readme_file": "README.md",
+        "setup_icon": "assets/installer_icon.ico",
+        "description": "UnifyPy 2.0 是一个强大的跨平台Python应用打包工具，支持Windows、macOS、Linux平台的原生安装包生成。提供完整的PyInstaller集成、多格式输出、并行构建等企业级功能。",
+        "homepage": "https://github.com/huangjunsen0406/UnifyPy",
+        "compression": "lzma2",
+        "solid_compression": true,
+        "wizard_style": "modern",
+        "min_version": "6.1",
+        "disable_welcome_page": false,
+        "disable_ready_page": false,
+        "show_component_sizes": true,
+        "flat_components_list": false,
+        "always_restart": false,
+        "restart_if_needed_by_run": true,
+        "install_mode": "install",
+        "uninstall_display_name": "UnifyPy 2.0 完整功能演示",
+        "uninstall_files_dir": "{app}",
+        "default_dir_name": "{autopf}\\UnifyPy",
+        "default_group_name": "UnifyPy",
+        "arch_specific": "x64",
+        "privileges_required": "lowest",
+        "privileges_required_override_msg": "此应用需要管理员权限来安装系统级组件。"
+      },
+      
+      "msi": {
+        "license": "MIT",
+        "summary": "跨平台Python应用打包工具",
+        "description": "UnifyPy 2.0 是一个功能强大的跨平台Python应用打包解决方案，支持Windows、macOS、Linux的原生安装包生成，提供完整的PyInstaller集成、多格式输出、并行构建等企业级功能。",
+        "manufacturer": "UnifyPy开发团队",
+        "upgrade_code": "{B2C3D4E5-F6G7-8901-BCDE-234567890123}",
+        "product_code": "{C3D4E5F6-G7H8-9012-CDEF-345678901234}",
+        "package_name": "UnifyPyComplete",
+        "package_version": "2.0.0",
+        "package_description": "UnifyPy 2.0 完整功能演示版",
+        "package_comments": "提供完整的跨平台打包功能",
+        "package_keywords": "Python;打包;跨平台;PyInstaller;安装包",
+        "install_scope": "perUser",
+        "install_level": 1,
+        "display_name": "UnifyPy 2.0 Complete",
+        "display_version": "2.0.0",
+        "arp_comments": "UnifyPy 2.0 跨平台Python应用打包工具",
+        "arp_contact": "UnifyPy开发团队",
+        "arp_help_link": "https://github.com/huangjunsen0406/UnifyPy",
+        "arp_url_info_about": "https://github.com/huangjunsen0406/UnifyPy",
+        "arp_url_update_info": "https://github.com/huangjunsen0406/UnifyPy/releases"
+      }
+    },
+    
+    "macos": {
+      "pyinstaller": {
+        "add_data": ["assets:assets", "configs:configs", "docs:docs"],
+        "icon": "assets/app_icon.icns",
+        "osx_bundle_identifier": "com.unifypy.complete",
+        "target_architecture": "universal2",
+        "codesign_identity": null,
+        "osx_entitlements_file": null
+      },
+      
+      // ==================== macOS 应用基本配置 ====================
+      "bundle_identifier": "com.unifypy.complete",
+      "minimum_system_version": "10.14.0",
+      "category": "public.app-category.developer-tools",
+      "copyright": "Copyright © 2024 UnifyPy开发团队",
+      "high_resolution_capable": true,
+      "supports_automatic_graphics_switching": true,
+      "ui_element": false,
+      "sandboxed": false,
+      
+      // ==================== macOS 权限配置 ====================
+      // 媒体访问权限
+      "microphone_usage_description": "此应用需要访问麦克风来进行语音识别和音频录制功能",
+      "camera_usage_description": "此应用需要访问摄像头来拍摄照片、录制视频或进行视频通话",
+      "photo_library_usage_description": "此应用需要访问照片库来选择、编辑和分享图片",
+      "photo_library_add_usage_description": "此应用需要向照片库添加处理后的图片和视频",
+      
+      // 位置服务权限
+      "location_when_in_use_usage_description": "此应用在使用时需要访问您的位置信息来提供基于位置的服务和功能",
+      
+      // 连接和通信权限
+      "bluetooth_always_usage_description": "此应用需要蓝牙访问来连接外部设备和传输数据",
+      "local_network_usage_description": "此应用需要访问本地网络来发现和连接同一网络上的设备",
+      
+      // 文件夹访问权限
+      "desktop_folder_usage_description": "此应用需要访问桌面文件夹来保存和读取桌面上的文件",
+      "documents_folder_usage_description": "此应用需要访问文档文件夹来管理用户文档",
+      "downloads_folder_usage_description": "此应用需要访问下载文件夹来保存下载的内容",
+      
+      // 系统访问权限（需谨慎使用）
+      "apple_events_usage_description": "此应用需要控制其他应用来提供自动化工作流和集成功能",
+      "accessibility_usage_description": "此应用需要辅助功能权限来提供无障碍支持和界面自动化",
+      
+      // 网络传输安全配置
+      "app_transport_security": {
+        "NSExceptionDomains": {
+          "api.unifypy.com": {
+            "NSExceptionAllowsInsecureHTTPLoads": false,
+            "NSExceptionMinimumTLSVersion": "TLSv1.2",
+            "NSExceptionRequiresForwardSecrecy": true
+          },
+          "github.com": {
+            "NSExceptionAllowsInsecureHTTPLoads": false,
+            "NSExceptionMinimumTLSVersion": "TLSv1.2"
+          }
+        }
+      },
+      
+      // ==================== DMG 打包配置 ====================
+      "dmg": {
+        "volname": "UnifyPy 2.0 Complete Installer",
+        "window_size": [640, 480],
+        "window_pos": [200, 200],
+        "icon_size": 120,
+        "background": "assets/dmg_background.png",
+        "app_drop_link": true,
+        "app_drop_x": 448,
+        "app_drop_y": 150,
+        "icon_position": [192, 150],
+        "format": "UDZO",
+        "filesystem": "HFS+",
+        "hide_extension": true,
+        "eula": "LICENSE.txt",
+        "volicon": "assets/volume_icon.icns",
+        "hdiutil_verbose": false,
+        "add_file": [],
+        "symlinks": {
+          "Applications": "/Applications"
+        }
+      },
+      
+      // ==================== PKG 打包配置 ====================
+      "pkg": {
+        "identifier": "com.unifypy.complete",
+        "use_distribution": true,
+        "min_os_version": "10.14",
+        "license": "LICENSE.txt",
+        "readme": "README.md",
+        "welcome": "docs/welcome.txt",
+        "scripts_dir": "pkg_scripts",
+        "sign_identity": null,
+        "install_location": "/Applications",
+        "background": "assets/pkg_background.png",
+        "conclusion": "docs/conclusion.txt",
+        "allow_downgrade": false,
+        "restart_action": "none",
+        "require_admin_auth": false
+      },
+      
+      // ==================== ZIP 打包配置 ====================
+      "zip": {
+        "extra_files": [
+          {"source": "README.md", "target": "README.txt"},
+          {"source": "LICENSE.txt", "target": "LICENSE.txt"},
+          {"source": "docs/", "target": "docs/"}
+        ],
+        "readme_content": "UnifyPy 2.0 Complete 便携版\n\n这是UnifyPy 2.0的完整功能演示版本，包含所有打包格式和高级特性。\n\n功能特性：\n- 多格式打包支持（Windows: EXE/MSI, macOS: DMG/PKG/ZIP, Linux: DEB/RPM/AppImage/TarGZ）\n- 并行构建支持，提升构建效率\n- 自动回滚机制，确保构建过程安全\n- 完整的配置选项，支持高度定制\n- 第三方工具自动集成\n- 完整的PyInstaller参数支持\n- macOS权限自动配置\n- 多架构支持（universal2）\n\n使用方法：\n1. 解压到任意目录\n2. 运行 UnifyPyComplete.app\n3. 或在终端中运行：./UnifyPyComplete.app/Contents/MacOS/UnifyPyComplete\n\n系统要求：macOS 10.14+\n\n更多信息：https://github.com/huangjunsen0406/UnifyPy",
+        "license_file": "LICENSE.txt",
+        "compression_level": 6
+      }
+    },
+    
+    "linux": {
+      "pyinstaller": {
+        "add_data": ["assets:assets", "configs:configs", "docs:docs"],
+        "icon": "assets/app_icon.png",
+        "strip": true,
+        "optimize": 2,
+        "exclude_module": ["tkinter", "matplotlib", "numpy"],
+        "hidden_import": ["rich", "packaging", "concurrent.futures", "threading"]
+      },
+      
+      // ==================== DEB 打包配置 ====================
+      "deb": {
+        "package": "unifypycomplete",
+        "maintainer": "UnifyPy Team <support@unifypy.com>",
+        "section": "devel",
+        "priority": "optional",
+        "architecture": "amd64",
+        "depends": ["python3 (>= 3.8)", "python3-pip", "build-essential"],
+        "recommends": ["git", "curl", "wget"],
+        "suggests": ["docker.io", "podman"],
+        "conflicts": [],
+        "replaces": [],
+        "provides": ["python-packager"],
+        "description": "UnifyPy 2.0 是一个专业的跨平台Python应用打包工具，支持生成Windows、macOS、Linux平台的原生安装包。提供完整的PyInstaller集成、多格式输出、并行构建等高级功能。",
+        "long_description": "UnifyPy 2.0 是一个功能全面的跨平台Python应用打包解决方案。\n\n主要特性：\n• 支持多种输出格式：Windows (EXE/MSI)、macOS (DMG/PKG/ZIP)、Linux (DEB/RPM/AppImage/TarGZ)\n• 完整的PyInstaller集成，支持30+参数配置\n• 并行构建支持，显著提升构建效率\n• 自动回滚机制，确保构建过程安全可靠\n• 第三方工具自动下载和管理\n• macOS权限自动配置和代码签名支持\n• 企业级功能：配置验证、进度跟踪、错误处理\n\n适用场景：\n• Python应用的商业化发布\n• 跨平台软件分发\n• 企业内部工具打包\n• 开源项目发布管理",
+        "homepage": "https://github.com/huangjunsen0406/UnifyPy",
+        "categories": "Development;Building;Utility;",
+        "create_desktop_file": true,
+        "desktop_name": "UnifyPy 2.0 Complete",
+        "desktop_comment": "跨平台Python应用打包工具",
+        "desktop_keywords": "Python;Packaging;Build;PyInstaller",
+        "terminal": false,
+        "postinst_script": "#!/bin/bash\necho 'UnifyPy 2.0 Complete 安装完成'\necho '运行命令: unifypycomplete --help'\necho '或在应用菜单中查找 \"UnifyPy 2.0 Complete\"'",
+        "prerm_script": "#!/bin/bash\necho 'UnifyPy 2.0 Complete 卸载中...'",
+        "postrm_script": "#!/bin/bash\necho 'UnifyPy 2.0 Complete 已卸载'"
+      },
+      
+      // ==================== RPM 打包配置 ====================
+      "rpm": {
+        "name": "unifypycomplete",
+        "summary": "跨平台Python应用打包工具",
+        "license": "MIT",
+        "description": "UnifyPy 2.0 是一个功能强大的跨平台Python应用打包解决方案，支持Windows EXE/MSI、macOS DMG/PKG、Linux DEB/RPM/AppImage等多种格式。提供完整的配置选项、并行构建、自动回滚等企业级功能。",
+        "url": "https://github.com/huangjunsen0406/UnifyPy",
+        "packager": "UnifyPy Team <support@unifypy.com>",
+        "vendor": "UnifyPy开发团队",
+        "requires": ["python3 >= 3.8", "python3-pip", "gcc", "make"],
+        "build_requires": ["python3-devel", "gcc", "make"],
+        "provides": ["python-packager", "pyinstaller-wrapper"],
+        "obsoletes": [],
+        "conflicts": [],
+        "group": "Development/Tools",
+        "categories": "Development/Tools",
+        "create_desktop_file": true,
+        "desktop_name": "UnifyPy 2.0 Complete",
+        "desktop_comment": "跨平台Python应用打包工具",
+        "desktop_keywords": "Python;Packaging;Build;PyInstaller",
+        "terminal": false,
+        "post_script": "echo 'UnifyPy 2.0 Complete RPM 安装完成'\necho '使用方法: unifypycomplete --help'",
+        "preun_script": "echo 'UnifyPy 2.0 Complete RPM 卸载中...'",
+        "postun_script": "echo 'UnifyPy 2.0 Complete RPM 已卸载'",
+        "architecture": "x86_64",
+        "epoch": 0,
+        "auto_req": true,
+        "auto_prov": true
+      },
+      
+      // ==================== AppImage 打包配置 ====================
+      "appimage": {
+        "description": "UnifyPy 2.0 跨平台Python打包工具便携版",
+        "categories": "Development;Building;Utility;",
+        "keywords": "Python;Packaging;Build;PyInstaller;CrossPlatform",
+        "terminal": false,
+        "no_appstream": true,
+        "compression": "gzip",
+        "verbose": false,
+        "icon": "assets/app_icon.png",
+        "desktop_entry": true,
+        "desktop_name": "UnifyPy 2.0 Complete",
+        "desktop_comment": "跨平台Python应用打包工具便携版",
+        "mime_types": ["application/x-python", "text/x-python"],
+        "update_information": "gh-releases-zsync|huangjunsen0406|UnifyPy|latest|UnifyPyComplete-*-x86_64.AppImage.zsync",
+        "runtime_args": [],
+        "exclude_libs": ["libc.so*", "libdl.so*", "libpthread.so*"],
+        "include_libs": []
+      },
+      
+      // ==================== Tarball 打包配置 ====================
+      "tarball": {
+        "install_prefix": "/usr/local",
+        "readme_content": "UnifyPy 2.0 Complete 源码包\n\n这是UnifyPy 2.0的完整功能版本源码包，包含所有打包格式支持。\n\n功能特性：\n- 支持Windows EXE/MSI安装包\n- 支持macOS DMG/PKG/ZIP包\n- 支持Linux DEB/RPM/AppImage/TarGZ包\n- 并行构建支持，显著提升构建效率\n- 自动回滚机制，确保构建过程安全\n- 完整的PyInstaller集成，支持30+参数\n- 第三方工具自动下载和管理\n- macOS权限自动配置和代码签名\n- 多架构支持（x86_64, arm64, universal2）\n- 企业级功能：配置验证、进度跟踪、错误处理\n\n安装说明：\n1. 解压: tar -xzf unifypycomplete-2.0.0.tar.gz\n2. 进入目录: cd unifypycomplete-2.0.0\n3. 运行安装脚本: sudo ./install.sh\n4. 或自定义安装位置: ./install.sh --prefix=/opt/unifypy\n\n便携式运行：\n./run-unifypycomplete.sh\n\n系统要求：\n- Python 3.8+\n- pip (Python包管理器)\n- 编译工具 (gcc/build-essential)\n- 对应平台的打包工具（可选，会自动下载）\n  * Windows: Inno Setup (可选)\n  * macOS: Xcode Command Line Tools\n  * Linux: dpkg-dev, rpm-build, fakeroot 等\n\n使用方法：\n# 基本用法\nunifypycomplete /path/to/project --config build.json\n\n# 并行构建多种格式\nunifypycomplete . --config build_comprehensive.json --parallel --max-workers 4\n\n# 生成特定格式\nunifypycomplete . --format dmg --parallel\n\n# 清理构建文件\nunifypycomplete . --clean\n\n配置文件示例：\n- build.json: 基本配置\n- build_multiformat.json: 多格式演示\n- build_comprehensive.json: 完整功能配置\n- build_macos_permissions_example.json: macOS权限配置\n\n卸载：\n如果安装到默认位置 (/usr/local)，手动删除以下文件：\n- /usr/local/bin/unifypycomplete\n- /usr/local/lib/unifypycomplete/\n- /usr/local/share/applications/unifypycomplete.desktop\n- /usr/local/share/pixmaps/unifypycomplete.*\n\n技术支持：\n- 项目主页: https://github.com/huangjunsen0406/UnifyPy\n- 问题反馈: https://github.com/huangjunsen0406/UnifyPy/issues\n- 发布页面: https://github.com/huangjunsen0406/UnifyPy/releases\n\n许可证：MIT License\nCopyright (c) 2024 UnifyPy开发团队",
+        "extra_files": [
+          "README.md",
+          "LICENSE.txt",
+          "CHANGELOG.md",
+          {"source": "docs/", "target": "docs/"},
+          {"source": "examples/", "target": "examples/"},
+          {"source": "configs/", "target": "configs/"}
+        ],
+        "compression_level": 9,
+        "create_install_script": true,
+        "create_uninstall_script": true,
+        "create_run_script": true,
+        "install_script_name": "install.sh",
+        "uninstall_script_name": "uninstall.sh",
+        "run_script_name": "run-unifypycomplete.sh",
+        "bin_name": "unifypycomplete",
+        "lib_dir": "lib/unifypycomplete",
+        "share_dir": "share/unifypycomplete",
+        "doc_dir": "share/doc/unifypycomplete",
+        "man_dir": "share/man/man1"
+      }
+    }
+  }
+}

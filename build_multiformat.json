@@ -1,0 +1,103 @@
+{
+  "name": "UnifyPyDemo",
+  "display_name": "UnifyPy 2.0 多格式演示",
+  "version": "2.0.0",
+  "publisher": "UnifyPy开发团队",
+  "entry": "main.py",
+  
+  "pyinstaller": {
+    "onefile": true,
+    "console": true,
+    "clean": true,
+    "noconfirm": true,
+    "add_data": ["assets:assets"],
+    "hidden_import": ["requests", "rich"]
+  },
+  
+  "platforms": {
+    "windows": {
+      "inno_setup": {
+        "app_id": "{12345678-1234-5678-9ABC-123456789012}",
+        "languages": ["english", "chinesesimplified"],
+        "create_desktop_icon": true,
+        "run_after_install": false,
+        "license_file": "LICENSE.txt",
+        "description": "UnifyPy 2.0 跨平台Python应用打包工具演示版本"
+      },
+      "msi": {
+        "license": "MIT",
+        "summary": "跨平台Python应用打包工具",
+        "description": "支持Windows、macOS、Linux的Python应用打包解决方案"
+      }
+    },
+    
+    "macos": {
+      "dmg": {
+        "volname": "UnifyPy 2.0 Installer",
+        "window_size": [600, 400],
+        "icon_size": 100,
+        "background": "assets/dmg_background.png",
+        "app_drop_link": true,
+        "app_drop_x": 448,
+        "app_drop_y": 120,
+        "icon_position": [152, 120],
+        "format": "UDZO",
+        "hide_extension": true
+      },
+      "pkg": {
+        "identifier": "com.unifypy.demo",
+        "use_distribution": true,
+        "min_os_version": "10.14",
+        "license": "LICENSE.txt",
+        "readme": "README.md"
+      },
+      "zip": {
+        "extra_files": [
+          {"source": "README.md", "target": "README.txt"},
+          {"source": "LICENSE.txt", "target": "LICENSE.txt"}
+        ],
+        "readme_content": "UnifyPy 2.0 演示应用\n\n这是一个便携式ZIP包，解压后可直接运行。\n\n使用方法：\n1. 解压到任意目录\n2. 运行 UnifyPyDemo.app\n\n或者在终端中运行：\n./UnifyPyDemo.app/Contents/MacOS/UnifyPyDemo"
+      }
+    },
+    
+    "linux": {
+      "deb": {
+        "maintainer": "UnifyPy Team <support@unifypy.com>",
+        "section": "utils",
+        "priority": "optional",
+        "depends": ["python3", "python3-pip"],
+        "description": "跨平台Python应用打包工具",
+        "homepage": "https://github.com/unifypy/unifypy",
+        "categories": "Development;Utility;",
+        "create_desktop_file": true,
+        "terminal": false
+      },
+      "rpm": {
+        "summary": "跨平台Python应用打包工具",
+        "license": "MIT",
+        "description": "UnifyPy是一个强大的跨平台Python应用打包解决方案，支持生成Windows、macOS、Linux平台的原生安装包。",
+        "url": "https://github.com/unifypy/unifypy",
+        "requires": ["python3", "python3-pip"],
+        "categories": "Development;Utility;",
+        "create_desktop_file": true,
+        "terminal": false
+      },
+      "appimage": {
+        "description": "跨平台Python应用打包工具便携版",
+        "categories": "Development;Utility;",
+        "terminal": false,
+        "no_appstream": true,
+        "compression": "gzip"
+      },
+      "tarball": {
+        "install_prefix": "/usr/local",
+        "readme_content": "UnifyPy 2.0 源码包\n\n安装说明：\n1. 解压: tar -xzf unifypy-demo-2.0.0.tar.gz\n2. 进入目录: cd unifypy-demo-2.0.0\n3. 安装: sudo ./install.sh\n4. 或自定义路径安装: ./install.sh --prefix=/opt/unifypy\n\n便携式运行：\n./run-unifypydemo.sh\n\n卸载：\n如果安装到默认位置，手动删除以下文件：\n- /usr/local/bin/unifypydemo\n- /usr/local/lib/unifypydemo/\n- /usr/local/share/applications/unifypydemo.desktop\n- /usr/local/share/pixmaps/unifypydemo.*",
+        "extra_files": [
+          "README.md",
+          "LICENSE.txt"
+        ],
+        "compression_level": 6
+      }
+    }
+  }
+}
