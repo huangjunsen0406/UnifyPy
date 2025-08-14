@@ -430,10 +430,16 @@ AddonHostProgramNotFound=%1 无法在您选择的文件夹中找到。%n%n无论
         app_url = config.get("app_url", "")
         display_name = self.config.get("display_name", app_name)
         
-        # 生成APP_ID
-        app_id = config.get('app_id', f"{{{app_name}}}")
-        if not app_id.startswith('{'):
-            app_id = f"{{{app_id}}}"
+        # 生成APP_ID - 修复格式问题
+        app_id = config.get('app_id', None)
+        if not app_id:
+            # 生成基于应用名称的伪GUID格式，注意这里不包含花括号
+            import hashlib
+            name_hash = hashlib.md5(app_name.encode()).hexdigest()[:8].upper()
+            app_id = f"C4D8B3F2-1234-5678-9ABC-{name_hash}12345678"
+        elif app_id.startswith('{') and app_id.endswith('}'):
+            # 移除现有的花括号，因为模板中已经有了
+            app_id = app_id.strip('{}')
 
         # 确定源文件路径和可执行文件名
         source_path_str = str(source_path).replace('/', '\\')
@@ -563,8 +569,14 @@ AddonHostProgramNotFound=%1 无法在您选择的文件夹中找到。%n%n无论
             exe_name = f"{app_name}.exe"
 
         # 构建Setup节 - 修复路径问题和空值处理
-        app_id = config.get('app_id', f"{{{app_name}}}")
-        if not app_id.startswith('{'):
+        app_id = config.get('app_id', None)
+        if not app_id:
+            # 生成基于应用名称的伪GUID格式
+            import hashlib
+            name_hash = hashlib.md5(app_name.encode()).hexdigest()[:8].upper()
+            app_id = f"{{C4D8B3F2-1234-5678-9ABC-{name_hash}12345678}}"
+        elif not (app_id.startswith('{') and app_id.endswith('}')):
+            # 确保使用花括号格式
             app_id = f"{{{app_id}}}"
         
         # 处理路径中的反斜杠
