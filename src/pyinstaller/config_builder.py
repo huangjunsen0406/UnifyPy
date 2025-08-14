@@ -93,16 +93,17 @@ class PyInstallerConfigBuilder:
         'recursive_copy_metadata', 'upx_exclude', 'resource'
     }
     
-    def __init__(self, current_platform: Optional[str] = None):
+    def __init__(self, current_platform: Optional[str] = None, verbose: bool = False):
         """
         初始化配置构建器
         
         Args:
             current_platform: 当前平台 (windows/macos/linux)
+            verbose: 是否显示详细输出
         """
         self.current_platform = current_platform or self._detect_platform()
         self.entitlements_generator = EntitlementsGenerator()
-        self.icon_converter = IconConverter()
+        self.icon_converter = IconConverter(verbose=verbose)
     
     def _detect_platform(self) -> str:
         """检测当前平台"""

@@ -13,6 +13,14 @@ from typing import Dict, Any, List
 class InfoPlistUpdater:
     """Info.plist 更新器"""
     
+    def __init__(self, verbose: bool = False):
+        self.verbose = verbose
+    
+    def _print(self, message: str):
+        """只在 verbose 模式下打印信息"""
+        if self.verbose:
+            print(message)
+    
     # 配置键到 Info.plist 权限描述键的映射
     PERMISSION_MAPPING = {
         'microphone_usage_description': 'NSMicrophoneUsageDescription',
@@ -49,25 +57,25 @@ class InfoPlistUpdater:
             bool: 更新是否成功
         """
         if not app_path.exists() or not app_path.name.endswith('.app'):
-            print(f"❌ 无效的 .app 包路径: {app_path}")
+            print(f"❌ 无效的 .app 包路径: {app_path}")  # 错误信息始终显示
             return False
         
         info_plist_path = app_path / "Contents" / "Info.plist"
         
         if not info_plist_path.exists():
-            print(f"❌ Info.plist 不存在: {info_plist_path}")
+            print(f"❌ Info.plist 不存在: {info_plist_path}")  # 错误信息始终显示
             return False
         
-        print(f"🔧 更新 Info.plist 权限描述: {info_plist_path}")
+        self._print(f"🔧 更新 Info.plist 权限描述: {info_plist_path}")
         
         # 备份原始文件
         backup_path = info_plist_path.with_suffix('.plist.backup')
         try:
             import shutil
             shutil.copy2(info_plist_path, backup_path)
-            print(f"✅ Info.plist 已备份: {backup_path}")
+            self._print(f"✅ Info.plist 已备份: {backup_path}")
         except Exception as e:
-            print(f"⚠️ 备份失败: {e}")
+            self._print(f"⚠️ 备份失败: {e}")
         
         success_count = 0
         total_permissions = 0
@@ -79,16 +87,16 @@ class InfoPlistUpdater:
                 
                 if self._update_plist_permission(info_plist_path, plist_key, description):
                     success_count += 1
-                    print(f"  ✅ {plist_key}: {description[:50]}...")
+                    self._print(f"  ✅ {plist_key}: {description[:50]}...")
                 else:
-                    print(f"  ❌ {plist_key}: 更新失败")
+                    print(f"  ❌ {plist_key}: 更新失败")  # 错误信息始终显示
                 
                 total_permissions += 1
         
         # 添加一些特殊权限
         self._add_special_permissions(info_plist_path, macos_config)
         
-        print(f"📋 权限描述更新完成: {success_count}/{total_permissions}")
+        self._print(f"📋 权限描述更新完成: {success_count}/{total_permissions}")
         return success_count > 0
     
     def _update_plist_permission(self, plist_path: Path, key: str, description: str) -> bool:
@@ -126,7 +134,7 @@ class InfoPlistUpdater:
             return result.returncode == 0
             
         except Exception as e:
-            print(f"❌ PlistBuddy 执行异常: {e}")
+            print(f"❌ PlistBuddy 执行异常: {e}")  # 错误信息始终显示
             return False
     
     def _add_special_permissions(self, plist_path: Path, macos_config: Dict[str, Any]):
@@ -149,7 +157,7 @@ class InfoPlistUpdater:
                     str(plist_path)
                 ], capture_output=True, check=False)
                 
-                print("  ✅ 添加后台音频权限")
+                self._print("  ✅ 添加后台音频权限")
                 
             except Exception:
                 pass  # 忽略错误，可能已存在
@@ -163,7 +171,7 @@ class InfoPlistUpdater:
                     str(plist_path)
                 ], capture_output=True, check=False)
                 
-                print("  ✅ 添加音频会话类别")
+                self._print("  ✅ 添加音频会话类别")
                 
             except Exception:
                 pass  # 忽略错误，可能已存在

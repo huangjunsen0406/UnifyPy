@@ -16,6 +16,14 @@ from typing import Optional
 class IconConverter:
     """简化的图标格式转换器"""
     
+    def __init__(self, verbose: bool = False):
+        self.verbose = verbose
+    
+    def _print(self, message: str):
+        """只在 verbose 模式下打印信息"""
+        if self.verbose:
+            print(message)
+    
     def ensure_icon_format(self, icon_path: str, target_format: str, project_dir: Path) -> Optional[str]:
         """
         确保图标是指定格式，如果不是则转换
@@ -38,7 +46,7 @@ class IconConverter:
             source_path = project_dir / icon_path
         
         if not source_path.exists():
-            print(f"❌ 图标文件不存在: {source_path}")
+            print(f"❌ 图标文件不存在: {source_path}")  # 错误信息始终显示
             return None
         
         # 检查是否已经是目标格式
@@ -83,28 +91,28 @@ class IconConverter:
                     # 标准分辨率
                     target_file = iconset_dir / f"icon_{size}x{size}.png"
                     if not self._resize_with_sips(png_path, target_file, size):
-                        print(f"❌ 生成 {size}x{size} 图标失败")
+                        print(f"❌ 生成 {size}x{size} 图标失败")  # 错误信息始终显示
                         return False
                     
                     # 高分辨率版本（@2x，除了 1024px）
                     if size < 1024:
                         target_file_2x = iconset_dir / f"icon_{size}x{size}@2x.png"  
                         if not self._resize_with_sips(png_path, target_file_2x, size * 2):
-                            print(f"❌ 生成 {size}x{size}@2x 图标失败")
+                            print(f"❌ 生成 {size}x{size}@2x 图标失败")  # 错误信息始终显示
                 
                 # 使用 iconutil 转换为 ICNS
                 cmd = ['iconutil', '-c', 'icns', str(iconset_dir), '-o', str(icns_path)]
                 result = subprocess.run(cmd, capture_output=True, text=True, check=False)
                 
                 if result.returncode == 0:
-                    print(f"✅ 图标转换成功: {png_path.name} -> {icns_path.name}")
+                    self._print(f"✅ 图标转换成功: {png_path.name} -> {icns_path.name}")
                     return True
                 else:
-                    print(f"❌ iconutil 执行失败: {result.stderr}")
+                    print(f"❌ iconutil 执行失败: {result.stderr}")  # 错误信息始终显示
                     return False
                     
         except Exception as e:
-            print(f"❌ 图标转换异常: {e}")
+            print(f"❌ 图标转换异常: {e}")  # 错误信息始终显示
             return False
     
     def _resize_with_sips(self, source: Path, target: Path, size: int) -> bool:
