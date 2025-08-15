@@ -14,6 +14,9 @@ UnifyPy 2.0 是一个企业级跨平台Python应用打包工具，支持将Pytho
 - **🎨 优秀体验**: Rich进度条、分阶段显示、详细日志
 - **🔧 完整配置**: 支持30+PyInstaller参数，JSON配置化
 - **📦 自动化工具**: 第三方工具自动下载和管理
+- **🍎 macOS权限管理**: 自动生成权限文件、代码签名支持
+- **📊 智能路径处理**: 相对路径自动解析为绝对路径
+- **🔄 模块化架构**: 基于注册表的插件式打包器设计
 
 ## 📦 安装要求
 
@@ -31,6 +34,12 @@ pip install -r requirements.txt
 - rich >= 12.0
 - requests >= 2.28
 - packaging >= 21.0
+- pillow >= 8.0 (可选，用于图标转换)
+
+**平台特定工具**：
+- **Windows**: Inno Setup (自动检测)
+- **macOS**: create-dmg (内置)、Xcode Command Line Tools
+- **Linux**: dpkg-dev, rpm-build, fakeroot (按需自动安装指导)
 
 ## 🚀 快速开始
 
@@ -59,7 +68,10 @@ python main.py . --config build.json --skip-installer
 python main.py . --config build.json --format dmg --parallel
 
 # macOS开发模式（自动权限配置）
-python main.py . --config py-xiaozhi.json --development --verbose
+python main.py . --config build.json --development --verbose
+
+# 跨目录打包（解决路径问题）
+python /path/to/UnifyPy/main.py /path/to/project --config /path/to/project/build.json
 ```
 
 ### 配置文件示例
@@ -69,39 +81,57 @@ python main.py . --config py-xiaozhi.json --development --verbose
 ```json
 {
   "name": "MyApp",
-  "display_name": "我的应用程序",
+  "display_name": "我的应用程序", 
   "version": "1.0.0",
   "publisher": "我的公司",
   "entry": "main.py",
-  "icon": "assets/app_icon.png",
+  "icon": "assets/icon.png",
   
   "pyinstaller": {
     "onefile": false,
     "windowed": true,
     "clean": true,
     "noconfirm": true,
-    "add_data": ["assets:assets"],
-    "hidden_import": ["requests", "json"]
+    "add_data": ["assets:assets", "config:config"],
+    "hidden_import": ["requests", "json", "tkinter"]
   },
   
   "platforms": {
     "windows": {
+      "pyinstaller": {
+        "add_data": ["assets;assets", "config;config"]
+      },
       "inno_setup": {
         "create_desktop_icon": true,
-        "languages": ["english", "chinesesimplified"]
+        "create_start_menu_icon": true,
+        "languages": ["english", "chinesesimplified"],
+        "license_file": "LICENSE",
+        "setup_icon": "assets/installer.ico"
       }
     },
     "macos": {
       "bundle_identifier": "com.mycompany.myapp",
+      "microphone_usage_description": "需要麦克风权限进行语音功能",
+      "camera_usage_description": "需要摄像头权限进行视频功能",
       "dmg": {
         "volname": "MyApp 安装器",
-        "window_size": [600, 400]
+        "window_size": [600, 400],
+        "icon_size": 100
+      },
+      "pkg": {
+        "package": "com.mycompany.myapp.pkg",
+        "scripts": "pkg_scripts"
       }
     },
     "linux": {
       "deb": {
         "package": "myapp",
-        "depends": ["python3 (>= 3.8)"]
+        "depends": ["python3 (>= 3.8)", "libgtk-3-0"],
+        "description": "我的Python应用程序"
+      },
+      "appimage": {
+        "desktop_entry": true,
+        "categories": "Utility;Development;"
       }
     }
   }
@@ -286,6 +316,145 @@ python main.py . --rollback SESSION_ID
 python main.py . --config build.json --no-rollback
 ```
 
+## 🍎 macOS 特殊功能
+
+### 自动权限管理
+UnifyPy 2.0 为 macOS 应用提供了完整的权限管理方案：
+
+```bash
+# 开发模式 - 自动生成权限文件，适合开发和测试
+python main.py . --config build.json --development
+
+# 生产模式 - 用于已签名应用
+python main.py . --config build.json --production
+```
+
+### 权限配置示例
+```json
+{
+  "platforms": {
+    "macos": {
+      "bundle_identifier": "com.company.myapp",
+      "microphone_usage_description": "需要麦克风权限进行语音功能",
+      "camera_usage_description": "需要摄像头权限进行视频功能", 
+      "location_usage_description": "需要位置权限提供基于位置的服务"
+    }
+  }
+}
+```
+
+### 自动化功能
+- ✅ 自动生成 entitlements.plist
+- ✅ 自动更新 Info.plist 权限描述  
+- ✅ 自动 ad-hoc 代码签名
+- ✅ 自动图标格式转换（PNG → ICNS）
+
+## 🔄 智能路径处理
+
+UnifyPy 2.0 解决了跨目录打包时的路径问题：
+
+### 问题场景
+```bash
+# 从 UnifyPy 目录打包其他项目
+cd /path/to/UnifyPy
+python main.py ../my-project --config ../my-project/build.json
+```
+
+### 智能解决方案
+配置文件中的相对路径会自动解析为相对于**目标项目目录**：
+- ✅ `"icon": "assets/icon.png"` → `/path/to/my-project/assets/icon.png`  
+- ✅ `"add_data": ["data:data"]` → `/path/to/my-project/data:data`
+- ✅ 支持嵌套配置和平台特定路径
+
+### 支持的路径字段
+- 单文件：`icon`, `license`, `readme`, `entry`, `setup_icon`, `version_file`
+- 数组字段：`add_data`, `add_binary`, `datas`, `binaries`
+- 格式：支持 `source:dest` 和 `source;dest` 两种分隔符
+
+## 🏗️ 架构设计
+
+UnifyPy 2.0 采用现代化的模块化架构设计：
+
+### 核心设计模式
+
+**注册表模式 (Registry Pattern)**
+```python
+# 动态注册和查找打包器
+packager_registry = PackagerRegistry()
+packager_class = packager_registry.get_packager("macos", "dmg")
+```
+
+**工厂模式 (Factory Pattern)**
+```python
+# 通过注册表创建平台特定的打包器
+packager = packager_class(progress, runner, tool_manager, config)
+```
+
+**策略模式 (Strategy Pattern)**  
+```python
+# 每个打包器实现特定格式的打包策略
+class DMGPackager(BasePackager):
+    def package(self, format_type, source_path, output_path):
+        # DMG特定的打包逻辑
+```
+
+**建造者模式 (Builder Pattern)**
+```python  
+# 构建复杂的PyInstaller配置
+builder = PyInstallerConfigBuilder()
+command = builder.build_command(config, entry_script)
+```
+
+### 核心组件交互
+
+```mermaid
+graph TD
+    A[UnifyPyBuilder] --> B[ConfigManager]
+    A --> C[PackagerRegistry]
+    A --> D[ProgressManager]
+    
+    B --> E[路径解析]
+    B --> F[配置合并]
+    
+    C --> G[WindowsPackager]
+    C --> H[MacOSPackager] 
+    C --> I[LinuxPackager]
+    
+    A --> J[PyInstallerBuilder]
+    J --> K[图标转换]
+    J --> L[权限生成]
+    
+    A --> M[RollbackManager]
+    A --> N[ParallelBuilder]
+```
+
+### 构建流程
+
+1. **初始化阶段**
+   - 解析命令行参数
+   - 加载和合并配置文件
+   - 验证项目结构和依赖
+
+2. **预处理阶段**  
+   - 智能路径解析（相对→绝对）
+   - 创建构建目录和临时文件
+   - macOS 权限文件自动生成
+
+3. **可执行文件构建**
+   - PyInstaller 配置构建
+   - 图标格式自动转换
+   - macOS Info.plist 更新和代码签名
+
+4. **安装包生成**
+   - 根据平台选择合适的打包器
+   - 支持并行构建多种格式
+   - 自动验证输出文件
+
+5. **后处理阶段**
+   - 清理临时文件
+   - 显示构建结果
+   - 回滚数据保存
+
 ## 📁 项目结构
 
 ```
@@ -297,11 +466,29 @@ UnifyPy/
 ├── build_comprehensive.json # 完整配置示例
 ├── py-xiaozhi.json        # 实际项目配置示例
 └── src/                   # 源代码
-    ├── core/             # 核心模块（配置管理）
-    ├── platforms/        # 平台打包器
+    ├── core/             # 核心模块
+    │   ├── config.py     # 配置管理（支持路径解析）
+    │   └── environment.py # 环境检测
+    ├── platforms/        # 平台打包器（注册表模式）
+    │   ├── base.py       # 打包器基类
+    │   ├── registry.py   # 打包器注册表
+    │   ├── windows/      # Windows打包器(EXE+MSI)
+    │   ├── macos/        # macOS打包器(DMG+PKG+ZIP) 
+    │   └── linux/        # Linux打包器(DEB+RPM+AppImage+TarGZ)
     ├── pyinstaller/      # PyInstaller集成
-    ├── tools/            # 内置工具（create-dmg等）
+    │   ├── builder.py    # 构建器
+    │   └── config_builder.py # 配置构建器
+    ├── templates/        # 模板文件
+    │   └── setup.iss.template # Inno Setup脚本模板
+    ├── tools/            # 内置工具
+    │   └── create-dmg/   # macOS DMG生成工具
     └── utils/            # 工具模块
+        ├── progress.py   # Rich进度条管理
+        ├── rollback.py   # 回滚系统
+        ├── parallel_builder.py # 并行构建
+        ├── icon_converter.py   # 图标转换
+        ├── info_plist_updater.py # macOS权限更新
+        └── macos_codesign.py   # macOS代码签名
 ```
 
 ## 🔍 故障排除
@@ -318,8 +505,15 @@ python main.py . --config build.json --clean --verbose
 ```
 
 **Q: macOS权限配置问题？**
+```bash
+# 使用开发模式自动生成权限文件
+python main.py . --config build.json --development --verbose
+
+# 检查生成的权限文件
+cat auto_generated_entitlements.plist
+```
 - 检查配置文件中的权限描述
-- 确保Bundle ID格式正确
+- 确保Bundle ID格式正确（com.company.appname）
 - 参考 `build_macos_permissions_example.json`
 
 **Q: Linux依赖缺失？**
@@ -340,12 +534,27 @@ python main.py . --parallel --max-workers 2
 python main.py . --config build.json
 ```
 
+**Q: 配置文件中的路径找不到？**
+```bash
+# 确保相对路径是相对于项目目录的
+# ✅ 正确：项目在 /path/to/myapp，图标在 /path/to/myapp/assets/icon.png
+"icon": "assets/icon.png"
+
+# ❌ 错误：使用相对于UnifyPy目录的路径
+"icon": "../myapp/assets/icon.png" 
+
+# 检查路径解析
+python main.py . --config build.json --verbose
+```
+
 ### 调试技巧
 
 1. **启用详细输出**: `--verbose`
 2. **检查日志**: 查看构建过程详细信息
 3. **单步构建**: 使用 `--skip-exe` 或 `--skip-installer`
 4. **回滚测试**: 使用 `--list-rollback` 查看历史
+5. **路径问题**: 检查配置文件中的相对路径是否正确
+6. **权限问题**: macOS使用 `--development` 模式进行调试
 
 ## 📝 最佳实践
 
@@ -361,8 +570,9 @@ python main.py . --config build.json
 
 ### 跨平台兼容
 - 路径分隔符使用 `/` 或自动处理
-- 图标格式让工具自动转换
+- 图标格式让工具自动转换（PNG→ICNS/ICO）
 - 测试不同平台的依赖兼容性
+- **重要**: 配置文件中的相对路径会自动解析为相对于项目目录的绝对路径
 
 ## 📄 许可证
 

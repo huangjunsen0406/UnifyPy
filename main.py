@@ -23,6 +23,7 @@ from src.utils.parallel_builder import ParallelBuilder
 from src.utils.progress import ProgressManager
 from src.utils.rollback import RollbackManager
 from src.utils.tool_manager import ToolManager
+from src.utils.cache_manager import CacheManager
 
 # 添加src目录到Python路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
@@ -278,6 +279,9 @@ class UnifyPyBuilder:
             self.file_ops.ensure_dir(str(self.installer_dir))
 
         self.progress.update_stage(stage, 40, "创建输出目录", absolute=True)
+
+        # 预生成多平台配置（如果需要）
+        self._prepare_platform_configs()
 
         # 清理旧文件（如果需要）
         if self.args.clean:
@@ -905,6 +909,41 @@ class UnifyPyBuilder:
         for key, value in config.items():
             if isinstance(value, dict):
                 self._process_nested_paths(value)
+
+    def _prepare_platform_configs(self):
+        """
+        预生成多平台配置文件
+        """
+        try:
+            # 初始化缓存管理器
+            cache_manager = CacheManager(str(self.project_dir))
+            
+            # 检查是否需要预生成配置
+            should_pre_generate = cache_manager.should_pre_generate_all_configs(self.config.merged_config)
+            if should_pre_generate:
+                self.progress.update_stage("环境准备", 45, "预生成多平台配置...", absolute=True)
+                
+                # 执行多平台配置预生成
+                results = cache_manager.pre_generate_all_platform_configs(
+                    self.config.merged_config, 
+                    self.config.config_path if hasattr(self.config, 'config_path') else None
+                )
+                
+                # 统计生成结果
+                success_count = sum(1 for result in results.values() if result is True)
+                total_count = len([p for p in results.keys() if results[p] != "skipped"])
+                
+                if success_count > 0:
+                    self.progress.info(f"✅ 预生成 {success_count}/{total_count} 个平台配置")
+                else:
+                    self.progress.info("📋 使用现有缓存配置")
+            else:
+                self.progress.update_stage("环境准备", 45, "使用缓存配置", absolute=True)
+                self.progress.info("📋 使用现有缓存配置")
+                
+        except Exception as e:
+            # 配置预生成失败不应阻止主流程
+            self.progress.warning(f"配置预生成失败: {e}")
 
     def _show_success(self):
         """

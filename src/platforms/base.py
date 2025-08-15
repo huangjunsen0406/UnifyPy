@@ -15,7 +15,7 @@ class BasePackager(ABC):
     平台打包器基类.
     """
 
-    def __init__(self, progress_manager, runner, tool_manager, config: Dict[str, Any]):
+    def __init__(self, progress_manager, runner, tool_manager, config: Dict[str, Any], config_file_path: str = None):
         """初始化打包器.
 
         Args:
@@ -23,11 +23,13 @@ class BasePackager(ABC):
             runner: 命令执行器
             tool_manager: 工具管理器
             config: 配置字典
+            config_file_path: 配置文件路径（可选）
         """
         self.progress = progress_manager
         self.runner = runner
         self.tool_manager = tool_manager
         self.config = config
+        self.config_file_path = config_file_path or "build.json"
         self.current_platform = self._detect_platform()
         # 初始化环境管理器
         from ..core.environment import EnvironmentManager
