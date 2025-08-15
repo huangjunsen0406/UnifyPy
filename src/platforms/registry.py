@@ -35,12 +35,8 @@ class PackagerRegistry:
 
             # macOS 打包器
             from .macos.dmg_packager import DMGPackager
-            from .macos.pkg_packager import PKGPackager
-            from .macos.zip_packager import ZipPackager
 
             self.register_packager("macos", "dmg", DMGPackager)
-            self.register_packager("macos", "pkg", PKGPackager)
-            self.register_packager("macos", "zip", ZipPackager)
 
             # Linux 打包器
             from .linux.appimage_packager import AppImagePackager

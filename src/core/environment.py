@@ -196,7 +196,7 @@ class EnvironmentManager:
                 return "amd64"  # Debian/Ubuntu 包名
             elif format_type in ["rpm"]:
                 return "x86_64"  # RPM 包名
-            elif format_type in ["appimage", "dmg", "exe", "zip"]:
+            elif format_type in ["appimage", "dmg", "exe"]:
                 return "x86_64"  # 通用标准
             else:
                 return "x86_64"
@@ -206,7 +206,7 @@ class EnvironmentManager:
                 return "arm64"  # Debian/Ubuntu 包名
             elif format_type in ["rpm"]:
                 return "aarch64"  # RPM 包名 
-            elif format_type in ["appimage", "dmg", "exe", "zip"]:
+            elif format_type in ["appimage", "dmg", "exe"]:
                 return "aarch64"  # 通用标准
             else:
                 return "arm64"
@@ -432,7 +432,7 @@ class EnvironmentManager:
                     "target_architecture": self.normalized_arch
                 },
                 "installer_type": "inno_setup",
-                "recommended_formats": ["exe", "zip"],
+                "recommended_formats": ["exe"],
             })
         elif self.current_platform == "mac":
             settings.update({
@@ -442,7 +442,7 @@ class EnvironmentManager:
                     "target_architecture": self.normalized_arch
                 },
                 "installer_type": "dmg",
-                "recommended_formats": ["dmg", "zip"],
+                "recommended_formats": ["dmg"],
             })
             
             # Rosetta 特殊建议
