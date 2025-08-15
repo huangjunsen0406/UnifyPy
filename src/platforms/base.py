@@ -29,6 +29,9 @@ class BasePackager(ABC):
         self.tool_manager = tool_manager
         self.config = config
         self.current_platform = self._detect_platform()
+        # 初始化环境管理器
+        from ..core.environment import EnvironmentManager
+        self.env_manager = EnvironmentManager(".")
 
     def _detect_platform(self) -> str:
         """
@@ -87,25 +90,24 @@ class BasePackager(ABC):
         """
         return []
 
-    def get_output_filename(self, format_type: str, app_name: str, version: str) -> str:
-        """生成输出文件名.
+    def get_output_filename(self, format_type: str, app_name: str, version: str, use_modern_naming: bool = False) -> str:
+        """生成输出文件名 (支持现代化命名).
 
         Args:
             format_type: 打包格式
             app_name: 应用名称
             version: 版本号
+            use_modern_naming: 是否使用现代化命名 (内部架构键)
 
         Returns:
             str: 输出文件名
         """
-        # 获取架构信息
-        arch = platform.machine().lower()
-        if arch == "x86_64":
-            arch = "amd64"
-        elif arch.startswith("arm"):
-            arch = "arm64" if "64" in arch else "arm"
-
-        return f"{app_name}-{version}-{arch}.{format_type}"
+        if use_modern_naming and format_type not in ["deb", "rpm", "appimage"]:
+            # 现代化命名：使用内部架构键
+            return self.env_manager.get_modern_filename(app_name, version, format_type)
+        else:
+            # 传统命名：兼容现有系统
+            return self.env_manager.get_legacy_format_filename(app_name, version, format_type)
 
     def ensure_output_dir(self, output_path: Path) -> None:
         """确保输出目录存在.

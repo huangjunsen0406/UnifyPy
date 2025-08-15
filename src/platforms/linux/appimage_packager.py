@@ -287,15 +287,7 @@ exec "$HERE/usr/bin/{app_name}" "$@"
         """
         获取架构标识.
         """
-        import platform
-
-        arch = platform.machine()
-        if arch == "x86_64":
-            return "x86_64"
-        elif arch.startswith("arm"):
-            return "aarch64" if "64" in arch else "armhf"
-        else:
-            return arch
+        return self.env_manager.get_arch_for_format("appimage")
 
     def validate_config(self, format_type: str) -> List[str]:
         """

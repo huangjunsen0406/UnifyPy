@@ -121,14 +121,8 @@ exec ./{app_name} "$@"
         app_name = self.config.get("name", "myapp").lower()
         version = self.config.get("version", "1.0.0")
 
-        # 获取架构信息
-        import platform
-
-        arch = platform.machine()
-        if arch == "x86_64":
-            arch = "amd64"
-        elif arch.startswith("arm"):
-            arch = "arm64" if "64" in arch else "armhf"
+        # 使用环境管理器获取标准化的架构信息
+        arch = self.env_manager.get_arch_for_format("deb")
 
         control_content = f"""Package: {app_name}
 Version: {version}

@@ -124,14 +124,8 @@ class RPMPackager(BasePackager):
         version = self.config.get("version", "1.0.0")
         release = config.get("release", "1")
 
-        # 获取架构信息
-        import platform
-
-        arch = platform.machine()
-        if arch == "x86_64":
-            arch = "x86_64"
-        elif arch.startswith("arm"):
-            arch = "aarch64" if "64" in arch else "armv7hl"
+        # 使用环境管理器获取标准化的架构信息
+        arch = self.env_manager.get_arch_for_format("rpm")
 
         spec_content = f"""Name:           {app_name}
 Version:        {version}
