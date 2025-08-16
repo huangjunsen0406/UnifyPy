@@ -104,15 +104,6 @@
         "format": "UDZO",
         "filesystem": "HFS+",
         "eula": "LICENSE"
-      },
-      "pkg": {
-        "identifier": "com.unifypy.exampleapp",
-        "install_location": "/Applications",
-        "sign": false,
-        "scripts": {
-          "preinstall": "scripts/preinstall.sh",
-          "postinstall": "scripts/postinstall.sh"
-        }
       }
     },
     

@@ -8,7 +8,7 @@ UnifyPy 2.0 是一个企业级跨平台Python应用打包工具，支持将Pytho
 
 ### ✨ 核心特性
 
-- **🔄 多平台支持**: Windows (EXE+MSI)、macOS (DMG+PKG+ZIP)、Linux (DEB+RPM+AppImage+TarGZ)
+- **🔄 多平台支持**: Windows (EXE+MSI)、macOS (DMG)、Linux (DEB+RPM+AppImage+TarGZ)
 - **⚡ 并行构建**: 支持多格式并行生成，显著提升构建效率
 - **🛡️ 企业级功能**: 自动回滚、会话管理、智能错误处理
 - **🎨 优秀体验**: Rich进度条、分阶段显示、详细日志
@@ -117,10 +117,6 @@ python /path/to/UnifyPy/main.py /path/to/project --config /path/to/project/build
         "volname": "MyApp 安装器",
         "window_size": [600, 400],
         "icon_size": 100
-      },
-      "pkg": {
-        "package": "com.mycompany.myapp.pkg",
-        "scripts": "pkg_scripts"
       }
     },
     "linux": {
@@ -222,8 +218,6 @@ python main.py <project_dir> [选项]
 
 ### macOS  
 - **DMG** - 磁盘映像安装包
-- **PKG** - macOS原生安装包
-- **ZIP** - 便携式压缩包
 
 ### Linux
 - **DEB** - Debian/Ubuntu包

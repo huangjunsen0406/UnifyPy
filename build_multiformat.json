@@ -43,20 +43,6 @@
         "icon_position": [152, 120],
         "format": "UDZO",
         "hide_extension": true
-      },
-      "pkg": {
-        "identifier": "com.unifypy.demo",
-        "use_distribution": true,
-        "min_os_version": "10.14",
-        "license": "LICENSE.txt",
-        "readme": "README.md"
-      },
-      "zip": {
-        "extra_files": [
-          {"source": "README.md", "target": "README.txt"},
-          {"source": "LICENSE.txt", "target": "LICENSE.txt"}
-        ],
-        "readme_content": "UnifyPy 2.0 演示应用\n\n这是一个便携式ZIP包，解压后可直接运行。\n\n使用方法：\n1. 解压到任意目录\n2. 运行 UnifyPyDemo.app\n\n或者在终端中运行：\n./UnifyPyDemo.app/Contents/MacOS/UnifyPyDemo"
       }
     },
     

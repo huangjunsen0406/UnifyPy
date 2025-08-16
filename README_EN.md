@@ -8,7 +8,7 @@ UnifyPy 2.0 is an enterprise-grade cross-platform Python application packaging t
 
 ### ✨ Core Features
 
-- **🔄 Multi-Platform Support**: Windows (EXE+MSI), macOS (DMG+PKG+ZIP), Linux (DEB+RPM+AppImage+TarGZ)
+- **🔄 Multi-Platform Support**: Windows (EXE+MSI), macOS (DMG), Linux (DEB+RPM+AppImage+TarGZ)
 - **⚡ Parallel Building**: Support multi-format parallel generation, significantly improving build efficiency
 - **🛡️ Enterprise Features**: Automatic rollback, session management, intelligent error handling
 - **🎨 Excellent Experience**: Rich progress bars, staged display, detailed logging
@@ -117,10 +117,6 @@ Create `build.json` configuration file:
         "volname": "MyApp Installer",
         "window_size": [600, 400],
         "icon_size": 100
-      },
-      "pkg": {
-        "package": "com.mycompany.myapp.pkg",
-        "scripts": "pkg_scripts"
       }
     },
     "linux": {
@@ -222,8 +218,6 @@ python main.py <project_dir> [options]
 
 ### macOS  
 - **DMG** - Disk image installer
-- **PKG** - macOS native installer
-- **ZIP** - Portable archive
 
 ### Linux
 - **DEB** - Debian/Ubuntu package

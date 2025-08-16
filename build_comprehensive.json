@@ -256,36 +256,6 @@
         "symlinks": {
           "Applications": "/Applications"
         }
-      },
-      
-      // ==================== PKG 打包配置 ====================
-      "pkg": {
-        "identifier": "com.unifypy.complete",
-        "use_distribution": true,
-        "min_os_version": "10.14",
-        "license": "LICENSE.txt",
-        "readme": "README.md",
-        "welcome": "docs/welcome.txt",
-        "scripts_dir": "pkg_scripts",
-        "sign_identity": null,
-        "install_location": "/Applications",
-        "background": "assets/pkg_background.png",
-        "conclusion": "docs/conclusion.txt",
-        "allow_downgrade": false,
-        "restart_action": "none",
-        "require_admin_auth": false
-      },
-      
-      // ==================== ZIP 打包配置 ====================
-      "zip": {
-        "extra_files": [
-          {"source": "README.md", "target": "README.txt"},
-          {"source": "LICENSE.txt", "target": "LICENSE.txt"},
-          {"source": "docs/", "target": "docs/"}
-        ],
-        "readme_content": "UnifyPy 2.0 Complete 便携版\n\n这是UnifyPy 2.0的完整功能演示版本，包含所有打包格式和高级特性。\n\n功能特性：\n- 多格式打包支持（Windows: EXE/MSI, macOS: DMG/PKG/ZIP, Linux: DEB/RPM/AppImage/TarGZ）\n- 并行构建支持，提升构建效率\n- 自动回滚机制，确保构建过程安全\n- 完整的配置选项，支持高度定制\n- 第三方工具自动集成\n- 完整的PyInstaller参数支持\n- macOS权限自动配置\n- 多架构支持（universal2）\n\n使用方法：\n1. 解压到任意目录\n2. 运行 UnifyPyComplete.app\n3. 或在终端中运行：./UnifyPyComplete.app/Contents/MacOS/UnifyPyComplete\n\n系统要求：macOS 10.14+\n\n更多信息：https://github.com/huangjunsen0406/UnifyPy",
-        "license_file": "LICENSE.txt",
-        "compression_level": 6
       }
     },
     
