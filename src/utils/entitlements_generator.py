@@ -14,13 +14,22 @@ class EntitlementsGenerator:
     """
 
     # Info.plist 权限描述到 Entitlements 权限的映射
+    # 
+    # 重要说明:
+    # - 摄像头权限: com.apple.security.device.camera 适用于沙盒和非沙盒应用
+    # - 麦克风权限: 需要根据应用类型选择不同的entitlement:
+    #   * 沙盒应用: com.apple.security.device.microphone 
+    #   * 非沙盒应用: com.apple.security.device.audio-input
+    # - 屏幕录制权限: com.apple.security.device.screen-capture 适用于所有应用
     PRIVACY_TO_ENTITLEMENTS_MAPPING = {
-        # 媒体设备权限
+        # 媒体设备权限 - 麦克风 (根据应用类型选择不同的entitlement)
         "NSMicrophoneUsageDescription": [
-            "com.apple.security.device.microphone",
-            "com.apple.security.device.audio-input",
+            "com.apple.security.device.audio-input",  # 加固运行时应用 (非沙盒)
+            "com.apple.security.device.microphone",   # 沙盒应用 (Mac App Store)
         ],
         "NSCameraUsageDescription": ["com.apple.security.device.camera"],
+        # 屏幕录制权限
+        "NSScreenCaptureUsageDescription": ["com.apple.security.device.screen-capture"],
         # 位置服务权限
         "NSLocationWhenInUseUsageDescription": [
             "com.apple.security.personal-information.location"
@@ -63,6 +72,7 @@ class EntitlementsGenerator:
     CONFIG_TO_PLIST_MAPPING = {
         "microphone_usage_description": "NSMicrophoneUsageDescription",
         "camera_usage_description": "NSCameraUsageDescription",
+        "screen_capture_usage_description": "NSScreenCaptureUsageDescription",
         "location_when_in_use_usage_description": "NSLocationWhenInUseUsageDescription",
         "location_always_and_when_in_use_usage_description": "NSLocationAlwaysAndWhenInUseUsageDescription",
         "contacts_usage_description": "NSContactsUsageDescription",
@@ -138,6 +148,7 @@ class EntitlementsGenerator:
         从配置中提取所需的 entitlements.
         """
         entitlements = {}
+        is_sandboxed = macos_config.get("sandboxed", False)
 
         for config_key, description in macos_config.items():
             # 检查是否是权限描述配置
@@ -146,9 +157,21 @@ class EntitlementsGenerator:
 
                 # 获取对应的 entitlements
                 if plist_key in self.PRIVACY_TO_ENTITLEMENTS_MAPPING:
-                    for entitlement in self.PRIVACY_TO_ENTITLEMENTS_MAPPING[plist_key]:
-                        if entitlement:  # 跳过空字符串
-                            entitlements[entitlement] = True
+                    entitlement_list = self.PRIVACY_TO_ENTITLEMENTS_MAPPING[plist_key]
+                    
+                    # 特殊处理麦克风权限 - 根据沙盒状态选择正确的entitlement
+                    if plist_key == "NSMicrophoneUsageDescription":
+                        if is_sandboxed:
+                            # 沙盒应用使用 microphone entitlement
+                            entitlements["com.apple.security.device.microphone"] = True
+                        else:
+                            # 非沙盒应用使用 audio-input entitlement  
+                            entitlements["com.apple.security.device.audio-input"] = True
+                    else:
+                        # 其他权限按原逻辑处理
+                        for entitlement in entitlement_list:
+                            if entitlement:  # 跳过空字符串
+                                entitlements[entitlement] = True
 
         return entitlements
 
