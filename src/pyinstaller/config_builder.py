@@ -159,11 +159,11 @@ class PyInstallerConfigBuilder:
                 if isinstance(value, list):
                     for item in value:
                         processed_item = self._process_list_item(config_key, item)
-                        if processed_item:
+                        if processed_item is not None:  # 明确检查不为None
                             command.extend([option_flag, processed_item])
                 elif isinstance(value, str):
                     processed_item = self._process_list_item(config_key, value)
-                    if processed_item:
+                    if processed_item is not None:  # 明确检查不为None
                         command.extend([option_flag, processed_item])
             else:
                 if value is not None and str(value).strip():
@@ -182,10 +182,15 @@ class PyInstallerConfigBuilder:
             item: 列表项
 
         Returns:
-            Optional[str]: 处理后的项目
+            Optional[str]: 处理后的项目，如果路径不存在则返回None
         """
         if config_key in ["add_data", "add_binary"]:
-            return self._handle_path_item(item)
+            processed_item = self._handle_path_item(item)
+            # 验证路径存在性
+            if processed_item and self._validate_path_item(processed_item, config_key):
+                return processed_item
+            else:
+                return None
         else:
             return item
 
@@ -212,6 +217,30 @@ class PyInstallerConfigBuilder:
                 path_item = path_item.replace(";", ":")
 
         return path_item
+
+    def _validate_path_item(self, path_item: str, config_key: str) -> bool:
+        """验证路径项的源路径是否存在.
+
+        Args:
+            path_item: 路径配置项 (格式: source:destination 或 source;destination)
+            config_key: 配置键
+
+        Returns:
+            bool: 源路径是否存在
+        """
+        # 提取源路径
+        separator = ";" if self.current_platform == "windows" else ":"
+        if separator in path_item:
+            source_path = path_item.split(separator, 1)[0]
+        else:
+            source_path = path_item
+
+        # 检查路径是否存在
+        if os.path.exists(source_path):
+            return True
+        else:
+            print(f"⚠️ 跳过不存在的路径: {source_path} (来自 {config_key})")
+            return False
 
     def build_spec_file_content(self, config: Dict[str, Any], entry_script: str) -> str:
         """构建.spec文件内容.
@@ -369,13 +398,13 @@ pyz = {pyz_config}
         return exe_config
 
     def _format_tuples_list(self, items: List[str]) -> List[tuple]:
-        """将路径字符串列表转换为元组列表.
+        """将路径字符串列表转换为元组列表，并验证源路径存在性.
 
         Args:
             items: 路径字符串列表 (格式: "source:dest" 或 "source;dest")
 
         Returns:
-            List[tuple]: 元组列表 [(source, dest), ...]
+            List[tuple]: 元组列表 [(source, dest), ...] 仅包含存在的源路径
         """
         tuples_list = []
         for item in items:
@@ -384,10 +413,18 @@ pyz = {pyz_config}
                 separator = ";" if self.current_platform == "windows" else ":"
                 if separator in item:
                     parts = item.split(separator, 1)
-                    tuples_list.append((parts[0], parts[1]))
+                    source_path = parts[0]
+                    dest_path = parts[1]
                 else:
                     # 如果没有指定目标路径，使用源路径的文件名
-                    tuples_list.append((item, os.path.basename(item)))
+                    source_path = item
+                    dest_path = os.path.basename(item)
+                
+                # 验证源路径是否存在
+                if os.path.exists(source_path):
+                    tuples_list.append((source_path, dest_path))
+                else:
+                    print(f"⚠️ 跳过不存在的路径: {source_path}")
 
         return tuples_list
 
