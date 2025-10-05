@@ -31,16 +31,31 @@ class InnoSetupPackager(BasePackager):
         检查项目是否自带中文语言文件.
         """
         try:
-            # 尝试从当前工作目录查找
             import os
 
-            current_dir = os.getcwd()
-            chinese_file = os.path.join(current_dir, "ChineseSimplified.isl")
+            # 多个可能的查找位置
+            search_paths = []
 
-            if os.path.exists(chinese_file):
-                self._project_chinese_file = chinese_file
-                if hasattr(self, "progress"):
-                    self.progress.info("✅ 检测到项目自带的中文语言文件")
+            # 1. 基于配置文件路径的目录
+            if self.config_file_path:
+                config_dir = os.path.dirname(os.path.abspath(self.config_file_path))
+                search_paths.append(os.path.join(config_dir, "ChineseSimplified.isl"))
+
+            # 2. 当前工作目录
+            search_paths.append(os.path.join(os.getcwd(), "ChineseSimplified.isl"))
+
+            # 3. 项目根目录（如果 env_manager 可用）
+            if hasattr(self, "env_manager") and hasattr(self.env_manager, "project_dir"):
+                search_paths.append(os.path.join(self.env_manager.project_dir, "ChineseSimplified.isl"))
+
+            # 尝试查找文件
+            for chinese_file in search_paths:
+                if os.path.exists(chinese_file):
+                    self._project_chinese_file = chinese_file
+                    if hasattr(self, "progress"):
+                        self.progress.info(f"✅ 检测到项目自带的中文语言文件: {chinese_file}")
+                    return
+
         except Exception:
             pass  # 忽略错误，继续使用默认行为
 
