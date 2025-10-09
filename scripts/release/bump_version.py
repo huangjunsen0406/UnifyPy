@@ -22,15 +22,20 @@ def main():
 
     p = Path("pyproject.toml")
     content = p.read_text(encoding="utf-8")
-    content, n = re.subn(r"(?m)^(version\s*=\s*)\"[^\"]+\"", rf"\1\"{new_version}\"", content)
+    pattern = re.compile(r"(?m)^(version\s*=\s*)\"[^\"]+\"")
+
+    def _repl(m: re.Match) -> str:
+        # Use a function replacement to avoid backslash-escape issues
+        return f'{m.group(1)}"{new_version}"'
+
+    new_content, n = pattern.subn(_repl, content)
     if n == 0:
         print("version field not found in pyproject.toml")
         return 2
-    p.write_text(content, encoding="utf-8")
+    p.write_text(new_content, encoding="utf-8")
     print(f"Updated version to {new_version}")
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
