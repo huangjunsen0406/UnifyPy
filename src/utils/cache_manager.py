@@ -80,6 +80,22 @@ class CacheManager:
         resource_files = self._get_resource_files(config, platform)
         if resource_files:
             hash_factors["resource_files"] = resource_files
+
+        # 模板文件（如存在）也纳入哈希，确保模板变更触发重生
+        template_paths = [
+            self.project_dir / "src" / "templates" / "setup.iss.template",
+            self.project_dir / "src" / "templates" / "ChineseSimplified.isl.template",
+        ]
+        template_meta = {}
+        for p in template_paths:
+            try:
+                if p.exists():
+                    stat = p.stat()
+                    template_meta[str(p)] = {"mtime": stat.st_mtime, "size": stat.st_size}
+            except Exception:
+                pass
+        if template_meta:
+            hash_factors["templates"] = template_meta
         
         # 计算 SHA256
         content = json.dumps(hash_factors, sort_keys=True, ensure_ascii=False)
@@ -120,7 +136,7 @@ class CacheManager:
                     platform_config.get("info_plist"),
                 ])
             elif platform == "linux":
-                for fmt in ["deb", "rpm", "appimage"]:
+                for fmt in ["deb", "rpm"]:
                     fmt_config = platform_config.get(fmt, {})
                     platform_resources.append(fmt_config.get("icon"))
         
@@ -507,74 +523,81 @@ class CacheManager:
         
         return current_global_hash != cached_global_hash
 
-    def pre_generate_all_platform_configs(self, config: Dict[str, Any], config_file_path: str) -> Dict[str, bool]:
+    def pre_generate_all_platform_configs(self, config: Dict[str, Any], config_file_path: str, progress_callback=None) -> Dict[str, bool]:
         """预生成所有平台的配置文件
-        
+
         Args:
             config: 配置字典
             config_file_path: 配置文件路径
-            
+            progress_callback: 进度回调函数 callback(message, level='info')
+
         Returns:
             Dict[str, bool]: 各平台配置生成结果
         """
         results = {}
-        
-        print("🚀 开始预生成所有平台配置...")
-        
+
+        def log(message, level='info'):
+            """统一的日志输出"""
+            if progress_callback:
+                progress_callback(message, level)
+            else:
+                print(message)
+
+        log("开始预生成多平台配置", 'info')
+
         # 确保 AppID 存在
         app_id = self.get_or_generate_app_id(config)
         config_app_id = config.get("platforms", {}).get("windows", {}).get("inno_setup", {}).get("app_id")
-        
+
         # 只有在配置文件中没有 AppID 时才更新
         if not config_app_id and config_file_path:
             if self.update_build_config_with_app_id(config_file_path, app_id):
-                print(f"✅ AppID 已生成并写入配置文件: {app_id}")
+                log(f"AppID 已生成并写入配置: {app_id[:8]}...", 'success')
                 # 重新加载配置
                 import json
                 try:
                     with open(config_file_path, "r", encoding="utf-8") as f:
                         config = json.load(f)
                 except Exception as e:
-                    print(f"⚠️ 重新加载配置失败: {e}")
+                    log(f"重新加载配置失败: {e}", 'warning')
             else:
-                print(f"⚠️ AppID 写入配置文件失败")
+                log("AppID 写入配置文件失败", 'warning')
         elif config_app_id:
-            print(f"📋 使用现有 AppID: {config_app_id}")
-        
+            log(f"使用现有 AppID: {config_app_id[:8]}...", 'info')
+
         # 生成各平台配置
         platform_generators = {
             "windows": self._generate_windows_configs,
             "macos": self._generate_macos_configs,
             "linux": self._generate_linux_configs,
         }
-        
+
         for platform, generator in platform_generators.items():
             if platform in config.get("platforms", {}):
                 try:
-                    print(f"🔧 生成 {platform.upper()} 配置...")
+                    log(f"生成 {platform.upper()} 配置", 'info')
                     success = generator(config, platform)
                     results[platform] = success
-                    
+
                     if success:
                         # 保存平台配置哈希
                         platform_hash = self.calculate_config_hash(config, platform)
                         self.save_config_hash(platform_hash, platform)
-                        print(f"✅ {platform.upper()} 配置生成完成")
+                        log(f"{platform.upper()} 配置已生成", 'success')
                     else:
-                        print(f"❌ {platform.upper()} 配置生成失败")
-                        
+                        log(f"{platform.upper()} 配置生成失败", 'error')
+
                 except Exception as e:
-                    print(f"❌ {platform.upper()} 配置生成错误: {e}")
+                    log(f"{platform.upper()} 配置生成错误: {e}", 'error')
                     results[platform] = False
             else:
-                print(f"⏭️ 跳过 {platform.upper()}（未在配置中启用）")
                 results[platform] = "skipped"
-        
+
         # 保存全局配置哈希
         global_hash = self.calculate_config_hash(config)
         self.save_config_hash(global_hash)
-        
-        print("🎉 所有平台配置预生成完成！")
+
+        log("多平台配置预生成完成", 'success')
         return results
 
     def _generate_windows_configs(self, config: Dict[str, Any], platform: str) -> bool:

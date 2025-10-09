@@ -5,7 +5,7 @@
 """
 
 import os
-import platform
+from src.core.platforms import normalize_platform
 import shutil
 import tempfile
 from pathlib import Path
@@ -21,7 +21,7 @@ class FileOperations:
         """
         初始化文件操作工具.
         """
-        self.current_platform = platform.system().lower()
+        self.current_platform = normalize_platform()
 
     def create_temp_dir(self, prefix: str = "unifypy_") -> str:
         """创建临时目录.

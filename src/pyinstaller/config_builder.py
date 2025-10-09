@@ -5,7 +5,7 @@ PyInstaller配置构建器 支持所有PyInstaller选项的配置化映射.
 """
 
 import os
-import platform
+from ..core.platforms import normalize_platform
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -108,30 +108,32 @@ class PyInstallerConfigBuilder:
         "resource",
     }
 
-    def __init__(self, current_platform: Optional[str] = None, verbose: bool = False):
+    def __init__(self, current_platform: Optional[str] = None, verbose: bool = False, progress_callback=None):
         """初始化配置构建器.
 
         Args:
             current_platform: 当前平台 (windows/macos/linux)
             verbose: 是否显示详细输出
+            progress_callback: 进度回调函数 callback(message, level='info')
         """
         self.current_platform = current_platform or self._detect_platform()
-        self.entitlements_generator = EntitlementsGenerator()
-        self.icon_converter = IconConverter(verbose=verbose)
+        self.verbose = verbose
+        self.progress_callback = progress_callback
+        self.entitlements_generator = EntitlementsGenerator(progress_callback=progress_callback)
+        self.icon_converter = IconConverter(verbose=verbose, progress_callback=progress_callback)
+
+    def _log(self, message, level='info'):
+        """统一的日志输出"""
+        if self.progress_callback:
+            self.progress_callback(message, level)
+        elif self.verbose or level in ['warning', 'error']:
+            print(message)
 
     def _detect_platform(self) -> str:
         """
         检测当前平台.
         """
-        system = platform.system().lower()
-        if system == "darwin":
-            return "macos"
-        elif system == "windows":
-            return "windows"
-        elif system == "linux":
-            return "linux"
-        else:
-            return system
+        return normalize_platform()
 
     def build_command(self, config: Dict[str, Any], entry_script: str) -> List[str]:
         """根据配置构建PyInstaller命令.
@@ -754,7 +756,7 @@ app = BUNDLE(
 
         # 如果已经有 entitlements 文件且存在，不自动生成
         if existing_entitlements and os.path.exists(existing_entitlements):
-            print(f"✅ 使用配置中指定的 entitlements.plist: {existing_entitlements}")
+            self._log(f"使用配置中指定的 entitlements.plist: {existing_entitlements}", 'success')
             return existing_entitlements
 
         # 检查是否需要生成 entitlements
@@ -769,20 +771,20 @@ app = BUNDLE(
         )
 
         if success:
-            print(f"✅ 自动生成 entitlements.plist: {entitlements_path}")
+            self._log(f"自动生成 entitlements.plist: {entitlements_path}", 'success')
 
             # 显示权限摘要
             summary = self.entitlements_generator.get_required_entitlements_summary(
                 macos_config
             )
             if summary:
-                print("📋 检测到的权限需求:")
+                self._log("检测到的权限需求:", 'info')
                 for category, permissions in summary.items():
-                    print(f"  {category}: {', '.join(permissions)}")
+                    self._log(f"  {category}: {', '.join(permissions)}", 'info')
 
             return str(entitlements_path)
         else:
-            print("❌ 自动生成 entitlements.plist 失败")
+            self._log("自动生成 entitlements.plist 失败", 'error')
             return None
 
     def _needs_entitlements(self, macos_config: Dict[str, Any]) -> bool:
@@ -899,8 +901,8 @@ app = BUNDLE(
 
         if converted_icon:
             processed_config["icon"] = converted_icon
-            print(f"🎨 图标已转换为 {target_format.upper()} 格式: {converted_icon}")
+            self._log(f"图标已转换为 {target_format.upper()} 格式: {converted_icon}", 'success')
         else:
-            print(f"⚠️ 图标转换失败，使用原始文件: {icon_path}")
+            self._log(f"图标转换失败，使用原始文件: {icon_path}", 'warning')
 
         return processed_config

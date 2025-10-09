@@ -1,8 +1,7 @@
 """
-PyInstaller专用模块 处理PyInstaller配置生成和执行.
+PyInstaller 专用模块：配置构建等工具。
 """
 
-from .builder import PyInstallerBuilder
 from .config_builder import PyInstallerConfigBuilder
 
-__all__ = ["PyInstallerConfigBuilder", "PyInstallerBuilder"]
+__all__ = ["PyInstallerConfigBuilder"]

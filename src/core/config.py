@@ -6,7 +6,7 @@
 
 import json
 import os
-import platform
+from .platforms import normalize_platform
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -44,34 +44,149 @@ class ConfigManager:
     def resolve_path(self, path: str) -> Path:
         """
         解析配置中的路径，相对路径相对于项目目录.
-        
+
         Args:
             path: 配置中的路径
-            
+
         Returns:
             Path: 解析后的绝对路径
         """
         if not path:
             return Path()
-        
+
         if os.path.isabs(path):
             return Path(path)
         else:
             return self.project_dir / path
 
+    def preprocess_paths(self, config: dict) -> dict:
+        """
+        预处理配置中的文件路径，将相对路径转换为绝对路径.
+
+        Args:
+            config: 原始配置字典
+
+        Returns:
+            dict: 处理后的配置字典（深拷贝）
+        """
+        import copy
+        processed_config = copy.deepcopy(config)
+
+        # 需要处理的文件路径字段
+        path_fields = [
+            "icon", "license", "readme", "entry",
+            "setup_icon", "license_file", "readme_file",
+            "volicon", "version_file", "manifest"
+        ]
+
+        # 需要处理的数组路径字段
+        array_path_fields = ["add_data", "add_binary", "datas", "binaries"]
+
+        # 处理顶级路径字段
+        for field in path_fields:
+            if field in processed_config and processed_config[field]:
+                path = processed_config[field]
+                if not os.path.isabs(path):
+                    processed_config[field] = str(self.project_dir / path)
+
+        # 处理数组路径字段
+        self._process_array_paths(processed_config, array_path_fields)
+
+        # 处理嵌套配置中的路径（如平台特定配置）
+        for platform_key in ["windows", "macos", "linux", "platforms"]:
+            if platform_key in processed_config:
+                platform_config = processed_config[platform_key]
+                if isinstance(platform_config, dict):
+                    self._process_nested_paths(platform_config, path_fields, array_path_fields)
+
+        # 处理 PyInstaller 配置中的路径
+        if "pyinstaller" in processed_config:
+            pyinstaller_config = processed_config["pyinstaller"]
+            if isinstance(pyinstaller_config, dict):
+                self._process_nested_paths(pyinstaller_config, path_fields, array_path_fields)
+
+        return processed_config
+
+    def _process_array_paths(self, config: dict, array_path_fields: List[str]):
+        """
+        处理数组路径字段.
+
+        Args:
+            config: 配置字典
+            array_path_fields: 数组路径字段列表
+        """
+        for field in array_path_fields:
+            if field in config and config[field]:
+                processed_list = []
+                for item in config[field]:
+                    if isinstance(item, str):
+                        processed_item = self._process_path_item(item)
+                        processed_list.append(processed_item)
+                    else:
+                        processed_list.append(item)
+                config[field] = processed_list
+
+    def _process_path_item(self, item: str) -> str:
+        """
+        处理单个路径项（可能包含 source:dest 格式）.
+
+        Args:
+            item: 路径项字符串
+
+        Returns:
+            str: 处理后的路径项
+        """
+        # 处理 "source:dest" 格式
+        if ":" in item or ";" in item:
+            separator = ":" if ":" in item else ";"
+            parts = item.split(separator, 1)
+            if len(parts) == 2:
+                source, dest = parts
+                if not os.path.isabs(source):
+                    source = str(self.project_dir / source)
+                return f"{source}{separator}{dest}"
+            else:
+                return item
+        else:
+            # 单个路径
+            if not os.path.isabs(item):
+                return str(self.project_dir / item)
+            return item
+
+    def _process_nested_paths(
+        self,
+        config: dict,
+        path_fields: List[str],
+        array_path_fields: List[str]
+    ):
+        """
+        递归处理嵌套配置中的文件路径.
+
+        Args:
+            config: 配置字典
+            path_fields: 单个路径字段列表
+            array_path_fields: 数组路径字段列表
+        """
+        # 处理单个路径字段
+        for field in path_fields:
+            if field in config and config[field]:
+                path = config[field]
+                if isinstance(path, str) and not os.path.isabs(path):
+                    config[field] = str(self.project_dir / path)
+
+        # 处理数组路径字段
+        self._process_array_paths(config, array_path_fields)
+
+        # 递归处理嵌套字典
+        for value in config.values():
+            if isinstance(value, dict):
+                self._process_nested_paths(value, path_fields, array_path_fields)
+
     def _detect_platform(self) -> str:
         """
         检测当前平台.
         """
-        system = platform.system().lower()
-        if system == "darwin":
-            return "macos"
-        elif system == "windows":
-            return "windows"
-        elif system == "linux":
-            return "linux"
-        else:
-            return system
+        return normalize_platform()
 
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """加载JSON配置文件.

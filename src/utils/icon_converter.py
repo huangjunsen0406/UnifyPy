@@ -16,8 +16,9 @@ class IconConverter:
     简化的图标格式转换器.
     """
 
-    def __init__(self, verbose: bool = False):
+    def __init__(self, verbose: bool = False, progress_callback=None):
         self.verbose = verbose
+        self.progress_callback = progress_callback
 
     def _print(self, message: str):
         """

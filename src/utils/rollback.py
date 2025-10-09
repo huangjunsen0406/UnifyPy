@@ -63,6 +63,14 @@ class RollbackManager:
 
         # 创建回滚目录
         self.rollback_dir.mkdir(exist_ok=True)
+        # 写入 .gitignore，避免被纳入版本控制
+        try:
+            gi = self.rollback_dir / ".gitignore"
+            if not gi.exists():
+                with open(gi, "w", encoding="utf-8") as f:
+                    f.write("*\n")
+        except Exception:
+            pass
 
         # 备份目录
         self.backup_dir = self.rollback_dir / f"backup_{self.session_id}"

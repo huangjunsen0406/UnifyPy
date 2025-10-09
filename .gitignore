@@ -18,3 +18,4 @@ venv/
 !.vscode/launch.json
 !.vscode/extensions.json
 
+src/**/__pycache__

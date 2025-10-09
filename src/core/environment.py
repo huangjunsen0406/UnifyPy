@@ -185,7 +185,7 @@ class EnvironmentManager:
         根据打包格式获取标准化的架构名称 (仅支持 64 位).
         
         Args:
-            format_type: 打包格式 (deb, rpm, appimage, dmg, exe, zip)
+            format_type: 打包格式 (deb, rpm, dmg, exe, zip)
             
         Returns:
             str: 对应格式的架构名称
@@ -196,7 +196,7 @@ class EnvironmentManager:
                 return "amd64"  # Debian/Ubuntu 包名
             elif format_type in ["rpm"]:
                 return "x86_64"  # RPM 包名
-            elif format_type in ["appimage", "dmg", "exe"]:
+            elif format_type in ["dmg", "exe"]:
                 return "x86_64"  # 通用标准
             else:
                 return "x86_64"
@@ -206,7 +206,7 @@ class EnvironmentManager:
                 return "arm64"  # Debian/Ubuntu 包名
             elif format_type in ["rpm"]:
                 return "aarch64"  # RPM 包名 
-            elif format_type in ["appimage", "dmg", "exe"]:
+            elif format_type in ["dmg", "exe"]:
                 return "aarch64"  # 通用标准
             else:
                 return "arm64"
@@ -248,7 +248,7 @@ class EnvironmentManager:
         Args:
             app_name: 应用名称  
             version: 版本号
-            format_type: 打包格式 (deb, rpm, appimage)
+            format_type: 打包格式 (deb, rpm)
             
         Returns:
             str: 传统格式的文件名
@@ -259,8 +259,7 @@ class EnvironmentManager:
             return f"{app_name}_{version}_{arch}.deb"
         elif format_type == "rpm":
             return f"{app_name}-{version}-1.{arch}.rpm"
-        elif format_type == "appimage":
-            return f"{app_name}-{version}-{arch}.AppImage"
+        
         else:
             return f"{app_name}-{version}-{arch}.{format_type}"
 
@@ -457,7 +456,7 @@ class EnvironmentManager:
                     "target_architecture": self.normalized_arch
                 },
                 "installer_type": "deb",  # 默认推荐 DEB
-                "recommended_formats": ["deb", "appimage"],
+                "recommended_formats": ["deb"],
                 "c_runtime": self.c_runtime,
                 "manylinux_compatible": self.c_runtime == "glibc",
             })
@@ -505,7 +504,6 @@ class EnvironmentManager:
             recommendations["naming_examples"] = {
                 "modern": f"myapp-1.2.3-{self.internal_key}.tar.gz",
                 "deb": f"myapp_1.2.3_{self.get_arch_for_format('deb')}.deb",
-                "appimage": f"myapp-1.2.3-{self.get_arch_for_format('appimage')}.AppImage"
             }
         
         return recommendations

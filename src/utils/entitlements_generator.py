@@ -94,10 +94,14 @@ class EntitlementsGenerator:
         "removable_volumes_usage_description": "NSRemovableVolumesUsageDescription",
     }
 
-    def __init__(self):
+    def __init__(self, progress_callback=None):
         """
         初始化生成器.
+
+        Args:
+            progress_callback: 进度回调函数（可选）
         """
+        self.progress_callback = progress_callback
 
     def generate_entitlements(
         self, macos_config: Dict[str, Any], development: bool = False

@@ -33,6 +33,7 @@ class SilentRunner:
         step_weight: int = 10,
         capture_output: bool = True,
         shell: bool = True,
+        cwd: Optional[str] = None,
     ) -> bool:
         """执行命令，只在错误时显示输出.
 
@@ -65,6 +66,7 @@ class SilentRunner:
                     capture_output=True,
                     text=True,
                     encoding="utf-8",
+                    cwd=cwd,
                 )
             else:
                 result = subprocess.run(
@@ -74,6 +76,7 @@ class SilentRunner:
                     stderr=subprocess.PIPE,
                     text=True,
                     encoding="utf-8",
+                    cwd=cwd,
                 )
 
             # 检查执行结果
@@ -114,6 +117,9 @@ class SilentRunner:
             )
             return False
 
+        except KeyboardInterrupt:
+            # 传递给上层，由引擎统一处理
+            raise
         except Exception as e:
             self.progress.on_error(e, stage)
             return False

@@ -356,79 +356,31 @@ class InnoSetupPackager(BasePackager):
 
     def _create_basic_chinese_language_file(self, target_path: str) -> bool:
         """
-        创建基本的中文语言文件.
+        创建中文语言文件：优先从模板读取并写入目标路径。
+        模板路径：src/templates/ChineseSimplified.isl.template
         """
         try:
-            chinese_isl_content = """[LangOptions]
-LanguageName=中文(简体)
-LanguageID=$0804
-LanguageCodePage=936
+            # 尝试从模板读取
+            template_candidates = [
+                Path(__file__).parent.parent.parent / "templates" / "ChineseSimplified.isl.template",
+                Path("src/templates/ChineseSimplified.isl.template"),
+                Path("templates/ChineseSimplified.isl.template"),
+            ]
 
-[Messages]
-; 基本安装消息
-SetupAppTitle=安装程序
-SetupWindowTitle=安装 - %1
-UninstallAppTitle=卸载程序
-UninstallAppFullTitle=%1 卸载程序
+            content = None
+            for p in template_candidates:
+                if p.exists():
+                    with open(p, "r", encoding="utf-8") as rf:
+                        content = rf.read()
+                    break
 
-; 通用按钮和标签
-ButtonBack=< 上一步(&B)
-ButtonNext=下一步(&N) >
-ButtonInstall=安装(&I)
-ButtonCancel=取消
-ButtonYes=是(&Y)
-ButtonNo=否(&N)
-ButtonFinish=完成(&F)
-ButtonBrowse=浏览(&B)...
-ButtonWizardBrowse=浏览(&R)...
-
-; 安装类型
-SelectDirLabel3=安装程序将把 [name] 安装到下列文件夹中。
-SelectDirBrowseLabel=单击"下一步"继续。如果您想选择其他文件夹，请单击"浏览"。
-DiskSpaceMBLabel=至少需要 [mb] MB 的可用磁盘空间。
-
-; 准备安装
-WizardPreparing=正在准备安装
-PreparingDesc=安装程序正在准备安装 [name] 到您的计算机上。
-
-; 正在安装
-WizardInstalling=正在安装
-InstallingLabel=请等待，安装程序正在安装 [name] 到您的计算机上。
-
-; 完成安装
-FinishedHeadingLabel=正在完成 [name] 安装向导
-FinishedLabelNoIcons=安装程序已在您的计算机上安装了 [name]。
-FinishedLabel=安装程序已在您的计算机上安装了 [name]。可以通过选择安装的图标来运行此应用程序。
-ClickFinish=单击"完成"退出安装程序。
-
-; 错误消息
-ErrorFunctionFailedNoCode=%1 失败
-ErrorFunctionFailed=%1 失败；代码 %2
-ErrorFunctionFailedWithMessage=%1 失败；代码 %2.%n%3
-ErrorExecutingProgram=无法执行文件：%n%1
-
-; 状态消息
-StatusExtractFiles=正在解压文件...
-StatusCreateDirs=正在创建目录...
-StatusRestartComputer=安装程序将重新启动计算机...
-
-; 其他
-NameAndVersion=%1 版本 %2
-AdditionalIcons=附加图标：
-CreateDesktopIcon=创建桌面图标(&D)
-CreateQuickLaunchIcon=创建快速启动图标(&Q)
-ProgramOnTheWeb=%1 网站
-UninstallProgram=卸载 %1
-LaunchProgram=运行 %1
-AssocFileExtension=将 %1 与 %2 文件扩展名关联(&A)
-AssocingFileExtension=正在将 %1 与 %2 文件扩展名关联...
-AutoStartProgramGroupDescription=启动：
-AutoStartProgram=自动启动 %1
-AddonHostProgramNotFound=%1 无法在您选择的文件夹中找到。%n%n无论如何都要继续吗？
-"""
+            if not content:
+                # 模板缺失则放弃创建
+                self.progress.warning("未找到 ChineseSimplified.isl 模板，跳过创建")
+                return False
 
             with open(target_path, "w", encoding="utf-8-sig") as f:
-                f.write(chinese_isl_content)
+                f.write(content)
 
             return True
 

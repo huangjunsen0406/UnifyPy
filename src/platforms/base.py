@@ -4,7 +4,7 @@
 平台打包器基类.
 """
 
-import platform
+from src.core.platforms import normalize_platform
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, List
@@ -39,15 +39,7 @@ class BasePackager(ABC):
         """
         检测当前平台.
         """
-        system = platform.system().lower()
-        if system == "darwin":
-            return "macos"
-        elif system == "windows":
-            return "windows"
-        elif system == "linux":
-            return "linux"
-        else:
-            return system
+        return normalize_platform()
 
     @abstractmethod
     def get_supported_formats(self) -> List[str]:
@@ -104,7 +96,7 @@ class BasePackager(ABC):
         Returns:
             str: 输出文件名
         """
-        if use_modern_naming and format_type not in ["deb", "rpm", "appimage"]:
+        if use_modern_naming and format_type not in ["deb", "rpm"]:
             # 现代化命名：使用内部架构键
             return self.env_manager.get_modern_filename(app_name, version, format_type)
         else:

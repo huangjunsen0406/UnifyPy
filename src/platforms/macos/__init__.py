@@ -5,5 +5,6 @@ macOS平台打包器.
 """
 
 from .dmg_packager import DMGPackager
+from .post_processor import MacOSPostProcessor
 
-__all__ = ["DMGPackager"]
+__all__ = ["DMGPackager", "MacOSPostProcessor"]

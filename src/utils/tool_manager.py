@@ -5,7 +5,7 @@
 """
 
 import os
-import platform
+from src.core.platforms import normalize_platform, normalize_arch
 import shutil
 import tempfile
 import zipfile
@@ -31,18 +31,19 @@ class ToolManager:
         else:
             # 使用用户缓存目录，避免在项目根目录创建tools文件夹
             cache_base = Path.home() / ".cache" / "unifypy"
-            if platform.system().lower() == "darwin":  # macOS
+            plat = normalize_platform()
+            if plat == "macos":  # macOS
                 cache_base = Path.home() / "Library" / "Caches" / "unifypy"
-            elif platform.system().lower() == "windows":  # Windows
+            elif plat == "windows":  # Windows
                 cache_base = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "unifypy"
             self.tools_dir = cache_base / "tools"
         
         self.tools_dir.mkdir(parents=True, exist_ok=True)
 
         # 初始化缓存管理器
-        from .parallel_builder import CacheManager
+        from .cache_manager import CacheManager
 
-        self.cache_manager = CacheManager()
+        self.cache_manager = CacheManager(str(Path.cwd()))
 
         # 当前平台信息
         self.current_platform = self._detect_platform()
@@ -60,24 +61,8 @@ class ToolManager:
             }
         }
 
-        # GitHub工具配置
+        # GitHub工具配置（仅保留现行支持工具）
         self.github_tools = {
-            "appimagetool": {
-                "repo": "AppImage/AppImageKit",
-                "executable": "appimagetool",
-                "platform": "linux",
-                "type": "binary",  # 二进制类型
-                "asset_pattern": "appimagetool-{arch}.AppImage",
-                "install_method": "download_binary",
-            },
-            "linuxdeploy": {
-                "repo": "linuxdeploy/linuxdeploy",
-                "executable": "linuxdeploy",
-                "platform": "linux",
-                "type": "binary",
-                "asset_pattern": "linuxdeploy-{arch}.AppImage",
-                "install_method": "download_binary",
-            },
             "inno-setup": {
                 "repo": "jrsoftware/issrc",
                 "executable": "ISCC.exe",
@@ -152,29 +137,18 @@ class ToolManager:
         """
         检测当前平台.
         """
-        system = platform.system().lower()
-        if system == "darwin":
-            return "macos"
-        elif system == "windows":
-            return "windows"
-        elif system == "linux":
-            return "linux"
-        else:
-            return system
+        return normalize_platform()
 
     def _detect_architecture(self) -> str:
+        """检测当前架构，标准化后返回工具常用命名。
+
+        返回：
+            - x64 → x86_64（工具常用）
+            - arm64 → arm64
+        其余架构不在支持范围（normalize_arch 将抛错）。
         """
-        检测当前架构.
-        """
-        machine = platform.machine().lower()
-        if machine in ["x86_64", "amd64"]:
-            return "x86_64"
-        elif machine in ["aarch64", "arm64"]:
-            return "arm64"
-        elif machine in ["i386", "i686"]:
-            return "i386"
-        else:
-            return machine
+        arch = normalize_arch()
+        return "x86_64" if arch == "x64" else "arm64"
 
     def ensure_tool(self, tool_name: str, version: str = "latest") -> str:
         """确保工具可用，自动下载如果不存在.
@@ -274,7 +248,6 @@ class ToolManager:
         possible_paths = [
             tool_dir / executable_name,
             tool_dir / f"{executable_name}.exe",  # Windows
-            tool_dir / f"{executable_name}.AppImage",  # Linux AppImage
         ]
 
         for path in possible_paths:
@@ -356,7 +329,7 @@ class ToolManager:
                 raise RuntimeError(f"未找到可执行文件: {executable_path}")
 
     def _install_binary_tool(self, tool_name: str, repo: str, version: str) -> str:
-        """安装二进制类型的工具（如appimagetool）
+        """安装二进制类型的工具
 
         Args:
             tool_name: 工具名称
@@ -378,8 +351,7 @@ class ToolManager:
         tool_dir.mkdir(exist_ok=True)
 
         executable_name = tool_config["executable"]
-        if download_url.endswith(".AppImage"):
-            executable_name += ".AppImage"
+        # 保持原始扩展名
 
         target_path = tool_dir / executable_name
 
@@ -729,4 +701,3 @@ class ToolManager:
             bool: 是否可用
         """
         return shutil.which("rpmbuild") is not None
-
