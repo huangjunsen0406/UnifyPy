@@ -8,7 +8,7 @@ UnifyPy 2.0 is an enterprise-grade cross-platform Python application packaging t
 
 ### ✨ Core Features
 
-- **🔄 Multi-Platform Support**: Windows (EXE+MSI), macOS (DMG), Linux (DEB+RPM+AppImage+TarGZ)
+- **🔄 Multi-Platform Support (64-bit)**: Windows (EXE), macOS (DMG), Linux (DEB+RPM)
 - **⚡ Parallel Building**: Support multi-format parallel generation, significantly improving build efficiency
 - **🛡️ Enterprise Features**: Automatic rollback, session management, intelligent error handling
 - **🎨 Excellent Experience**: Rich progress bars, staged display, detailed logging
@@ -24,9 +24,16 @@ UnifyPy 2.0 is an enterprise-grade cross-platform Python application packaging t
 - Python 3.8+
 - Windows 10+ / macOS 10.14+ / Linux (Ubuntu 18.04+)
 
-### Dependency Installation
+### Install & Use
 ```bash
-pip install -r requirements.txt
+# Dev install (recommended)
+pip install -e .
+
+# Or from PyPI (if published)
+# pip install unifypy
+
+# Run
+unifypy . --config build.json
 ```
 
 Main dependencies:
@@ -47,31 +54,31 @@ Main dependencies:
 
 ```bash
 # Package using configuration file
-python main.py . --config build.json
+unifypy . --config build.json
 
 # Quick packaging via command line
-python main.py . --name myapp --version 1.0.0 --entry main.py --onefile
+unifypy . --name myapp --version 1.0.0 --entry main.py --onefile
 
 # Multi-format parallel build
-python main.py . --config build_multiformat.json --parallel --max-workers 4
+unifypy . --config build_multiformat.json --parallel --max-workers 4
 
 # Verbose output mode
-python main.py . --config build.json --verbose
+unifypy . --config build.json --verbose
 
 # Clean rebuild
-python main.py . --config build.json --clean --verbose
+unifypy . --config build.json --clean --verbose
 
 # Generate executable only, skip installer
-python main.py . --config build.json --skip-installer
+unifypy . --config build.json --skip-installer
 
 # Specify specific format
-python main.py . --config build.json --format dmg --parallel
+unifypy . --config build.json --format dmg --parallel
 
 # macOS development mode (automatic permission configuration)
-python main.py . --config build.json --development --verbose
+unifypy . --config build.json --development --verbose
 
-# Cross-directory packaging (solve path issues)
-python /path/to/UnifyPy/main.py /path/to/project --config /path/to/project/build.json
+# Dry run (env check + prepare only)
+unifypy . --config build.json --dry-run
 ```
 
 ### Configuration File Example

@@ -8,7 +8,7 @@ UnifyPy 2.0 是一个企业级跨平台Python应用打包工具，支持将Pytho
 
 ### ✨ 核心特性
 
-- **🔄 多平台支持**: Windows (EXE+MSI)、macOS (DMG)、Linux (DEB+RPM+AppImage+TarGZ)
+- **🔄 多平台支持（64位）**: Windows (EXE)、macOS (DMG)、Linux (DEB+RPM)
 - **⚡ 并行构建**: 支持多格式并行生成，显著提升构建效率
 - **🛡️ 企业级功能**: 自动回滚、会话管理、智能错误处理
 - **🎨 优秀体验**: Rich进度条、分阶段显示、详细日志
@@ -24,9 +24,16 @@ UnifyPy 2.0 是一个企业级跨平台Python应用打包工具，支持将Pytho
 - Python 3.8+
 - Windows 10+ / macOS 10.14+ / Linux (Ubuntu 18.04+)
 
-### 依赖安装
+### 安装与使用
 ```bash
-pip install -r requirements.txt
+# 开发安装（推荐）
+pip install -e .
+
+# 或安装发布包（如已发布到 PyPI）
+# pip install unifypy
+
+# 运行命令
+unifypy . --config build.json
 ```
 
 主要依赖：
@@ -47,31 +54,31 @@ pip install -r requirements.txt
 
 ```bash
 # 使用配置文件打包
-python main.py . --config build.json
+unifypy . --config build.json
 
 # 命令行快速打包
-python main.py . --name myapp --version 1.0.0 --entry main.py --onefile
+unifypy . --name myapp --version 1.0.0 --entry main.py --onefile
 
 # 多格式并行构建
-python main.py . --config build_multiformat.json --parallel --max-workers 4
+unifypy . --config build_multiformat.json --parallel --max-workers 4
 
 # 详细输出模式
-python main.py . --config build.json --verbose
+unifypy . --config build.json --verbose
 
 # 清理重新构建
-python main.py . --config build.json --clean --verbose
+unifypy . --config build.json --clean --verbose
 
 # 只生成可执行文件，跳过安装包
-python main.py . --config build.json --skip-installer
+unifypy . --config build.json --skip-installer
 
 # 指定特定格式
-python main.py . --config build.json --format dmg --parallel
+unifypy . --config build.json --format dmg --parallel
 
 # macOS开发模式（自动权限配置）
-python main.py . --config build.json --development --verbose
+unifypy . --config build.json --development --verbose
 
-# 跨目录打包（解决路径问题）
-python /path/to/UnifyPy/main.py /path/to/project --config /path/to/project/build.json
+# 仅预检（不构建）
+unifypy . --config build.json --dry-run
 ```
 
 ### 配置文件示例
@@ -138,7 +145,7 @@ python /path/to/UnifyPy/main.py /path/to/project --config /path/to/project/build
 
 ### 基本语法
 ```bash
-python main.py <project_dir> [选项]
+unifypy <project_dir> [选项]
 ```
 
 ### 基本信息参数
@@ -214,7 +221,6 @@ python main.py <project_dir> [选项]
 
 ### Windows
 - **EXE** (Inno Setup) - 标准安装程序
-- **MSI** - Windows Installer包
 
 ### macOS  
 - **DMG** - 磁盘映像安装包
@@ -222,8 +228,6 @@ python main.py <project_dir> [选项]
 ### Linux
 - **DEB** - Debian/Ubuntu包
 - **RPM** - Red Hat/CentOS包
-- **AppImage** - 便携式应用镜像
-- **TAR.GZ** - 源码压缩包
 
 ## ⚙️ 配置文件详解
 
@@ -286,13 +290,13 @@ UnifyPy 2.0 支持多格式并行构建，显著提升构建效率：
 
 ```bash
 # 启用并行构建
-python main.py . --config build_multiformat.json --parallel
+unifypy . --config build_multiformat.json --parallel
 
 # 指定工作线程数
-python main.py . --parallel --max-workers 4
+unifypy . --parallel --max-workers 4
 
 # 查看并行构建效果
-python main.py . --config build_comprehensive.json --parallel --verbose
+unifypy . --config build_comprehensive.json --parallel --verbose
 ```
 
 ## 🛡️ 回滚系统
@@ -301,13 +305,13 @@ python main.py . --config build_comprehensive.json --parallel --verbose
 
 ```bash
 # 列出可用的回滚会话
-python main.py . --list-rollback
+unifypy . --list-rollback
 
 # 执行回滚
-python main.py . --rollback SESSION_ID
+unifypy . --rollback SESSION_ID
 
 # 禁用自动回滚
-python main.py . --config build.json --no-rollback
+unifypy . --config build.json --no-rollback
 ```
 
 ## 🍎 macOS 特殊功能
@@ -317,10 +321,10 @@ UnifyPy 2.0 为 macOS 应用提供了完整的权限管理方案：
 
 ```bash
 # 开发模式 - 自动生成权限文件，适合开发和测试
-python main.py . --config build.json --development
+unifypy . --config build.json --development
 
 # 生产模式 - 用于已签名应用
-python main.py . --config build.json --production
+unifypy . --config build.json --production
 ```
 
 ### 权限配置示例
@@ -351,7 +355,7 @@ UnifyPy 2.0 解决了跨目录打包时的路径问题：
 ```bash
 # 从 UnifyPy 目录打包其他项目
 cd /path/to/UnifyPy
-python main.py ../my-project --config ../my-project/build.json
+unifypy ../my-project --config ../my-project/build.json
 ```
 
 ### 智能解决方案
@@ -459,30 +463,13 @@ UnifyPy/
 ├── build_multiformat.json # 多格式配置
 ├── build_comprehensive.json # 完整配置示例
 ├── py-xiaozhi.json        # 实际项目配置示例
-└── src/                   # 源代码
-    ├── core/             # 核心模块
-    │   ├── config.py     # 配置管理（支持路径解析）
-    │   └── environment.py # 环境检测
-    ├── platforms/        # 平台打包器（注册表模式）
-    │   ├── base.py       # 打包器基类
-    │   ├── registry.py   # 打包器注册表
-    │   ├── windows/      # Windows打包器(EXE+MSI)
-    │   ├── macos/        # macOS打包器(DMG+PKG+ZIP) 
-    │   └── linux/        # Linux打包器(DEB+RPM+AppImage+TarGZ)
-    ├── pyinstaller/      # PyInstaller集成
-    │   ├── builder.py    # 构建器
-    │   └── config_builder.py # 配置构建器
-    ├── templates/        # 模板文件
-    │   └── setup.iss.template # Inno Setup脚本模板
-    ├── tools/            # 内置工具
-    │   └── create-dmg/   # macOS DMG生成工具
-    └── utils/            # 工具模块
-        ├── progress.py   # Rich进度条管理
-        ├── rollback.py   # 回滚系统
-        ├── parallel_builder.py # 并行构建
-        ├── icon_converter.py   # 图标转换
-        ├── info_plist_updater.py # macOS权限更新
-        └── macos_codesign.py   # macOS代码签名
+└── unifypy/              # 源代码
+    ├── core/             # 核心模块（engine、plugin、events、context、config、platforms）
+    ├── platforms/        # 平台打包器（registry、windows/macos/linux）
+    ├── pyinstaller/      # PyInstaller 配置构建
+    ├── templates/        # 模板文件（如 Inno Setup 模板等）
+    ├── tools/            # 内置工具（如 create-dmg）
+    └── utils/            # 工具模块（progress、rollback、parallel_builder 等）
 ```
 
 ## 🔍 故障排除
@@ -495,13 +482,13 @@ UnifyPy/
 pip install pyinstaller>=5.0
 
 # 清理重试
-python main.py . --config build.json --clean --verbose
+unifypy . --config build.json --clean --verbose
 ```
 
 **Q: macOS权限配置问题？**
 ```bash
 # 使用开发模式自动生成权限文件
-python main.py . --config build.json --development --verbose
+unifypy . --config build.json --development --verbose
 
 # 检查生成的权限文件
 cat auto_generated_entitlements.plist
@@ -522,10 +509,10 @@ sudo yum install rpm-build
 **Q: 并行构建失败？**
 ```bash
 # 减少工作线程数
-python main.py . --parallel --max-workers 2
+unifypy . --parallel --max-workers 2
 
 # 或禁用并行构建
-python main.py . --config build.json
+unifypy . --config build.json
 ```
 
 **Q: 配置文件中的路径找不到？**
@@ -538,7 +525,7 @@ python main.py . --config build.json
 "icon": "../myapp/assets/icon.png" 
 
 # 检查路径解析
-python main.py . --config build.json --verbose
+unifypy . --config build.json --verbose
 ```
 
 ### 调试技巧

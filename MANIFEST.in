@@ -1,0 +1,11 @@
+include LICENSE
+include README.md
+recursive-include unifypy/templates *.template
+recursive-include unifypy/tools *
+include unifypy/tools/create-dmg/.this-is-the-create-dmg-repo
+recursive-include unifypy/platforms *.py
+recursive-include unifypy/pyinstaller *.py
+recursive-include unifypy/cli *.py
+recursive-include unifypy/core *.py
+recursive-include unifypy/plugins *.py
+recursive-include unifypy/utils *.py

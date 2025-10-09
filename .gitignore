@@ -19,3 +19,11 @@ venv/
 !.vscode/extensions.json
 
 src/**/__pycache__
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.unifypy/
+.unifypy_rollback/
+build/
+dist/

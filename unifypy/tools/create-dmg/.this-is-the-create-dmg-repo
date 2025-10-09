@@ -1,0 +1,3 @@
+This file is used by create-dmg to detect a repository layout.
+Do not remove. It makes the script pick support/ relative to the script dir.
+
