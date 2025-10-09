@@ -28,10 +28,8 @@ class PackagerRegistry:
         try:
             # Windows 打包器
             from .windows.inno_setup import InnoSetupPackager
-            from .windows.msi_packager import MSIPackager
 
             self.register_packager("windows", "exe", InnoSetupPackager)
-            self.register_packager("windows", "msi", MSIPackager)
 
             # macOS 打包器
             from .macos.dmg_packager import DMGPackager
@@ -39,15 +37,11 @@ class PackagerRegistry:
             self.register_packager("macos", "dmg", DMGPackager)
 
             # Linux 打包器
-            from .linux.appimage_packager import AppImagePackager
             from .linux.deb_packager import DEBPackager
             from .linux.rpm_packager import RPMPackager
-            from .linux.tarball_packager import TarballPackager
 
             self.register_packager("linux", "deb", DEBPackager)
             self.register_packager("linux", "rpm", RPMPackager)
-            self.register_packager("linux", "appimage", AppImagePackager)
-            self.register_packager("linux", "tar.gz", TarballPackager)
 
         except ImportError:
             # 如果某些平台的打包器模块不存在，忽略错误
