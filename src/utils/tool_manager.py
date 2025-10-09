@@ -92,6 +92,62 @@ class ToolManager:
         # 缓存GitHub API响应
         self._api_cache = {}
 
+        # 平台打包器工具配置
+        self.platform_tools = {
+            "windows": [
+                {
+                    "name": "inno-setup",
+                    "display_name": "Inno Setup",
+                    "description": "Windows 安装包制作工具",
+                    "download_url": "https://jrsoftware.org/isdl.php",
+                    "install_instructions": [
+                        "1. 访问上述 URL 下载 Inno Setup 安装程序",
+                        "2. 运行安装程序，按照向导完成安装",
+                        "3. 安装后重新运行 UnifyPy 构建命令"
+                    ],
+                    "config_example": '"inno_setup_path": "C:\\\\Program Files (x86)\\\\Inno Setup 6\\\\ISCC.exe"',
+                    "check_method": "_check_inno_setup"
+                }
+            ],
+            "macos": [
+                {
+                    "name": "create-dmg",
+                    "display_name": "create-dmg",
+                    "description": "macOS DMG 创建工具 (UnifyPy 内置)",
+                    "download_url": "https://github.com/create-dmg/create-dmg",
+                    "install_instructions": [
+                        "✅ create-dmg 已内置在 UnifyPy 中，无需手动安装"
+                    ],
+                    "check_method": "_check_create_dmg"
+                }
+            ],
+            "linux": [
+                {
+                    "name": "dpkg-deb",
+                    "display_name": "dpkg-deb",
+                    "description": "Debian/Ubuntu 包构建工具",
+                    "download_url": "通常预装在 Debian/Ubuntu 系统",
+                    "install_instructions": [
+                        "在 Debian/Ubuntu 系统上安装:",
+                        "  sudo apt-get update",
+                        "  sudo apt-get install dpkg-dev"
+                    ],
+                    "check_method": "_check_dpkg_deb"
+                },
+                {
+                    "name": "rpmbuild",
+                    "display_name": "rpmbuild",
+                    "description": "RedHat/CentOS/Fedora 包构建工具",
+                    "download_url": "通常预装在 RedHat/CentOS/Fedora 系统",
+                    "install_instructions": [
+                        "在 RedHat/CentOS/Fedora 系统上安装:",
+                        "  sudo yum install rpm-build  # 或 sudo dnf install rpm-build"
+                    ],
+                    "check_method": "_check_rpmbuild"
+                }
+            ]
+        }
+
     def _detect_platform(self) -> str:
         """
         检测当前平台.
@@ -601,3 +657,76 @@ class ToolManager:
         """
         self.remove_tool(tool_name)
         return self.ensure_tool(tool_name, version)
+
+    def get_required_tools_for_platform(self, platform_name: str) -> List[Dict]:
+        """获取指定平台需要的工具列表.
+
+        Args:
+            platform_name: 平台名称 (windows/macos/linux)
+
+        Returns:
+            List[Dict]: 工具信息列表
+        """
+        return self.platform_tools.get(platform_name, [])
+
+    def check_tool_available(self, tool_name: str) -> bool:
+        """检查工具是否可用.
+
+        Args:
+            tool_name: 工具名称
+
+        Returns:
+            bool: 工具是否可用
+        """
+        # 根据工具名称调用对应的检测方法
+        if tool_name == "inno-setup":
+            return self._check_inno_setup()
+        elif tool_name == "create-dmg":
+            return self._check_create_dmg()
+        elif tool_name == "dpkg-deb":
+            return self._check_dpkg_deb()
+        elif tool_name == "rpmbuild":
+            return self._check_rpmbuild()
+        else:
+            # 未知工具，尝试通过 shutil.which 检查
+            return shutil.which(tool_name) is not None
+
+    def _check_inno_setup(self) -> bool:
+        """检查 Inno Setup 是否可用.
+
+        Returns:
+            bool: 是否可用
+        """
+        return self._detect_existing_inno_setup() is not None
+
+    def _check_create_dmg(self) -> bool:
+        """检查 create-dmg 是否可用 (内置工具).
+
+        Returns:
+            bool: 是否可用
+        """
+        try:
+            # 检查本地工具
+            if "create-dmg" in self.local_tools:
+                tool_path = self._get_local_tool_path("create-dmg")
+                return Path(tool_path).exists()
+            return False
+        except (ValueError, RuntimeError):
+            return False
+
+    def _check_dpkg_deb(self) -> bool:
+        """检查 dpkg-deb 是否可用.
+
+        Returns:
+            bool: 是否可用
+        """
+        return shutil.which("dpkg-deb") is not None
+
+    def _check_rpmbuild(self) -> bool:
+        """检查 rpmbuild 是否可用.
+
+        Returns:
+            bool: 是否可用
+        """
+        return shutil.which("rpmbuild") is not None
+

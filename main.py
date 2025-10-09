@@ -234,26 +234,84 @@ class UnifyPyBuilder:
         if not self.project_dir.exists():
             raise FileNotFoundError(f"项目目录不存在: {self.project_dir}")
 
-        self.progress.update_stage(stage, 20, "检查入口文件", absolute=True)
+        self.progress.update_stage(stage, 10, "检查入口文件", absolute=True)
 
         # 检查入口文件
         entry_file = self.config.resolve_path(self.config.get("entry"))
         if not entry_file.exists():
             raise FileNotFoundError(f"入口文件不存在: {entry_file}")
 
-        self.progress.update_stage(stage, 30, "检查PyInstaller", absolute=True)
+        self.progress.update_stage(stage, 20, "检查PyInstaller", absolute=True)
 
         # 检查PyInstaller
         if not self.runner.check_tool_available("pyinstaller"):
             raise RuntimeError("PyInstaller未安装，请运行: pip install pyinstaller")
 
-        self.progress.update_stage(stage, 50, "检查磁盘空间", absolute=True)
+        self.progress.update_stage(stage, 40, "检查平台打包器", absolute=True)
+
+        # 检查平台特定的打包器工具
+        if not self.args.skip_installer:
+            self._check_packager_tools()
+
+        self.progress.update_stage(stage, 70, "检查磁盘空间", absolute=True)
 
         # 检查磁盘空间
         if not self.file_ops.check_disk_space(str(self.project_dir), 500):
             self.progress.warning("磁盘空间可能不足（建议至少500MB）")
 
         self.progress.complete_stage(stage)
+
+    def _check_packager_tools(self):
+        """
+        检查平台特定的打包器工具是否可用.
+        如果工具不存在，提示下载地址.
+        """
+        current_platform = self.config.current_platform
+
+        # 获取需要检测的工具
+        required_tools = self.tool_manager.get_required_tools_for_platform(
+            current_platform
+        )
+
+        if not required_tools:
+            # 没有需要检测的工具
+            return
+
+        missing_tools = []
+
+        for tool_info in required_tools:
+            tool_name = tool_info["name"]
+            tool_display_name = tool_info["display_name"]
+
+            # 检查工具是否可用
+            is_available = self.tool_manager.check_tool_available(tool_name)
+
+            if not is_available:
+                missing_tools.append(tool_info)
+                self.progress.warning(f"⚠️  未找到 {tool_display_name}")
+
+        # 如果有缺失的工具，显示详细信息并退出
+        if missing_tools:
+            print("\n" + "="*70)
+            print("❌ 缺少必要的打包工具")
+            print("="*70)
+
+            for tool_info in missing_tools:
+                print(f"\n📦 工具: {tool_info['display_name']}")
+                print(f"   描述: {tool_info['description']}")
+                print(f"   下载地址: {tool_info['download_url']}")
+
+                if "install_instructions" in tool_info:
+                    print(f"   安装说明:")
+                    for instruction in tool_info["install_instructions"]:
+                        print(f"      {instruction}")
+
+                if "config_example" in tool_info:
+                    print(f"   或在配置文件中指定路径:")
+                    print(f"      {tool_info['config_example']}")
+
+            print("\n" + "="*70)
+            raise RuntimeError(f"请安装缺失的打包工具后重试")
 
     def _prepare_environment(self, rollback_manager: Optional[RollbackManager] = None):
         """
