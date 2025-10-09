@@ -29,7 +29,7 @@ UnifyPy 2.0 是一个企业级跨平台Python应用打包工具，支持将Pytho
 # 开发安装（推荐）
 pip install -e .
 
-# 或安装发布包（如已发布到 PyPI）
+# 或安装发布包
 # pip install unifypy
 
 # 运行命令
@@ -132,9 +132,10 @@ unifypy . --config build.json --dry-run
         "depends": ["python3 (>= 3.8)", "libgtk-3-0"],
         "description": "我的Python应用程序"
       },
-      "appimage": {
-        "desktop_entry": true,
-        "categories": "Utility;Development;"
+      "rpm": {
+        "summary": "我的Python应用程序",
+        "license": "MIT",
+        "url": "https://example.com/myapp"
       }
     }
   }

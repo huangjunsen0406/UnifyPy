@@ -29,7 +29,7 @@ UnifyPy 2.0 is an enterprise-grade cross-platform Python application packaging t
 # Dev install (recommended)
 pip install -e .
 
-# Or from PyPI (if published)
+# Or from PyPI
 # pip install unifypy
 
 # Run
@@ -79,6 +79,20 @@ unifypy . --config build.json --development --verbose
 
 # Dry run (env check + prepare only)
 unifypy . --config build.json --dry-run
+```
+
+## 🧩 Plugin System & External Plugins
+
+- Lifecycle events:
+  `on_start → handle_rollback_commands → load_config → environment_check → prepare → build_executable → generate_installers → on_success → on_exit`
+- Extend by subscribing to events with your plugin class.
+- External plugins (top-level in build.json):
+```json
+{
+  "plugins": [
+    "my_package.my_plugin:MyPlugin"
+  ]
+}
 ```
 
 ### Configuration File Example
