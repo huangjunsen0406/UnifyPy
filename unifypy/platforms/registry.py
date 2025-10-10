@@ -37,9 +37,11 @@ class PackagerRegistry:
             self.register_packager("macos", "dmg", DMGPackager)
 
             # Linux 打包器
+            from .linux.appimage_packager import AppImagePackager
             from .linux.deb_packager import DEBPackager
             from .linux.rpm_packager import RPMPackager
 
+            self.register_packager("linux", "appimage", AppImagePackager)
             self.register_packager("linux", "deb", DEBPackager)
             self.register_packager("linux", "rpm", RPMPackager)
 

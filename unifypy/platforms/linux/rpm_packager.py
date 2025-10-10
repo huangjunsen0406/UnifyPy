@@ -94,19 +94,38 @@ class RPMPackager(BasePackager):
             if source_path.is_file():
                 # 单个可执行文件
                 shutil.copy2(source_path, app_source_dir / app_name)
+                (app_source_dir / app_name).chmod(0o755)
             else:
-                # 目录 - 复制所有内容
+                # 目录 - 复制所有内容，并确保主可执行文件存在
+                main_executable = None
                 for item in source_path.iterdir():
                     if item.is_file():
-                        shutil.copy2(item, app_source_dir)
+                        shutil.copy2(item, app_source_dir / item.name)
+                        # 查找主可执行文件（通常与项目名称相同）
+                        if item.name == app_name or item.stem == app_name:
+                            main_executable = app_source_dir / item.name
+                            main_executable.chmod(0o755)
                     else:
                         shutil.copytree(item, app_source_dir / item.name)
+
+                # 如果没有找到主可执行文件，查找第一个可执行文件
+                if not main_executable:
+                    for item in (app_source_dir).iterdir():
+                        if item.is_file() and os.access(item, os.X_OK):
+                            main_executable = item
+                            break
 
             # 创建tar.gz文件
             import tarfile
 
             with tarfile.open(source_tarball, "w:gz") as tar:
                 tar.add(app_source_dir, arcname=f"{app_name}-{version}")
+
+        # 复制图标文件到 SOURCES 目录（作为 Source1）
+        icon_path = config.get("icon") or self.config.get("icon")
+        if icon_path and os.path.exists(icon_path):
+            icon_filename = Path(icon_path).name
+            shutil.copy2(icon_path, sources_dir / icon_filename)
 
         # 复制其他源文件
         extra_sources = config.get("extra_sources", [])
@@ -127,7 +146,15 @@ class RPMPackager(BasePackager):
         # 使用环境管理器获取标准化的架构信息
         arch = self.env_manager.get_arch_for_format("rpm")
 
-        spec_content = f"""Name:           {app_name}
+        # 检查是否有图标文件
+        icon_path = config.get("icon") or self.config.get("icon")
+        has_icon = icon_path and os.path.exists(icon_path)
+
+        # 构建 spec 文件头部
+        spec_content = f"""# 防御性定义 dist 宏（兼容老版本 RHEL）
+%{{!?dist: %{{define dist .el}}}}
+
+Name:           {app_name}
 Version:        {version}
 Release:        {release}%{{?dist}}
 Summary:        {config.get('summary', self.config.get('display_name', app_name))}
@@ -135,7 +162,14 @@ Summary:        {config.get('summary', self.config.get('display_name', app_name)
 License:        {config.get('license', 'Unknown')}
 URL:            {config.get('url', '')}
 Source0:        %{{name}}-%{{version}}.tar.gz
+"""
 
+        # 如果有图标，添加 Source1
+        if has_icon:
+            icon_filename = Path(icon_path).name
+            spec_content += f"Source1:        {icon_filename}\n"
+
+        spec_content += f"""
 BuildArch:      {arch}
 """
 
@@ -170,14 +204,19 @@ mkdir -p $RPM_BUILD_ROOT/usr/local/bin
         # 安装文件
         spec_content += f"""
 # 复制应用文件
-cp -r * $RPM_BUILD_ROOT/opt/{app_name}/
+cp -a . $RPM_BUILD_ROOT/opt/{app_name}/
+
+# 确保主可执行文件有执行权限
+chmod +x $RPM_BUILD_ROOT/opt/{app_name}/{app_name} 2>/dev/null || true
 
 # 创建启动脚本
-cat > $RPM_BUILD_ROOT/usr/local/bin/{app_name} << 'EOF'
+cat > $RPM_BUILD_ROOT/usr/local/bin/{app_name} << 'LAUNCHER_EOF'
 #!/bin/bash
-cd /opt/{app_name}
-exec ./{app_name} "$@"
-EOF
+# RPM 启动脚本
+SCRIPT_DIR=/opt/{app_name}
+cd "$SCRIPT_DIR" || exit 1
+exec "$SCRIPT_DIR/{app_name}" "$@"
+LAUNCHER_EOF
 chmod +x $RPM_BUILD_ROOT/usr/local/bin/{app_name}
 """
 
@@ -205,7 +244,7 @@ EOF
             spec_content += f"""
 # 复制图标文件
 mkdir -p $RPM_BUILD_ROOT/usr/share/pixmaps
-cp {sources_dir / Path(icon_path).name} $RPM_BUILD_ROOT/usr/share/pixmaps/{app_name}{icon_ext}
+cp %{{SOURCE1}} $RPM_BUILD_ROOT/usr/share/pixmaps/{app_name}{icon_ext}
 """
 
         # 文件列表
