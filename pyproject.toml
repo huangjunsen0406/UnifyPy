@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "unifypy"
-version = "2.0.2"
+version = "2.0.3"
 description = "UnifyPy 2.0 - Cross-platform Python app packaging tool"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {file = "LICENSE"}
 authors = [
-  {name = "UnifyPy Team"}
+  {name = "Junsen Huang"}
 ]
 keywords = ["packaging", "pyinstaller", "installer", "windows", "macos", "linux"]
 classifiers = [
