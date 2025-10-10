@@ -14,27 +14,32 @@ class EntitlementsGenerator:
     """
 
     # Info.plist 权限描述到 Entitlements 权限的映射
-    # 
+    #
     # 重要说明:
     # - 摄像头权限: com.apple.security.device.camera 适用于沙盒和非沙盒应用
     # - 麦克风权限: 需要根据应用类型选择不同的entitlement:
-    #   * 沙盒应用: com.apple.security.device.microphone 
+    #   * 沙盒应用: com.apple.security.device.microphone
     #   * 非沙盒应用: com.apple.security.device.audio-input
     # - 屏幕录制权限: com.apple.security.device.screen-capture 适用于所有应用
     PRIVACY_TO_ENTITLEMENTS_MAPPING = {
         # 媒体设备权限 - 麦克风 (根据应用类型选择不同的entitlement)
         "NSMicrophoneUsageDescription": [
             "com.apple.security.device.audio-input",  # 加固运行时应用 (非沙盒)
-            "com.apple.security.device.microphone",   # 沙盒应用 (Mac App Store)
+            "com.apple.security.device.microphone",  # 沙盒应用 (Mac App Store)
         ],
         "NSCameraUsageDescription": ["com.apple.security.device.camera"],
         # 屏幕录制权限
-        "NSScreenCaptureUsageDescription": ["com.apple.security.device.screen-capture"],
+        "NSScreenCaptureUsageDescription": [
+            "com.apple.security.device.screen-capture"
+        ],
         # 位置服务权限
         "NSLocationWhenInUseUsageDescription": [
             "com.apple.security.personal-information.location"
         ],
         "NSLocationAlwaysAndWhenInUseUsageDescription": [
+            "com.apple.security.personal-information.location"
+        ],
+        "NSLocationUsageDescription": [
             "com.apple.security.personal-information.location"
         ],
         # 个人信息权限
@@ -44,18 +49,31 @@ class EntitlementsGenerator:
         "NSCalendarsUsageDescription": [
             "com.apple.security.personal-information.calendars"
         ],
+        "NSCalendarsWriteOnlyAccessUsageDescription": [
+            "com.apple.security.personal-information.calendars"
+        ],
+        "NSCalendarsFullAccessUsageDescription": [
+            "com.apple.security.personal-information.calendars"
+        ],
         "NSRemindersUsageDescription": [
+            "com.apple.security.personal-information.calendars"
+        ],
+        "NSRemindersFullAccessUsageDescription": [
             "com.apple.security.personal-information.calendars"
         ],
         # 照片和媒体权限
         "NSPhotoLibraryUsageDescription": [
-            "com.apple.security.assets.pictures.read-only"
+            "com.apple.security.assets.pictures.read-write"
         ],
         "NSPhotoLibraryAddUsageDescription": [
             "com.apple.security.assets.pictures.read-write"
         ],
         # 音乐权限
         "NSAppleMusicUsageDescription": ["com.apple.security.assets.music.read-only"],
+        # 语音识别权限
+        "NSSpeechRecognitionUsageDescription": [
+            "com.apple.security.device.speech-recognition"
+        ],
         # 蓝牙权限
         "NSBluetoothAlwaysUsageDescription": ["com.apple.security.device.bluetooth"],
         "NSBluetoothPeripheralUsageDescription": [
@@ -66,6 +84,30 @@ class EntitlementsGenerator:
             "com.apple.security.network.client",
             "com.apple.security.network.server",
         ],
+        # AppleEvents 权限
+        "NSAppleEventsUsageDescription": [
+            "com.apple.security.automation.apple-events"
+        ],
+        # 文件夹访问权限
+        "NSDesktopFolderUsageDescription": [
+            "com.apple.security.files.user-selected.read-write"
+        ],
+        "NSDocumentsFolderUsageDescription": [
+            "com.apple.security.files.user-selected.read-write"
+        ],
+        "NSDownloadsFolderUsageDescription": [
+            "com.apple.security.files.downloads.read-write"
+        ],
+        "NSNetworkVolumesUsageDescription": [
+            "com.apple.security.files.user-selected.read-write"
+        ],
+        "NSRemovableVolumesUsageDescription": [
+            "com.apple.security.files.user-selected.read-write"
+        ],
+        # 系统管理权限
+        "NSSystemAdministrationUsageDescription": [
+            "com.apple.security.temporary-exception.files.absolute-path.read-write"
+        ],
     }
 
     # 配置键到 Info.plist 键的映射
@@ -73,14 +115,19 @@ class EntitlementsGenerator:
         "microphone_usage_description": "NSMicrophoneUsageDescription",
         "camera_usage_description": "NSCameraUsageDescription",
         "screen_capture_usage_description": "NSScreenCaptureUsageDescription",
+        "location_usage_description": "NSLocationUsageDescription",
         "location_when_in_use_usage_description": "NSLocationWhenInUseUsageDescription",
         "location_always_and_when_in_use_usage_description": "NSLocationAlwaysAndWhenInUseUsageDescription",
         "contacts_usage_description": "NSContactsUsageDescription",
         "calendars_usage_description": "NSCalendarsUsageDescription",
+        "calendars_write_only_access_usage_description": "NSCalendarsWriteOnlyAccessUsageDescription",
+        "calendars_full_access_usage_description": "NSCalendarsFullAccessUsageDescription",
         "reminders_usage_description": "NSRemindersUsageDescription",
+        "reminders_full_access_usage_description": "NSRemindersFullAccessUsageDescription",
         "photo_library_usage_description": "NSPhotoLibraryUsageDescription",
         "photo_library_add_usage_description": "NSPhotoLibraryAddUsageDescription",
         "music_usage_description": "NSAppleMusicUsageDescription",
+        "speech_recognition_usage_description": "NSSpeechRecognitionUsageDescription",
         "bluetooth_always_usage_description": "NSBluetoothAlwaysUsageDescription",
         "bluetooth_peripheral_usage_description": "NSBluetoothPeripheralUsageDescription",
         "local_network_usage_description": "NSLocalNetworkUsageDescription",
@@ -405,14 +452,22 @@ class EntitlementsGenerator:
         name_mapping = {
             "microphone_usage_description": "麦克风访问",
             "camera_usage_description": "摄像头访问",
+            "screen_capture_usage_description": "屏幕录制",
+            "location_usage_description": "位置服务",
             "location_when_in_use_usage_description": "位置服务（使用时）",
             "location_always_and_when_in_use_usage_description": "位置服务（始终）",
             "contacts_usage_description": "通讯录访问",
             "calendars_usage_description": "日历访问",
+            "calendars_write_only_access_usage_description": "日历访问（仅写入）",
+            "calendars_full_access_usage_description": "日历访问（完全）",
             "reminders_usage_description": "提醒事项访问",
+            "reminders_full_access_usage_description": "提醒事项访问（完全）",
             "photo_library_usage_description": "照片库访问",
             "photo_library_add_usage_description": "照片库写入",
+            "music_usage_description": "音乐库访问",
+            "speech_recognition_usage_description": "语音识别",
             "bluetooth_always_usage_description": "蓝牙访问",
+            "bluetooth_peripheral_usage_description": "蓝牙外设",
             "local_network_usage_description": "本地网络访问",
             "apple_events_usage_description": "AppleScript 控制",
             "system_administration_usage_description": "系统管理权限",
@@ -420,6 +475,8 @@ class EntitlementsGenerator:
             "desktop_folder_usage_description": "桌面文件夹访问",
             "documents_folder_usage_description": "文档文件夹访问",
             "downloads_folder_usage_description": "下载文件夹访问",
+            "network_volumes_usage_description": "网络卷访问",
+            "removable_volumes_usage_description": "可移动卷访问",
         }
         return name_mapping.get(config_key, config_key)
 
@@ -430,19 +487,28 @@ class EntitlementsGenerator:
         category_mapping = {
             "microphone_usage_description": "设备权限",
             "camera_usage_description": "设备权限",
+            "screen_capture_usage_description": "设备权限",
+            "speech_recognition_usage_description": "设备权限",
             "bluetooth_always_usage_description": "设备权限",
             "bluetooth_peripheral_usage_description": "设备权限",
             "local_network_usage_description": "网络权限",
             "contacts_usage_description": "个人信息权限",
             "calendars_usage_description": "个人信息权限",
+            "calendars_write_only_access_usage_description": "个人信息权限",
+            "calendars_full_access_usage_description": "个人信息权限",
             "reminders_usage_description": "个人信息权限",
+            "reminders_full_access_usage_description": "个人信息权限",
+            "location_usage_description": "个人信息权限",
             "location_when_in_use_usage_description": "个人信息权限",
             "location_always_and_when_in_use_usage_description": "个人信息权限",
             "photo_library_usage_description": "文件访问权限",
             "photo_library_add_usage_description": "文件访问权限",
+            "music_usage_description": "文件访问权限",
             "desktop_folder_usage_description": "文件访问权限",
             "documents_folder_usage_description": "文件访问权限",
             "downloads_folder_usage_description": "文件访问权限",
+            "network_volumes_usage_description": "文件访问权限",
+            "removable_volumes_usage_description": "文件访问权限",
             "apple_events_usage_description": "系统权限",
             "system_administration_usage_description": "系统权限",
             "accessibility_usage_description": "系统权限",

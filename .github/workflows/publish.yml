@@ -13,10 +13,14 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  release:
+    types: [published]
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # allow creating/updating releases when pushing tags
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -36,10 +40,21 @@ jobs:
           python scripts/release/bump_version.py "${{ inputs.version }}"
           python -m build
           twine check dist/*
-      - name: Check tag matches version (tags)
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Check tag matches version (tags/releases)
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
         run: |
-          python scripts/release/check_tag.py
+          python scripts/release/check_tag.py "${{ github.event.release.tag_name || github.ref_name }}"
+      - name: Create GitHub Release (auto notes)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
       - name: Publish to TestPyPI (manual)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.target == 'testpypi' }}
         env:
@@ -47,8 +62,8 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
         run: |
           python -m twine upload --repository testpypi dist/*
-      - name: Publish to PyPI (tags)
-        if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.target == 'pypi')
+      - name: Publish to PyPI (tags/releases)
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.target == 'pypi')
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}

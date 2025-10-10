@@ -16,37 +16,25 @@ UnifyPy 2.0 是一个企业级跨平台Python应用打包工具，支持将Pytho
 - **📦 自动化工具**: 第三方工具自动下载和管理
 - **🍎 macOS权限管理**: 自动生成权限文件、代码签名支持
 - **📊 智能路径处理**: 相对路径自动解析为绝对路径
-- **🔄 模块化架构**: 基于注册表的插件式打包器设计
+- **🧩 插件化架构**: 基于事件总线与引擎的插件系统，支持外部插件扩展
 
-## 📦 安装要求
+## 📦 安装
 
 ### 系统要求
 - Python 3.8+
 - Windows 10+ / macOS 10.14+ / Linux (Ubuntu 18.04+)
 
-### 安装与使用
+### 安装 UnifyPy
+
 ```bash
-# 开发安装（推荐）
-pip install -e .
-
-# 或安装发布包
-# pip install unifypy
-
-# 运行命令
-unifypy . --config build.json
+pip install unifypy
 ```
 
-主要依赖：
-- pyinstaller >= 6.0
-- rich >= 12.0
-- requests >= 2.28
-- packaging >= 21.0
-- pillow >= 8.0 (可选，用于图标转换)
+### 平台特定工具
 
-**平台特定工具**：
-- **Windows**: Inno Setup (自动检测)
-- **macOS**: create-dmg (内置)、Xcode Command Line Tools
-- **Linux**: dpkg-dev, rpm-build, fakeroot (按需自动安装指导)
+- **Windows**: Inno Setup（自动检测）
+- **macOS**: create-dmg（内置）、Xcode Command Line Tools
+- **Linux**: dpkg-dev、rpm-build、fakeroot（按需自动安装指导）
 
 ## 🚀 快速开始
 
@@ -138,7 +126,11 @@ unifypy . --config build.json --dry-run
         "url": "https://example.com/myapp"
       }
     }
-  }
+  },
+
+  "plugins": [
+    "my_package.my_plugin:MyPlugin"
+  ]
 }
 ```
 
@@ -372,7 +364,47 @@ unifypy ../my-project --config ../my-project/build.json
 
 ## 🏗️ 架构设计
 
-UnifyPy 2.0 采用现代化的模块化架构设计：
+UnifyPy 2.0 采用基于事件驱动的插件化架构设计：
+
+### 核心架构组件
+
+**引擎（Engine）+ 事件总线（EventBus）**
+
+UnifyPy 2.0 的核心采用引擎驱动的插件化架构，通过事件总线协调各个插件的生命周期：
+
+```python
+# 构建生命周期事件
+ON_START → HANDLE_ROLLBACK_COMMANDS → LOAD_CONFIG →
+ENVIRONMENT_CHECK → PREPARE → BUILD_EXECUTABLE →
+GENERATE_INSTALLERS → ON_SUCCESS → ON_EXIT
+```
+
+**插件系统（Plugin System）**
+
+所有功能均以插件形式实现，支持优先级控制和外部插件扩展：
+
+```python
+class MyPlugin(BasePlugin):
+    name = "my_plugin"
+    priority = 50  # 数值越小优先级越高
+
+    def register(self, bus: EventBus):
+        bus.subscribe(ON_START, self.on_start, priority=self.priority)
+        bus.subscribe(BUILD_EXECUTABLE, self.on_build, priority=self.priority)
+```
+
+**外部插件支持**
+
+在配置文件中声明外部插件：
+
+```json
+{
+  "plugins": [
+    "my_package.my_plugin:MyPlugin",
+    "company.custom_plugin:CustomPlugin"
+  ]
+}
+```
 
 ### 核心设计模式
 
@@ -383,13 +415,7 @@ packager_registry = PackagerRegistry()
 packager_class = packager_registry.get_packager("macos", "dmg")
 ```
 
-**工厂模式 (Factory Pattern)**
-```python
-# 通过注册表创建平台特定的打包器
-packager = packager_class(progress, runner, tool_manager, config)
-```
-
-**策略模式 (Strategy Pattern)**  
+**策略模式 (Strategy Pattern)**
 ```python
 # 每个打包器实现特定格式的打包策略
 class DMGPackager(BasePackager):
@@ -397,80 +423,95 @@ class DMGPackager(BasePackager):
         # DMG特定的打包逻辑
 ```
 
-**建造者模式 (Builder Pattern)**
-```python  
-# 构建复杂的PyInstaller配置
-builder = PyInstallerConfigBuilder()
-command = builder.build_command(config, entry_script)
+**事件驱动模式 (Event-Driven Pattern)**
+```python
+# 插件通过订阅事件来响应构建流程的不同阶段
+bus.subscribe(PREPARE, self.prepare_build, priority=10)
+bus.subscribe(BUILD_EXECUTABLE, self.build, priority=50)
 ```
 
 ### 核心组件交互
 
 ```mermaid
 graph TD
-    A[UnifyPyBuilder] --> B[ConfigManager]
-    A --> C[PackagerRegistry]
-    A --> D[ProgressManager]
-    
-    B --> E[路径解析]
-    B --> F[配置合并]
-    
-    C --> G[WindowsPackager]
-    C --> H[MacOSPackager] 
-    C --> I[LinuxPackager]
-    
-    A --> J[PyInstallerBuilder]
-    J --> K[图标转换]
-    J --> L[权限生成]
-    
-    A --> M[RollbackManager]
-    A --> N[ParallelBuilder]
+    A[Engine 引擎] --> B[EventBus 事件总线]
+    A --> C[BuildContext 构建上下文]
+
+    B --> D[ProgressPlugin 进度插件]
+    B --> E[ConfigPlugin 配置插件]
+    B --> F[PyInstallerPlugin PyInstaller插件]
+    B --> G[PackagingPlugin 打包插件]
+    B --> H[RollbackPlugin 回滚插件]
+    B --> I[外部插件...]
+
+    E --> J[ConfigManager 配置管理]
+    J --> K[路径解析]
+
+    G --> L[PackagerRegistry 打包器注册表]
+    L --> M[WindowsPackager]
+    L --> N[MacOSPackager]
+    L --> O[LinuxPackager]
+
+    H --> P[RollbackManager 回滚管理器]
 ```
 
 ### 构建流程
 
-1. **初始化阶段**
+1. **初始化阶段 (ON_START)**
+   - 初始化进度管理器
+   - 创建构建上下文
+   - 加载外部插件
+
+2. **配置加载阶段 (LOAD_CONFIG)**
    - 解析命令行参数
    - 加载和合并配置文件
-   - 验证项目结构和依赖
-
-2. **预处理阶段**  
    - 智能路径解析（相对→绝对）
+
+3. **环境检查阶段 (ENVIRONMENT_CHECK)**
+   - 验证项目结构和依赖
+   - 检查工具可用性
+   - 平台兼容性检查
+
+4. **准备阶段 (PREPARE)**
    - 创建构建目录和临时文件
+   - 初始化回滚系统
    - macOS 权限文件自动生成
 
-3. **可执行文件构建**
+5. **可执行文件构建 (BUILD_EXECUTABLE)**
    - PyInstaller 配置构建
    - 图标格式自动转换
    - macOS Info.plist 更新和代码签名
 
-4. **安装包生成**
+6. **安装包生成 (GENERATE_INSTALLERS)**
    - 根据平台选择合适的打包器
    - 支持并行构建多种格式
    - 自动验证输出文件
 
-5. **后处理阶段**
+7. **成功完成 (ON_SUCCESS)**
+   - 显示构建结果摘要
+   - 输出文件清单
+
+8. **退出清理 (ON_EXIT)**
    - 清理临时文件
-   - 显示构建结果
-   - 回滚数据保存
+   - 保存回滚数据
+   - 关闭进度管理器
 
 ## 📁 项目结构
 
 ```
 UnifyPy/
-├── main.py                 # 主入口文件
-├── requirements.txt        # Python依赖
-├── build.json             # 标准配置示例
-├── build_multiformat.json # 多格式配置
-├── build_comprehensive.json # 完整配置示例
-├── py-xiaozhi.json        # 实际项目配置示例
-└── unifypy/              # 源代码
-    ├── core/             # 核心模块（engine、plugin、events、context、config、platforms）
-    ├── platforms/        # 平台打包器（registry、windows/macos/linux）
-    ├── pyinstaller/      # PyInstaller 配置构建
-    ├── templates/        # 模板文件（如 Inno Setup 模板等）
-    ├── tools/            # 内置工具（如 create-dmg）
-    └── utils/            # 工具模块（progress、rollback、parallel_builder 等）
+├── pyproject.toml        # 项目配置和依赖
+├── build.json           # 标准配置示例
+└── unifypy/            # 源代码包
+    ├── __main__.py     # CLI 入口点
+    ├── cli/            # 命令行接口
+    ├── core/           # 核心模块（engine、event_bus、plugin、config...）
+    ├── plugins/        # 内置插件（progress、config、pyinstaller、packaging...）
+    ├── platforms/      # 平台打包器（windows、macos、linux）
+    ├── pyinstaller/    # PyInstaller 集成
+    ├── templates/      # 模板文件
+    ├── tools/          # 内置工具
+    └── utils/          # 工具模块
 ```
 
 ## 🔍 故障排除

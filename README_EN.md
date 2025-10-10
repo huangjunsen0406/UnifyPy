@@ -16,34 +16,23 @@ UnifyPy 2.0 is an enterprise-grade cross-platform Python application packaging t
 - **📦 Automated Tools**: Automatic download and management of third-party tools
 - **🍎 macOS Permission Management**: Auto-generate permission files, code signing support
 - **📊 Smart Path Handling**: Automatic resolution of relative paths to absolute paths
-- **🔄 Modular Architecture**: Plugin-based packager design using registry pattern
+- **🧩 Plugin Architecture**: Event-driven plugin system with engine and event bus, support external plugin extensions
 
-## 📦 Installation Requirements
+## 📦 Installation
 
 ### System Requirements
+
 - Python 3.8+
 - Windows 10+ / macOS 10.14+ / Linux (Ubuntu 18.04+)
 
-### Install & Use
+### Install UnifyPy
+
 ```bash
-# Dev install (recommended)
-pip install -e .
-
-# Or from PyPI
-# pip install unifypy
-
-# Run
-unifypy . --config build.json
+pip install unifypy
 ```
 
-Main dependencies:
-- pyinstaller >= 6.0
-- rich >= 12.0
-- requests >= 2.28
-- packaging >= 21.0
-- pillow >= 8.0 (optional, for icon conversion)
+### Platform-Specific Tools
 
-**Platform-specific tools**:
 - **Windows**: Inno Setup (auto-detected)
 - **macOS**: create-dmg (bundled), Xcode Command Line Tools
 - **Linux**: dpkg-dev, rpm-build, fakeroot (auto-install guidance as needed)
@@ -146,12 +135,17 @@ Create `build.json` configuration file:
         "depends": ["python3 (>= 3.8)", "libgtk-3-0"],
         "description": "My Python Application"
       },
-      "appimage": {
-        "desktop_entry": true,
-        "categories": "Utility;Development;"
+      "rpm": {
+        "summary": "My Python Application",
+        "license": "MIT",
+        "url": "https://example.com/myapp"
       }
     }
-  }
+  },
+
+  "plugins": [
+    "my_package.my_plugin:MyPlugin"
+  ]
 }
 ```
 
@@ -159,7 +153,7 @@ Create `build.json` configuration file:
 
 ### Basic Syntax
 ```bash
-python main.py <project_dir> [options]
+unifypy <project_dir> [options]
 ```
 
 ### Basic Information Parameters
@@ -235,16 +229,13 @@ python main.py <project_dir> [options]
 
 ### Windows
 - **EXE** (Inno Setup) - Standard installer
-- **MSI** - Windows Installer package
 
-### macOS  
+### macOS
 - **DMG** - Disk image installer
 
 ### Linux
 - **DEB** - Debian/Ubuntu package
 - **RPM** - Red Hat/CentOS package
-- **AppImage** - Portable application image
-- **TAR.GZ** - Source archive
 
 ## ⚙️ Configuration File Details
 
@@ -307,13 +298,13 @@ UnifyPy 2.0 supports multi-format parallel building to significantly improve bui
 
 ```bash
 # Enable parallel building
-python main.py . --config build_multiformat.json --parallel
+unifypy . --config build_multiformat.json --parallel
 
 # Specify number of worker threads
-python main.py . --parallel --max-workers 4
+unifypy . --parallel --max-workers 4
 
 # View parallel building effects
-python main.py . --config build_comprehensive.json --parallel --verbose
+unifypy . --config build_comprehensive.json --parallel --verbose
 ```
 
 ## 🛡️ Rollback System
@@ -322,13 +313,13 @@ Automatically track build operations with one-click rollback support:
 
 ```bash
 # List available rollback sessions
-python main.py . --list-rollback
+unifypy . --list-rollback
 
 # Execute rollback
-python main.py . --rollback SESSION_ID
+unifypy . --rollback SESSION_ID
 
 # Disable automatic rollback
-python main.py . --config build.json --no-rollback
+unifypy . --config build.json --no-rollback
 ```
 
 ## 🍎 macOS Special Features
@@ -338,10 +329,10 @@ UnifyPy 2.0 provides a complete permission management solution for macOS applica
 
 ```bash
 # Development mode - auto-generate permission files, suitable for development and testing
-python main.py . --config build.json --development
+unifypy . --config build.json --development
 
 # Production mode - for signed applications
-python main.py . --config build.json --production
+unifypy . --config build.json --production
 ```
 
 ### Permission Configuration Example
@@ -372,7 +363,7 @@ UnifyPy 2.0 solves path issues when packaging across directories:
 ```bash
 # Packaging other projects from UnifyPy directory
 cd /path/to/UnifyPy
-python main.py ../my-project --config ../my-project/build.json
+unifypy ../my-project --config ../my-project/build.json
 ```
 
 ### Smart Solution
@@ -388,7 +379,47 @@ Relative paths in configuration files are automatically resolved relative to the
 
 ## 🏗️ Architecture Design
 
-UnifyPy 2.0 adopts modern modular architecture design:
+UnifyPy 2.0 adopts an event-driven plugin-based architecture:
+
+### Core Architecture Components
+
+**Engine + EventBus**
+
+UnifyPy 2.0's core uses an engine-driven plugin architecture that coordinates plugin lifecycle through an event bus:
+
+```python
+# Build lifecycle events
+ON_START → HANDLE_ROLLBACK_COMMANDS → LOAD_CONFIG →
+ENVIRONMENT_CHECK → PREPARE → BUILD_EXECUTABLE →
+GENERATE_INSTALLERS → ON_SUCCESS → ON_EXIT
+```
+
+**Plugin System**
+
+All features are implemented as plugins, supporting priority control and external plugin extensions:
+
+```python
+class MyPlugin(BasePlugin):
+    name = "my_plugin"
+    priority = 50  # Lower number = higher priority
+
+    def register(self, bus: EventBus):
+        bus.subscribe(ON_START, self.on_start, priority=self.priority)
+        bus.subscribe(BUILD_EXECUTABLE, self.on_build, priority=self.priority)
+```
+
+**External Plugin Support**
+
+Declare external plugins in configuration file:
+
+```json
+{
+  "plugins": [
+    "my_package.my_plugin:MyPlugin",
+    "company.custom_plugin:CustomPlugin"
+  ]
+}
+```
 
 ### Core Design Patterns
 
@@ -399,13 +430,7 @@ packager_registry = PackagerRegistry()
 packager_class = packager_registry.get_packager("macos", "dmg")
 ```
 
-**Factory Pattern**
-```python
-# Create platform-specific packagers through registry
-packager = packager_class(progress, runner, tool_manager, config)
-```
-
-**Strategy Pattern**  
+**Strategy Pattern**
 ```python
 # Each packager implements specific format packaging strategy
 class DMGPackager(BasePackager):
@@ -413,97 +438,95 @@ class DMGPackager(BasePackager):
         # DMG-specific packaging logic
 ```
 
-**Builder Pattern**
-```python  
-# Build complex PyInstaller configurations
-builder = PyInstallerConfigBuilder()
-command = builder.build_command(config, entry_script)
+**Event-Driven Pattern**
+```python
+# Plugins respond to different build phases by subscribing to events
+bus.subscribe(PREPARE, self.prepare_build, priority=10)
+bus.subscribe(BUILD_EXECUTABLE, self.build, priority=50)
 ```
 
 ### Core Component Interactions
 
 ```mermaid
 graph TD
-    A[UnifyPyBuilder] --> B[ConfigManager]
-    A --> C[PackagerRegistry]
-    A --> D[ProgressManager]
-    
-    B --> E[Path Resolution]
-    B --> F[Config Merging]
-    
-    C --> G[WindowsPackager]
-    C --> H[MacOSPackager] 
-    C --> I[LinuxPackager]
-    
-    A --> J[PyInstallerBuilder]
-    J --> K[Icon Conversion]
-    J --> L[Permission Generation]
-    
-    A --> M[RollbackManager]
-    A --> N[ParallelBuilder]
+    A[Engine] --> B[EventBus]
+    A --> C[BuildContext]
+
+    B --> D[ProgressPlugin]
+    B --> E[ConfigPlugin]
+    B --> F[PyInstallerPlugin]
+    B --> G[PackagingPlugin]
+    B --> H[RollbackPlugin]
+    B --> I[External Plugins...]
+
+    E --> J[ConfigManager]
+    J --> K[Path Resolution]
+
+    G --> L[PackagerRegistry]
+    L --> M[WindowsPackager]
+    L --> N[MacOSPackager]
+    L --> O[LinuxPackager]
+
+    H --> P[RollbackManager]
 ```
 
 ### Build Process
 
-1. **Initialization Phase**
+1. **Initialization Phase (ON_START)**
+   - Initialize progress manager
+   - Create build context
+   - Load external plugins
+
+2. **Config Loading Phase (LOAD_CONFIG)**
    - Parse command line arguments
    - Load and merge configuration files
-   - Validate project structure and dependencies
-
-2. **Preprocessing Phase**  
    - Smart path resolution (relative→absolute)
+
+3. **Environment Check Phase (ENVIRONMENT_CHECK)**
+   - Validate project structure and dependencies
+   - Check tool availability
+   - Platform compatibility check
+
+4. **Preparation Phase (PREPARE)**
    - Create build directories and temporary files
+   - Initialize rollback system
    - macOS permission file auto-generation
 
-3. **Executable Building**
+5. **Executable Building (BUILD_EXECUTABLE)**
    - PyInstaller configuration building
    - Automatic icon format conversion
    - macOS Info.plist update and code signing
 
-4. **Installer Generation**
+6. **Installer Generation (GENERATE_INSTALLERS)**
    - Select appropriate packager based on platform
    - Support parallel building of multiple formats
    - Auto-validate output files
 
-5. **Post-processing Phase**
+7. **Success Completion (ON_SUCCESS)**
+   - Display build results summary
+   - Output file manifest
+
+8. **Exit Cleanup (ON_EXIT)**
    - Clean temporary files
-   - Display build results
    - Save rollback data
+   - Close progress manager
 
 ## 📁 Project Structure
 
 ```
 UnifyPy/
-├── main.py                 # Main entry file
-├── requirements.txt        # Python dependencies
-├── build.json             # Standard configuration example
-├── build_multiformat.json # Multi-format configuration
-├── build_comprehensive.json # Complete configuration example
-├── py-xiaozhi.json        # Real project configuration example
-└── src/                   # Source code
-    ├── core/             # Core modules
-    │   ├── config.py     # Configuration management (supports path resolution)
-    │   └── environment.py # Environment detection
-    ├── platforms/        # Platform packagers (registry pattern)
-    │   ├── base.py       # Packager base class
-    │   ├── registry.py   # Packager registry
-    │   ├── windows/      # Windows packagers (EXE+MSI)
-    │   ├── macos/        # macOS packagers (DMG+PKG+ZIP) 
-    │   └── linux/        # Linux packagers (DEB+RPM+AppImage+TarGZ)
-    ├── pyinstaller/      # PyInstaller integration
-    │   ├── builder.py    # Builder
-    │   └── config_builder.py # Configuration builder
-    ├── templates/        # Template files
-    │   └── setup.iss.template # Inno Setup script template
-    ├── tools/            # Built-in tools
-    │   └── create-dmg/   # macOS DMG generation tool
-    └── utils/            # Utility modules
-        ├── progress.py   # Rich progress bar management
-        ├── rollback.py   # Rollback system
-        ├── parallel_builder.py # Parallel building
-        ├── icon_converter.py   # Icon conversion
-        ├── info_plist_updater.py # macOS permission updates
-        └── macos_codesign.py   # macOS code signing
+├── pyproject.toml      # Project configuration and dependencies
+├── build.json         # Standard configuration example
+└── unifypy/          # Source code package
+    ├── __main__.py   # CLI entry point
+    ├── cli/          # Command-line interface
+    ├── core/         # Core modules (engine, event_bus, plugin, config...)
+    ├── plugins/      # Built-in plugins (progress, config, pyinstaller, packaging...)
+    ├── platforms/    # Platform packagers (windows, macos, linux)
+    ├── pyinstaller/  # PyInstaller integration
+    ├── templates/    # Template files
+    ├── tools/        # Built-in tools
+    └── utils/        # Utility modules
 ```
 
 ## 🔍 Troubleshooting
@@ -516,13 +539,13 @@ UnifyPy/
 pip install pyinstaller>=5.0
 
 # Clean and retry
-python main.py . --config build.json --clean --verbose
+unifypy . --config build.json --clean --verbose
 ```
 
 **Q: macOS permission configuration issues?**
 ```bash
 # Use development mode to auto-generate permission files
-python main.py . --config build.json --development --verbose
+unifypy . --config build.json --development --verbose
 
 # Check generated permission files
 cat auto_generated_entitlements.plist
@@ -536,17 +559,17 @@ cat auto_generated_entitlements.plist
 # Ubuntu/Debian
 sudo apt-get install dpkg-dev fakeroot
 
-# CentOS/RHEL  
+# CentOS/RHEL
 sudo yum install rpm-build
 ```
 
 **Q: Parallel build failed?**
 ```bash
 # Reduce number of worker threads
-python main.py . --parallel --max-workers 2
+unifypy . --parallel --max-workers 2
 
 # Or disable parallel building
-python main.py . --config build.json
+unifypy . --config build.json
 ```
 
 **Q: Configuration file paths not found?**
@@ -556,10 +579,10 @@ python main.py . --config build.json
 "icon": "assets/icon.png"
 
 # ❌ Wrong: Using paths relative to UnifyPy directory
-"icon": "../myapp/assets/icon.png" 
+"icon": "../myapp/assets/icon.png"
 
 # Check path resolution
-python main.py . --config build.json --verbose
+unifypy . --config build.json --verbose
 ```
 
 ### Debugging Tips
