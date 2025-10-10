@@ -190,7 +190,7 @@ cat > $RPM_BUILD_ROOT/usr/share/applications/{app_name}.desktop << 'EOF'
 [Desktop Entry]
 Type=Application
 Name={self.config.get('display_name', app_name)}
-Exec={app_name}
+Exec=/usr/local/bin/{app_name}
 Icon={app_name}
 Comment={config.get('description', self.config.get('display_name', app_name))}
 Categories={config.get('categories', 'Utility;')}
@@ -324,7 +324,7 @@ cp {sources_dir / Path(icon_path).name} $RPM_BUILD_ROOT/usr/share/pixmaps/{app_n
 
             if not shutil.which("rpmbuild"):
                 errors.append(
-                    "rpmbuild工具未安装，请安装: sudo yum install rpm-build 或 sudo dnf install rpm-build"
+                    "rpmbuild工具未安装，请安装: sudo yum install rpm-build 或 sudo dnf install rpm-build, debian系列 sudo apt install rpm"
                 )
         except:
             errors.append("无法检查rpmbuild工具")

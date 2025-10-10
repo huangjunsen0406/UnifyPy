@@ -210,7 +210,7 @@ Description: {config.get('description', self.config.get('display_name', app_name
         desktop_content = f"""[Desktop Entry]
 Type=Application
 Name={display_name}
-Exec={app_name.lower()}
+Exec=/usr/local/bin/{app_name.lower()}
 Icon={app_name.lower()}
 Comment={config.get('description', display_name)}
 Categories={config.get('categories', 'Utility;')}
