@@ -230,10 +230,11 @@ class PyInstallerConfigBuilder:
         Returns:
             bool: 源路径是否存在
         """
-        # 提取源路径
-        separator = ";" if self.current_platform == "windows" else ":"
-        if separator in path_item:
-            source_path = path_item.split(separator, 1)[0]
+        # 提取源路径（同时支持两种分隔符）
+        if ";" in path_item:
+            source_path = path_item.split(";", 1)[0]
+        elif ":" in path_item:
+            source_path = path_item.split(":", 1)[0]
         else:
             source_path = path_item
 
@@ -241,7 +242,7 @@ class PyInstallerConfigBuilder:
         if os.path.exists(source_path):
             return True
         else:
-            print(f"⚠️ 跳过不存在的路径: {source_path} (来自 {config_key})")
+            self._log(f"跳过不存在的路径: {source_path} (来自 {config_key})", 'warning')
             return False
 
     def build_spec_file_content(self, config: Dict[str, Any], entry_script: str) -> str:
@@ -418,22 +419,25 @@ pyz = {pyz_config}
         tuples_list = []
         for item in items:
             if isinstance(item, str):
-                # 根据平台确定分隔符
-                separator = ";" if self.current_platform == "windows" else ":"
-                if separator in item:
-                    parts = item.split(separator, 1)
+                # 同时支持两种分隔符（冒号和分号）
+                if ";" in item:
+                    parts = item.split(";", 1)
+                    source_path = parts[0]
+                    dest_path = parts[1]
+                elif ":" in item:
+                    parts = item.split(":", 1)
                     source_path = parts[0]
                     dest_path = parts[1]
                 else:
                     # 如果没有指定目标路径，使用源路径的文件名
                     source_path = item
                     dest_path = os.path.basename(item)
-                
+
                 # 验证源路径是否存在
                 if os.path.exists(source_path):
                     tuples_list.append((source_path, dest_path))
                 else:
-                    print(f"⚠️ 跳过不存在的路径: {source_path}")
+                    self._log(f"跳过不存在的路径: {source_path}", 'warning')
 
         return tuples_list
 
