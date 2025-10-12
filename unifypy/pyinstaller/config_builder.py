@@ -314,8 +314,11 @@ pyz = {pyz_config}
         runtime_hooks = config.get("runtime_hook", [])
         excludes = config.get("exclude_module", [])
 
+        # 在Windows上规范化路径，避免反斜杠转义问题
+        entry_script_repr = repr(entry_script)
+
         return f"""a = Analysis(
-    ['{entry_script}'],
+    [{entry_script_repr}],
     pathex={repr(pathex)},
     binaries={repr(binaries)},
     datas={repr(datas)},
@@ -360,7 +363,7 @@ pyz = {pyz_config}
     exclude_binaries=True,"""
 
         exe_config += f"""
-    name='{app_name}',
+    name={repr(app_name)},
     debug={str(config.get('debug', False))},
     bootloader_ignore_signals=False,
     strip={str(config.get('strip', False))},
@@ -372,23 +375,23 @@ pyz = {pyz_config}
 
         if target_arch:
             exe_config += f"""
-    target_arch='{target_arch}',"""
+    target_arch={repr(target_arch)},"""
 
         if codesign_identity:
             exe_config += f"""
-    codesign_identity='{codesign_identity}',"""
+    codesign_identity={repr(codesign_identity)},"""
 
         if entitlements_file:
             exe_config += f"""
-    entitlements_file='{entitlements_file}',"""
+    entitlements_file={repr(entitlements_file)},"""
 
         if icon:
             exe_config += f"""
-    icon='{icon}',"""
+    icon={repr(icon)},"""
 
         if version:
             exe_config += f"""
-    version='{version}',"""
+    version={repr(version)},"""
 
         if uac_admin:
             exe_config += f"""
@@ -577,9 +580,9 @@ pyz = {pyz_config}
         bundle_config = f"""
 app = BUNDLE(
     coll,
-    name='{app_name}.app',
+    name={repr(f'{app_name}.app')},
     icon={repr(config.get('icon'))},
-    bundle_identifier='{bundle_id}',
+    bundle_identifier={repr(bundle_id)},
     info_plist={repr(info_plist)},
 )"""
 
