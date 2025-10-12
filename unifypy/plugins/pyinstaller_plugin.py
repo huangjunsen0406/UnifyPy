@@ -49,10 +49,38 @@ class PyInstallerPlugin(BasePlugin):
                         ctx.config.merged_config["pyinstaller"] = {}
                     ctx.config.merged_config["pyinstaller"].update(updated["pyinstaller"])
 
-        # 生成命令并执行
+        # 生成 spec 文件并执行
         py_cfg = ctx.config.get_pyinstaller_config()
         entry = str((ctx.project_dir / ctx.config.get("entry")).resolve())
-        command = builder.build_command(py_cfg, entry)
+
+        # 构建完整的配置字典（包含 platforms.macos 配置）
+        full_config = {
+            "name": ctx.config.get("name"),
+            "version": ctx.config.get("version"),
+            "icon": ctx.config.get("icon"),
+            "publisher": ctx.config.get("publisher", ""),
+        }
+        full_config.update(py_cfg)
+
+        # 添加 platforms 配置（用于 BUNDLE 的 info_plist）
+        if "platforms" in ctx.config.raw_config:
+            full_config["platforms"] = ctx.config.raw_config["platforms"]
+
+        # 生成 spec 文件
+        if ctx.progress:
+            ctx.progress.update_stage(stage, 10, "生成 spec 文件", absolute=True)
+
+        spec_content = builder.build_spec_file_content(full_config, entry)
+        app_name = ctx.config.get("name")
+        spec_file = ctx.project_dir / f"{app_name}.spec"
+
+        with open(spec_file, 'w', encoding='utf-8') as f:
+            f.write(spec_content)
+
+        cb(f"✅ spec 文件已生成: {spec_file}", 'success')
+
+        # 使用 spec 文件打包
+        command = ["pyinstaller", str(spec_file)]
 
         # 在项目根目录执行命令（使用 cwd 参数，避免全局 chdir）
         if ctx.progress:

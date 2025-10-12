@@ -353,9 +353,13 @@ pyz = {pyz_config}
     a.binaries,
     a.zipfiles,
     a.datas,"""
+        else:
+            # onedir 模式必须添加 exclude_binaries=True
+            exe_config += """
+    [],
+    exclude_binaries=True,"""
 
         exe_config += f"""
-    [],
     name='{app_name}',
     debug={str(config.get('debug', False))},
     bootloader_ignore_signals=False,
@@ -495,6 +499,7 @@ pyz = {pyz_config}
         privacy_permissions = {
             "microphone_usage_description": "NSMicrophoneUsageDescription",
             "camera_usage_description": "NSCameraUsageDescription",
+            "audio_usage_description": "NSAudioUsageDescription",
             "location_when_in_use_usage_description": "NSLocationWhenInUseUsageDescription",
             "location_always_and_when_in_use_usage_description": "NSLocationAlwaysAndWhenInUseUsageDescription",
             "contacts_usage_description": "NSContactsUsageDescription",
@@ -763,8 +768,8 @@ app = BUNDLE(
         if not self._needs_entitlements(macos_config):
             return None
 
-        # 生成 entitlements 文件
-        entitlements_path = project_dir / "auto_generated_entitlements.plist"
+        # 生成 entitlements 文件（统一使用标准文件名）
+        entitlements_path = project_dir / "entitlements.plist"
 
         success = self.entitlements_generator.generate_entitlements_file(
             macos_config, entitlements_path, development

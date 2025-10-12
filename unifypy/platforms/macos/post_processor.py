@@ -114,12 +114,11 @@ class MacOSPostProcessor:
             print(f"⚠️ 未找到 .app 包: {app_path}")
             return False
 
-        # 更新 Info.plist
-        if not self._update_info_plist(app_path, config):
-            return False
-
-        # 执行代码签名
-        self._sign_app(app_path, project_dir)
+        # 验证 Info.plist 和代码签名（仅在 verbose 模式）
+        if self.verbose:
+            print("🔍 验证 macOS .app 包配置...")
+            self._verify_info_plist(app_path, config)
+            self._verify_code_signature(app_path, project_dir)
 
         return True
 
@@ -270,3 +269,124 @@ class MacOSPostProcessor:
                 print(f"  文件存在: {Path(entitlements_path).exists()}")
 
         print()
+
+    def _verify_info_plist(self, app_path: Path, config) -> bool:
+        """
+        验证 Info.plist 是否包含所有必要的权限描述.
+
+        Args:
+            app_path: .app 包路径
+            config: ConfigManager 实例
+
+        Returns:
+            bool: 是否验证通过
+        """
+        info_plist_path = app_path / "Contents" / "Info.plist"
+        if not info_plist_path.exists():
+            print("  ⚠️ Info.plist 不存在")
+            return False
+
+        try:
+            import plistlib
+            with open(info_plist_path, 'rb') as f:
+                plist_data = plistlib.load(f)
+
+            # 获取 macOS 配置中定义的权限
+            macos_config = config._get_platform_config().get("macos", {})
+            if not macos_config:
+                raw_config = getattr(config, "raw_config", {})
+                if "platforms" in raw_config:
+                    macos_config = raw_config["platforms"].get("macos", {})
+
+            # 检查权限描述键映射
+            permission_keys = {
+                "microphone_usage_description": "NSMicrophoneUsageDescription",
+                "camera_usage_description": "NSCameraUsageDescription",
+                "audio_usage_description": "NSAudioUsageDescription",
+                "speech_recognition_usage_description": "NSSpeechRecognitionUsageDescription",
+                "local_network_usage_description": "NSLocalNetworkUsageDescription",
+                "accessibility_usage_description": "NSAccessibilityUsageDescription",
+                "documents_folder_usage_description": "NSDocumentsFolderUsageDescription",
+                "downloads_folder_usage_description": "NSDownloadsFolderUsageDescription",
+                "apple_events_usage_description": "NSAppleEventsUsageDescription",
+            }
+
+            missing = []
+            present = []
+            for config_key, plist_key in permission_keys.items():
+                if config_key in macos_config:
+                    if plist_key in plist_data:
+                        present.append(plist_key)
+                    else:
+                        missing.append(plist_key)
+
+            if missing:
+                print(f"  ⚠️ Info.plist 缺少权限描述: {', '.join(missing)}")
+                return False
+
+            if present:
+                print(f"  ✅ Info.plist 包含 {len(present)} 个权限描述")
+                for key in present:
+                    desc = plist_data[key]
+                    print(f"    • {key}: {desc[:50]}...")
+
+            return True
+
+        except Exception as e:
+            print(f"  ❌ Info.plist 验证异常: {e}")
+            return False
+
+    def _verify_code_signature(self, app_path: Path, project_dir: Path) -> bool:
+        """
+        验证代码签名和 entitlements.
+
+        Args:
+            app_path: .app 包路径
+            project_dir: 项目目录
+
+        Returns:
+            bool: 是否验证通过
+        """
+        try:
+            import subprocess
+
+            # 验证签名
+            result = subprocess.run(
+                ['codesign', '-dv', '--verbose=4', str(app_path)],
+                capture_output=True,
+                text=True
+            )
+
+            if result.returncode == 0:
+                print("  ✅ 代码签名验证通过")
+            else:
+                print(f"  ⚠️ 代码签名验证失败: {result.stderr}")
+                return False
+
+            # 检查 entitlements
+            entitlements_result = subprocess.run(
+                ['codesign', '-d', '--entitlements', ':-', str(app_path)],
+                capture_output=True,
+                text=True
+            )
+
+            if entitlements_result.returncode == 0 and entitlements_result.stdout:
+                print("  ✅ Entitlements 已应用")
+                if self.verbose:
+                    # 显示 entitlements 内容摘要
+                    if 'com.apple.security.device.microphone' in entitlements_result.stdout:
+                        print("    • 麦克风权限")
+                    if 'com.apple.security.device.camera' in entitlements_result.stdout:
+                        print("    • 摄像头权限")
+                    if 'com.apple.security.files.user-selected.read-write' in entitlements_result.stdout:
+                        print("    • 文件访问权限")
+                    if 'com.apple.security.network.client' in entitlements_result.stdout:
+                        print("    • 网络客户端权限")
+            else:
+                print("  ⚠️ 未检测到 entitlements")
+
+            return True
+
+        except Exception as e:
+            print(f"  ❌ 代码签名验证异常: {e}")
+            return False
