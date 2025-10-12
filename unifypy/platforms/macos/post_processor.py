@@ -349,12 +349,15 @@ class MacOSPostProcessor:
         """
         try:
             import subprocess
+            import locale
 
             # 验证签名
             result = subprocess.run(
                 ['codesign', '-dv', '--verbose=4', str(app_path)],
                 capture_output=True,
-                text=True
+                text=True,
+                encoding=locale.getpreferredencoding(False) or 'utf-8',
+                errors='replace',
             )
 
             if result.returncode == 0:
@@ -367,7 +370,9 @@ class MacOSPostProcessor:
             entitlements_result = subprocess.run(
                 ['codesign', '-d', '--entitlements', ':-', str(app_path)],
                 capture_output=True,
-                text=True
+                text=True,
+                encoding=locale.getpreferredencoding(False) or 'utf-8',
+                errors='replace',
             )
 
             if entitlements_result.returncode == 0 and entitlements_result.stdout:

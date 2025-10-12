@@ -8,6 +8,8 @@ import subprocess
 from pathlib import Path
 from typing import Any, Dict
 
+from .command_runner import get_subprocess_encoding
+
 
 class InfoPlistUpdater:
     """
@@ -129,7 +131,12 @@ class InfoPlistUpdater:
             ]
 
             result = subprocess.run(
-                add_cmd, capture_output=True, text=True, check=False
+                add_cmd,
+                capture_output=True,
+                text=True,
+                encoding=get_subprocess_encoding(),
+                errors='replace',
+                check=False
             )
 
             # 如果添加失败（可能已存在），尝试更新
@@ -142,7 +149,12 @@ class InfoPlistUpdater:
                 ]
 
                 result = subprocess.run(
-                    set_cmd, capture_output=True, text=True, check=False
+                    set_cmd,
+                    capture_output=True,
+                    text=True,
+                    encoding=get_subprocess_encoding(),
+                    errors='replace',
+                    check=False
                 )
 
             return result.returncode == 0
@@ -170,6 +182,8 @@ class InfoPlistUpdater:
                         str(plist_path),
                     ],
                     capture_output=True,
+                    encoding=get_subprocess_encoding(),
+                    errors='replace',
                     check=False,
                 )
 
@@ -182,6 +196,8 @@ class InfoPlistUpdater:
                         str(plist_path),
                     ],
                     capture_output=True,
+                    encoding=get_subprocess_encoding(),
+                    errors='replace',
                     check=False,
                 )
 
@@ -201,6 +217,8 @@ class InfoPlistUpdater:
                         str(plist_path),
                     ],
                     capture_output=True,
+                    encoding=get_subprocess_encoding(),
+                    errors='replace',
                     check=False,
                 )
 
@@ -235,7 +253,12 @@ class InfoPlistUpdater:
                 ]
 
                 result = subprocess.run(
-                    cmd, capture_output=True, text=True, check=False
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    encoding=get_subprocess_encoding(),
+                    errors='replace',
+                    check=False
                 )
 
                 if result.returncode == 0:

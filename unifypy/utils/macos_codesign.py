@@ -8,6 +8,8 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
+from .command_runner import get_subprocess_encoding
+
 
 class MacOSCodeSigner:
     """
@@ -69,7 +71,14 @@ class MacOSCodeSigner:
 
             self._print(f"  🚀 执行签名命令: {' '.join(cmd)}")
 
-            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                encoding=get_subprocess_encoding(),
+                errors='replace',
+                check=False
+            )
 
             if result.returncode == 0:
                 self._print("  ✅ 代码签名成功")
@@ -105,7 +114,13 @@ class MacOSCodeSigner:
                     self.codesign_path if self.codesign_path else "/usr/bin/codesign"
                 )
                 cmd = [codesign_cmd, "--remove-signature", str(executable_path)]
-                subprocess.run(cmd, capture_output=True, check=False)
+                subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    encoding=get_subprocess_encoding(),
+                    errors='replace',
+                    check=False
+                )
             return True
         except Exception:
             return True  # 忽略移除签名的错误
@@ -125,7 +140,12 @@ class MacOSCodeSigner:
                     str(info_plist),
                 ]
                 result = subprocess.run(
-                    cmd, capture_output=True, text=True, check=False
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    encoding=get_subprocess_encoding(),
+                    errors='replace',
+                    check=False
                 )
 
                 if result.returncode == 0:
@@ -155,7 +175,14 @@ class MacOSCodeSigner:
                 self.codesign_path if self.codesign_path else "/usr/bin/codesign"
             )
             cmd = [codesign_cmd, "-dv", "--verbose=4", str(app_path)]
-            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                encoding=get_subprocess_encoding(),
+                errors='replace',
+                check=False
+            )
 
             # codesign -dv 在成功时返回非零退出码，但输出到 stderr
             if "adhoc" in result.stderr.lower() or "signed" in result.stderr.lower():
@@ -197,6 +224,8 @@ class MacOSCodeSigner:
                     [codesign_path],
                     capture_output=True,
                     text=True,
+                    encoding=get_subprocess_encoding(),
+                    errors='replace',
                     check=False,
                     timeout=10,
                 )

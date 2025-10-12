@@ -213,6 +213,33 @@ class ConfigManager:
         except Exception as e:
             raise Exception(f"加载配置文件失败: {e}")
 
+    def _deep_merge(self, base: dict, override: dict) -> dict:
+        """递归深度合并字典.
+
+        Args:
+            base: 基础配置
+            override: 覆盖配置
+
+        Returns:
+            合并后的配置
+
+        规则：
+            - override 中存在的键直接覆盖 base 的值
+            - 如果值都是字典，递归合并
+            - base 中存在但 override 中不存在的键保留
+        """
+        result = base.copy()
+
+        for key, value in override.items():
+            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                # 递归合并嵌套字典
+                result[key] = self._deep_merge(result[key], value)
+            else:
+                # 直接覆盖（字符串、数字、列表等）
+                result[key] = value
+
+        return result
+
     def _merge_all_configs(self) -> Dict[str, Any]:
         """合并所有配置源 优先级: 命令行参数 > 平台特定配置 > 全局配置 > 默认配置.
 
@@ -225,24 +252,24 @@ class ConfigManager:
         # 从原始配置开始
         merged = default_config.copy()
 
-        # 合并文件配置的全局部分
+        # 深度合并文件配置的全局部分
         if self.raw_config:
             global_config = {
                 k: v
                 for k, v in self.raw_config.items()
                 if k not in ["platform_specific", "platforms"]
             }
-            merged.update(global_config)
+            merged = self._deep_merge(merged, global_config)
 
-        # 合并平台特定配置
+        # 深度合并平台特定配置
         platform_config = self._get_platform_config()
         if platform_config:
-            merged.update(platform_config)
+            merged = self._deep_merge(merged, platform_config)
 
-        # 合并命令行参数
+        # 深度合并命令行参数
         if self.args:
             args_config = self._args_to_config(self.args)
-            merged.update(args_config)
+            merged = self._deep_merge(merged, args_config)
 
         return merged
 
@@ -434,13 +461,18 @@ class ConfigManager:
             if value is not None:
                 config[key] = value
 
-        # 获取pyinstaller节中的配置
+        # 深度合并根级 pyinstaller 节
         pyinstaller_section = self.get("pyinstaller", {})
-        config.update(pyinstaller_section)
+        config = self._deep_merge(config, pyinstaller_section)
 
-        # 处理平台特定的PyInstaller配置
+        # 深度合并平台特定的PyInstaller配置
         platform_pyinstaller = self._get_platform_config().get("pyinstaller", {})
-        config.update(platform_pyinstaller)
+        config = self._deep_merge(config, platform_pyinstaller)
+
+        # 深度合并命令行参数中的 PyInstaller 配置（如果有）
+        if self.args:
+            args_pyinstaller = self._args_to_config(self.args).get("pyinstaller", {})
+            config = self._deep_merge(config, args_pyinstaller)
 
         # 添加 macOS 特定的配置
         if self.current_platform == "macos":

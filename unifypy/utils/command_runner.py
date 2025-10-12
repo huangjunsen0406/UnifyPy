@@ -6,9 +6,36 @@
 
 import subprocess
 import sys
+import locale
 from typing import List, Optional, Union
 
 from .progress import ProgressManager
+
+
+def get_subprocess_encoding() -> str:
+    """
+    获取 subprocess 输出的适当编码
+
+    根据系统区域设置自动选择编码：
+    - Windows: 通常是 cp936(GBK), cp950(Big5), cp932(Shift-JIS) 等
+    - macOS/Linux: 通常是 UTF-8
+
+    Returns:
+        str: 编码名称
+    """
+    try:
+        # getpreferredencoding(False) 返回系统默认编码
+        # False 参数表示不使用 locale.CODESET（更可靠）
+        encoding = locale.getpreferredencoding(False)
+        if encoding and encoding.lower() not in (
+            'ascii', 'ansi_x3.4-1968'
+        ):
+            return encoding
+    except Exception:
+        pass
+
+    # 回退到 UTF-8
+    return 'utf-8'
 
 
 class SilentRunner:
@@ -58,6 +85,9 @@ class SilentRunner:
             self.progress.info(f"执行命令: {cmd_str}")
 
         try:
+            # 获取系统适当的编码
+            encoding = get_subprocess_encoding()
+
             # 执行命令
             if capture_output:
                 result = subprocess.run(
@@ -65,7 +95,9 @@ class SilentRunner:
                     shell=shell,
                     capture_output=True,
                     text=True,
-                    encoding="utf-8",
+                    encoding=encoding,
+                    # 无法解码的字节替换为 � (防止崩溃)
+                    errors='replace',
                     cwd=cwd,
                 )
             else:
@@ -75,7 +107,9 @@ class SilentRunner:
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     text=True,
-                    encoding="utf-8",
+                    encoding=encoding,
+                    # 无法解码的字节替换为 � (防止崩溃)
+                    errors='replace',
                     cwd=cwd,
                 )
 
@@ -160,19 +194,27 @@ class SilentRunner:
         """
         try:
             result = subprocess.run(
-                [tool_name, "--version"], capture_output=True, text=True
+                [tool_name, "--version"],
+                capture_output=True,
+                text=True,
+                encoding=get_subprocess_encoding(),
+                errors='replace',
             )
             return result.returncode == 0
         except FileNotFoundError:
             return False
-        except:
+        except Exception:
             # 有些工具可能不支持--version，尝试--help
             try:
                 result = subprocess.run(
-                    [tool_name, "--help"], capture_output=True, text=True
+                    [tool_name, "--help"],
+                    capture_output=True,
+                    text=True,
+                    encoding=get_subprocess_encoding(),
+                    errors='replace',
                 )
                 return result.returncode == 0
-            except:
+            except Exception:
                 return False
 
     def get_tool_version(self, tool_name: str) -> Optional[str]:
@@ -186,10 +228,14 @@ class SilentRunner:
         """
         try:
             result = subprocess.run(
-                [tool_name, "--version"], capture_output=True, text=True
+                [tool_name, "--version"],
+                capture_output=True,
+                text=True,
+                encoding=get_subprocess_encoding(),
+                errors='replace',
             )
             if result.returncode == 0:
                 return result.stdout.strip()
-        except:
+        except Exception:
             pass
         return None

@@ -10,6 +10,8 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
+from .command_runner import get_subprocess_encoding
+
 
 class IconConverter:
     """
@@ -110,7 +112,12 @@ class IconConverter:
                 # 使用 iconutil 转换为 ICNS
                 cmd = ["iconutil", "-c", "icns", str(iconset_dir), "-o", str(icns_path)]
                 result = subprocess.run(
-                    cmd, capture_output=True, text=True, check=False
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    encoding=get_subprocess_encoding(),
+                    errors='replace',
+                    check=False
                 )
 
                 if result.returncode == 0:
@@ -138,7 +145,13 @@ class IconConverter:
                 "--out",
                 str(target),
             ]
-            result = subprocess.run(cmd, capture_output=True, check=False)
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                encoding=get_subprocess_encoding(),
+                errors='replace',
+                check=False
+            )
             return result.returncode == 0
         except Exception:
             return False

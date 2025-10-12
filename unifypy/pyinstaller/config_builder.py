@@ -271,13 +271,6 @@ class PyInstallerConfigBuilder:
         collect_config = ""
         bundle_config = ""
         if not config.get("onefile", False):
-            # 处理 contents_directory 选项
-            contents_dir = config.get('contents_directory', None)
-            contents_dir_line = ""
-            if contents_dir is not None:
-                # 如果明确指定了 contents_directory（包括空字符串），添加该参数
-                contents_dir_line = f",\n               contents_directory={repr(contents_dir)}"
-
             collect_config = f"""
 coll = COLLECT(exe,
                a.binaries,
@@ -285,7 +278,7 @@ coll = COLLECT(exe,
                a.datas,
                strip={str(config.get('strip', False))},
                upx={str(not config.get('noupx', False))},
-               upx_exclude={repr(config.get('upx_exclude', []))}{contents_dir_line},
+               upx_exclude={repr(config.get('upx_exclude', []))},
                name={repr(app_name)})"""
 
             # 添加macOS Bundle配置
@@ -355,6 +348,7 @@ pyz = {pyz_config}
         version = config.get("version_file")
         uac_admin = config.get("uac_admin", False)
         uac_uiaccess = config.get("uac_uiaccess", False)
+        contents_directory = config.get("contents_directory")
 
         exe_config = """exe = EXE(
     pyz,
@@ -381,6 +375,11 @@ pyz = {pyz_config}
     runtime_tmpdir=None,
     console={str(console)},
     disable_windowed_traceback={str(disable_windowed_traceback)},"""
+
+        # contents_directory 参数（仅在 onedir 模式下有效）
+        if not config.get("onefile", False) and contents_directory is not None:
+            exe_config += f"""
+    contents_directory={repr(contents_directory)},"""
 
         if target_arch:
             exe_config += f"""

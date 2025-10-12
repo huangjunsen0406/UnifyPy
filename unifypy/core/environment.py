@@ -8,6 +8,7 @@
 import platform
 import subprocess
 import os
+import locale
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -93,9 +94,11 @@ class EnvironmentManager:
         try:
             # 检测 ldd --version 是否包含 musl
             result = subprocess.run(
-                ["ldd", "--version"], 
-                capture_output=True, 
-                text=True, 
+                ["ldd", "--version"],
+                capture_output=True,
+                text=True,
+                encoding=locale.getpreferredencoding(False) or 'utf-8',
+                errors='replace',
                 timeout=5
             )
             output = result.stderr.lower() + result.stdout.lower()
@@ -126,12 +129,14 @@ class EnvironmentManager:
         """
         if self.current_platform != "mac":
             return False
-            
+
         try:
             result = subprocess.run(
                 ["sysctl", "-in", "sysctl.proc_translated"],
                 capture_output=True,
                 text=True,
+                encoding=locale.getpreferredencoding(False) or 'utf-8',
+                errors='replace',
                 timeout=5
             )
             return result.stdout.strip() == "1"
