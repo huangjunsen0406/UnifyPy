@@ -628,16 +628,38 @@ class ToolManager:
         self.remove_tool(tool_name)
         return self.ensure_tool(tool_name, version)
 
-    def get_required_tools_for_platform(self, platform_name: str) -> List[Dict]:
+    def get_required_tools_for_platform(self, platform_name: str, format_type: str = None) -> List[Dict]:
         """获取指定平台需要的工具列表.
 
         Args:
             platform_name: 平台名称 (windows/macos/linux)
+            format_type: 打包格式 (可选，如 deb/rpm/dmg/inno_setup)
+                        如果指定，则只返回该格式需要的工具
 
         Returns:
             List[Dict]: 工具信息列表
         """
-        return self.platform_tools.get(platform_name, [])
+        all_tools = self.platform_tools.get(platform_name, [])
+
+        # 如果没有指定格式，返回所有工具
+        if not format_type:
+            return all_tools
+
+        # 格式名称映射（处理别名）
+        format_mapping = {
+            "deb": "dpkg-deb",
+            "rpm": "rpmbuild",
+            "dmg": "create-dmg",
+            "inno_setup": "inno-setup",
+        }
+
+        # 获取实际工具名称
+        tool_name = format_mapping.get(format_type, format_type)
+
+        # 过滤出指定格式需要的工具
+        filtered_tools = [tool for tool in all_tools if tool["name"] == tool_name]
+
+        return filtered_tools
 
     def check_tool_available(self, tool_name: str) -> bool:
         """检查工具是否可用.

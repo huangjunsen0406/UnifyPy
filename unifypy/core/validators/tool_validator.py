@@ -27,7 +27,8 @@ class ToolValidator:
     def check_platform_tools(
         self,
         platform: str,
-        verbose: bool = False
+        verbose: bool = False,
+        format_type: str = None
     ) -> List[Dict[str, Any]]:
         """
         检查指定平台的工具是否可用.
@@ -35,6 +36,8 @@ class ToolValidator:
         Args:
             platform: 平台名称 (windows/macos/linux)
             verbose: 是否显示详细信息
+            format_type: 打包格式 (可选，如 deb/rpm/dmg/inno_setup)
+                        如果指定，则只检查该格式需要的工具
 
         Returns:
             List[Dict]: 缺失的工具列表
@@ -44,7 +47,7 @@ class ToolValidator:
         """
         # 获取需要检测的工具
         required_tools = self.tool_manager.get_required_tools_for_platform(
-            platform
+            platform, format_type
         )
 
         if not required_tools:
@@ -67,18 +70,20 @@ class ToolValidator:
 
         return missing_tools
 
-    def validate_and_raise(self, platform: str, verbose: bool = False):
+    def validate_and_raise(self, platform: str, verbose: bool = False, format_type: str = None):
         """
         检查工具并在缺失时抛出异常.
 
         Args:
             platform: 平台名称
             verbose: 是否显示详细信息
+            format_type: 打包格式 (可选，如 deb/rpm/dmg/inno_setup)
+                        如果指定，则只检查该格式需要的工具
 
         Raises:
             RuntimeError: 如果有工具缺失
         """
-        missing_tools = self.check_platform_tools(platform, verbose)
+        missing_tools = self.check_platform_tools(platform, verbose, format_type)
 
         if missing_tools:
             self._display_missing_tools_error(missing_tools)
@@ -113,23 +118,25 @@ class ToolValidator:
 
     def get_missing_tools_summary(
         self,
-        platform: str
+        platform: str,
+        format_type: str = None
     ) -> Dict[str, Any]:
         """
         获取缺失工具的摘要信息.
 
         Args:
             platform: 平台名称
+            format_type: 打包格式 (可选，如 deb/rpm/dmg/inno_setup)
 
         Returns:
             Dict: 包含缺失工具数量和列表的字典
         """
-        missing_tools = self.check_platform_tools(platform, verbose=False)
+        missing_tools = self.check_platform_tools(platform, verbose=False, format_type=format_type)
 
         return {
             "platform": platform,
             "total_required": len(
-                self.tool_manager.get_required_tools_for_platform(platform)
+                self.tool_manager.get_required_tools_for_platform(platform, format_type)
             ),
             "missing_count": len(missing_tools),
             "missing_tools": [

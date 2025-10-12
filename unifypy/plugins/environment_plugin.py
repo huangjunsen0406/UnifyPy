@@ -51,7 +51,13 @@ class EnvironmentPlugin(BasePlugin):
 
         # 平台特定打包器
         if not getattr(ctx.args, "skip_installer", False):
-            validator.validate_and_raise(platform=ctx.config.current_platform, verbose=True)
+            # 如果用户指定了格式，只检查该格式需要的工具
+            format_type = getattr(ctx.args, "format", None)
+            validator.validate_and_raise(
+                platform=ctx.config.current_platform,
+                verbose=True,
+                format_type=format_type
+            )
 
         # 磁盘空间提示
         if ctx.file_ops and not ctx.file_ops.check_disk_space(str(ctx.project_dir), 500):

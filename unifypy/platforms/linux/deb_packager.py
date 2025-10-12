@@ -264,11 +264,10 @@ Terminal={str(config.get('terminal', False)).lower()}
 
         config = self.get_format_config("deb")
 
-        # 检查必需字段
-        required_fields = ["maintainer"]
-        for field in required_fields:
-            if not config.get(field):
-                errors.append(f"DEB配置缺少必需字段: {field}")
+        # 检查 maintainer 字段（允许回退到 publisher）
+        maintainer = config.get("maintainer") or self.config.get("publisher")
+        if not maintainer:
+            errors.append("DEB配置缺少必需字段: maintainer（也可以使用全局 publisher 字段）")
 
         # 检查图标文件
         icon_path = config.get("icon") or self.config.get("icon")
