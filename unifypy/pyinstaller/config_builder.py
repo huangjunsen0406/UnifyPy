@@ -63,6 +63,7 @@ class PyInstallerConfigBuilder:
         "noconfirm": "--noconfirm",
         "ascii": "--ascii",
         "key": "--key",
+        "contents_directory": "--contents-directory",
         # 日志选项
         "log_level": "--log-level",
         "quiet": "--quiet",
@@ -270,6 +271,13 @@ class PyInstallerConfigBuilder:
         collect_config = ""
         bundle_config = ""
         if not config.get("onefile", False):
+            # 处理 contents_directory 选项
+            contents_dir = config.get('contents_directory', None)
+            contents_dir_line = ""
+            if contents_dir is not None:
+                # 如果明确指定了 contents_directory（包括空字符串），添加该参数
+                contents_dir_line = f",\n               contents_directory={repr(contents_dir)}"
+
             collect_config = f"""
 coll = COLLECT(exe,
                a.binaries,
@@ -277,8 +285,8 @@ coll = COLLECT(exe,
                a.datas,
                strip={str(config.get('strip', False))},
                upx={str(not config.get('noupx', False))},
-               upx_exclude={repr(config.get('upx_exclude', []))},
-               name='{app_name}')"""
+               upx_exclude={repr(config.get('upx_exclude', []))}{contents_dir_line},
+               name={repr(app_name)})"""
 
             # 添加macOS Bundle配置
             if self.current_platform == "macos":
