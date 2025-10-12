@@ -39,7 +39,29 @@ pip install unifypy
 
 ## 🚀 Quick Start
 
-### Basic Usage
+### Option 1: Interactive Wizard (Recommended for Beginners)
+
+Use the interactive wizard to quickly generate configuration files:
+
+```bash
+# Launch interactive configuration wizard
+unifypy . --init
+
+# Or specify project directory
+unifypy /path/to/project --init
+```
+
+The wizard will guide you through:
+1. Basic information (name, version, entry file, etc.)
+2. Target platform selection (macOS/Windows/Linux)
+3. PyInstaller packaging configuration
+4. Platform-specific configuration (permissions, icons, install options, etc.)
+5. Generate `build.json` configuration file
+6. Optionally start building immediately
+
+> 💡 **Tip**: After the wizard completes, it generates a standard `build.json` file that you can manually edit to add advanced configurations. See [Interactive Wizard Guide](#-interactive-wizard-guide) for details.
+
+### Option 2: Command Line Quick Packaging
 
 ```bash
 # Package using configuration file
@@ -225,6 +247,201 @@ unifypy <project_dir> [options]
 |-----------|-------------|---------|
 | `-h, --help` | Show help information and exit | `--help` |
 
+## 🧙 Interactive Wizard Guide
+
+The interactive wizard provides a friendly interface that guides you through configuration file creation via Q&A.
+
+### Launch Wizard
+
+```bash
+# Launch in current project directory
+unifypy . --init
+
+# Specify project directory
+unifypy /path/to/project --init
+```
+
+### Interaction Flow
+
+#### 1️⃣ Basic Configuration
+
+| Configuration | Description | Default | Purpose |
+|--------------|-------------|---------|---------|
+| **Entry file** | Python entry file | `main.py` | Specifies the main program entry point, PyInstaller analyzes dependencies from this file |
+| **Project name** | Project name | Inferred from entry file | Used for executable file name, automatically converted to legal file name format |
+| **Display name** | Display name | Same as project name | Name displayed in installer and application menu, supports Chinese and spaces |
+| **Version** | Version number | `1.0.0` | Application version, recommended to use semantic versioning (e.g. 1.0.0, 2.1.3) |
+| **Publisher** | Publisher | Optional | Publisher or company name, used for installer and application info |
+| **Description** | Application description | Optional | Brief application description, used for package managers and installers |
+| **Icon path** | Icon path | `assets/icon.png` | Application icon, supports PNG/ICO/ICNS formats, UnifyPy auto-converts |
+
+**Operation**:
+- Enter text and press `Enter` to confirm
+- Press `Enter` directly to use default value
+- Enter `?` to view detailed help
+
+#### 2️⃣ Target Platform Selection
+
+| Platform | Supported Formats | Description |
+|----------|------------------|-------------|
+| **macOS** | DMG disk image | Standard macOS installer format, drag-and-drop installation |
+| **Windows** | EXE installer | Standard Windows installer based on Inno Setup |
+| **Linux** | DEB, RPM, AppImage | DEB (Debian/Ubuntu), RPM (RedHat/CentOS), AppImage (universal portable) |
+
+**Operation**:
+- Use `↑` `↓` arrow keys to move cursor
+- Press `Space` to select/deselect
+- Press `Enter` to confirm selection
+- Current platform is selected by default
+
+#### 3️⃣ PyInstaller Configuration
+
+| Configuration | Options | Description | Recommended Scenarios |
+|--------------|---------|-------------|----------------------|
+| **Single file mode** | Yes / No | `onefile: true/false` | **Yes**: Single executable file, easy to distribute but slower startup<br>**No**: Directory mode, includes dependencies, fast startup but more files |
+| **Windowed mode** | Yes / No | `windowed: true/false` | **Yes**: Window application, hides console window (GUI apps)<br>**No**: Console application, shows command-line window (CLI tools) |
+| **Data directories** | Multi-select | Resource directories to package | Auto-scans project directories, recommends common directories (assets, models, src, etc.)<br>Selected directories will be packaged into the application |
+
+**Operation**:
+- **Single file mode / Windowed mode**: Use `←` `→` left/right arrow keys to switch, `Enter` to confirm
+- **Data directories**: Use `↑` `↓` up/down keys to move, `Space` to select, `Enter` to confirm
+
+**Data Directory Notes**:
+- ✅ Auto-recommended: `assets`, `resources`, `data`, `models`, `src`, `config`, etc.
+- 🚫 Auto-excluded: `__pycache__`, `.git`, `venv`, `build`, `dist`, etc.
+- 📊 Display info: File count and directory size
+
+#### 4️⃣ macOS Platform Configuration (if macOS selected)
+
+| Configuration | Description | Example | Purpose |
+|--------------|-------------|---------|---------|
+| **Bundle Identifier** | macOS app unique identifier | `com.company.appname` | Used to identify the application, format: reverse domain + app name |
+| **Minimum macOS version** | Minimum supported system version | `10.13` | Specifies the minimum macOS version the app supports |
+| **App category** | Application category | Productivity | Category in App Store and Launchpad |
+| **Permissions** | System permissions selection | Multi-select | Select system permissions the app needs (microphone, camera, etc.) |
+| **Copyright** | Copyright notice | `© 2024 Company` | Copyright text displayed in application info |
+
+**Available Permissions List**:
+
+| Permission | Use Case | Corresponding Info.plist Key |
+|-----------|----------|------------------------------|
+| Microphone (麦克风) | Recording, speech recognition | `NSMicrophoneUsageDescription` |
+| Camera (摄像头) | Photography, video calls | `NSCameraUsageDescription` |
+| Speech Recognition (语音识别) | Speech-to-text | `NSSpeechRecognitionUsageDescription` |
+| Local Network (本地网络) | LAN access | `NSLocalNetworkUsageDescription` |
+| Audio (音频) | Audio playback | `NSAppleMusicUsageDescription` |
+| Accessibility (辅助功能) | Global shortcuts, automation | `NSAccessibilityUsageDescription` |
+| Documents Folder (文档文件夹) | Read/write documents | `NSDocumentsFolderUsageDescription` |
+| Downloads Folder (下载文件夹) | Manage downloads | `NSDownloadsFolderUsageDescription` |
+| Apple Events (自动化) | AppleScript, inter-app communication | `NSAppleEventsUsageDescription` |
+| Calendar (日历) | Read/write calendar events | `NSCalendarsUsageDescription` |
+| Contacts (通讯录) | Read/write contacts | `NSContactsUsageDescription` |
+| Location (位置) | Get geographic location | `NSLocationUsageDescription` |
+| Photos (照片) | Access photo library | `NSPhotoLibraryUsageDescription` |
+
+**Operation**:
+- Use `↑` `↓` arrow keys to move
+- Press `Space` to select/deselect
+- Press `Enter` to confirm selection
+
+> 💡 **Tip**: Permission descriptions use generic text, you can customize description text in the generated `build.json`.
+
+#### 5️⃣ Windows Platform Configuration (if Windows selected)
+
+| Configuration | Options | Description |
+|--------------|---------|-------------|
+| **Desktop icon** | Yes / No | Whether to create desktop shortcut |
+| **Start menu shortcut** | Yes / No | Whether to create start menu shortcut |
+| **Allow run after install** | Yes / No | Whether to ask user to run app immediately after installation |
+| **Languages** | Multi-select | Installer supported languages (Chinese, English, Japanese, etc.) |
+
+**Available Languages**:
+- Simplified Chinese (chinesesimplified)
+- Traditional Chinese (chinesetraditional)
+- English (english)
+- Japanese (japanese)
+- Korean (korean)
+- French (french)
+- German (german)
+- Spanish (spanish)
+
+**Operation**:
+- **Icons and shortcuts**: Use `←` `→` arrow keys, `Enter` to confirm
+- **Languages**: Use `↑` `↓` up/down keys, `Space` to select, `Enter` to confirm
+
+#### 6️⃣ Linux Platform Configuration (if Linux selected)
+
+| Configuration | Options | Description |
+|--------------|---------|-------------|
+| **Package formats** | DEB / RPM / AppImage | Select package formats to generate (multi-select) |
+| **Package name** | Text | Package name (lowercase letters, numbers, hyphens) |
+| **Desktop categories** | Multi-select | Application categories in desktop environment |
+
+**Package Format Description**:
+- **DEB**: Used by Debian, Ubuntu, Linux Mint, etc.
+- **RPM**: Used by RedHat, CentOS, Fedora, etc.
+- **AppImage**: Universal portable format, no installation required, double-click to run
+
+**Desktop Categories**:
+- AudioVideo (audio/video)
+- Development (development)
+- Education (education)
+- Game (games)
+- Graphics (graphics)
+- Network (network)
+- Office (office)
+- Utility (utility)
+- System (system)
+
+#### 7️⃣ Configuration Summary and Save
+
+The wizard displays a complete configuration summary, including:
+- 📋 Project info (name, version, publisher, etc.)
+- 📦 Packaging configuration (mode, console, data directories)
+- 🌍 Target platforms and detailed configurations for each platform
+
+After confirmation:
+1. Save as `build.json` file
+2. Show advanced configuration options (can be manually edited)
+3. Ask whether to start building immediately
+
+**Immediate Build Option**:
+- **Yes**: Execute `unifypy . --config build.json --clean` to start packaging
+- **No**: Only save configuration, manually run later
+
+### After Wizard Completion
+
+After the wizard completes, it displays a prompt explaining how to manually edit `build.json` to add advanced configurations:
+
+```
+💡 You can manually edit build.json to add advanced configurations:
+
+  📘 PyInstaller Advanced Options:
+     • hidden_import: Dynamically imported modules
+     • exclude_module: Exclude unnecessary modules to reduce size
+     • runtime_hook: Runtime hook scripts
+     • splash: Splash screen
+     → Reference: https://pyinstaller.org/en/stable/usage.html
+
+  🪟 Windows Advanced Options:
+     • compression: Compression algorithm
+     • license_file: License file
+     → Reference: https://jrsoftware.org/ishelp/
+
+  🍎 macOS Advanced Options:
+     • target_architecture: Architecture selection
+     • codesign_identity: Code signing certificate
+     → Reference: https://developer.apple.com/documentation/
+
+  🐧 Linux Advanced Options:
+     • depends: Dependency package list
+     • postinst_script: Post-installation script
+     → See documentation in "Advanced Configuration Reference" section below
+
+  📚 Complete Configuration Examples:
+     • View build_comprehensive.json
+```
+
 ## 📋 Supported Packaging Formats
 
 ### Windows
@@ -278,10 +495,10 @@ unifypy <project_dir> [options]
       "bundle_identifier": "com.company.app",
       "minimum_system_version": "10.14.0",
       "category": "public.app-category.productivity",
-      
+
       "microphone_usage_description": "Microphone access required for voice features",
       "camera_usage_description": "Camera access required for video features",
-      
+
       "dmg": {
         "volname": "Installer Name",
         "window_size": [600, 400],
@@ -290,6 +507,41 @@ unifypy <project_dir> [options]
     }
   }
 }
+```
+
+## 📚 Advanced Configuration Reference
+
+UnifyPy supports all native configuration items of underlying tools. Configuration items are directly mapped to corresponding tool parameters, so you can refer to official documentation of each tool to use advanced features.
+
+For detailed advanced configuration options, see:
+
+📖 **[Advanced Configuration Documentation](docs/advanced-configuration-en.md)**
+
+Including:
+- **PyInstaller Advanced Configuration**: hidden_import, exclude_module, runtime_hook, splash and 30+ configuration items
+- **Windows Advanced Configuration**: Inno Setup script configuration, compression algorithms, installer wizard styles, etc.
+- **macOS Advanced Configuration**: Info.plist configuration, DMG customization, code signing, architecture selection, etc.
+- **Linux Advanced Configuration**: DEB/RPM package configuration, dependency management, installation scripts, etc.
+
+### 📝 Configuration Example Files
+
+The project provides multiple complete configuration examples for reference:
+
+| File | Description |
+|------|-------------|
+| `build.json` | Basic configuration example |
+| `build_multiformat.json` | Multi-format packaging configuration example |
+| `build_comprehensive.json` | **Complete Feature Demonstration**, including all available configuration items |
+| `build_macos_permissions_example.json` | Detailed macOS permissions configuration example |
+
+**View Complete Configuration**:
+
+```bash
+# View complete configuration example (including all advanced options)
+cat build_comprehensive.json
+
+# Copy as your own configuration
+cp build_comprehensive.json my_build.json
 ```
 
 ## 🔄 Parallel Building

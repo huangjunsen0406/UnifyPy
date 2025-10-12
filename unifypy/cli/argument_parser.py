@@ -67,6 +67,11 @@ class ArgumentParser:
         """添加基本参数"""
         parser.add_argument("project_dir", help="Python项目根目录路径")
         parser.add_argument("--config", help="配置文件路径 (JSON格式)", default=None)
+        parser.add_argument(
+            "--init",
+            help="启动交互式配置向导，生成 build.json",
+            action="store_true"
+        )
         parser.add_argument("--name", help="应用程序名称", default=None)
         parser.add_argument("--display-name", help="应用程序显示名称", default=None)
         parser.add_argument("--entry", help="入口Python文件", default="main.py")

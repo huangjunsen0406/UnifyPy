@@ -38,7 +38,29 @@ pip install unifypy
 
 ## 🚀 快速开始
 
-### 基本用法
+### 方式一：交互式向导（推荐新手）
+
+使用交互式向导快速生成配置文件：
+
+```bash
+# 启动交互式配置向导
+unifypy . --init
+
+# 或指定项目目录
+unifypy /path/to/project --init
+```
+
+向导会引导你完成以下配置：
+1. 基础信息（名称、版本、入口文件等）
+2. 目标平台选择（macOS/Windows/Linux）
+3. PyInstaller 打包配置
+4. 平台特定配置（权限、图标、安装选项等）
+5. 生成 `build.json` 配置文件
+6. 可选择立即开始构建
+
+> 💡 **提示**：向导完成后会生成标准的 `build.json` 文件，你可以随时手动编辑添加高级配置。详见 [交互式向导详解](#-交互式向导详解)。
+
+### 方式二：命令行快速打包
 
 ```bash
 # 使用配置文件打包
@@ -210,6 +232,201 @@ unifypy <project_dir> [选项]
 |------|------|------|
 | `-h, --help` | 显示帮助信息并退出 | `--help` |
 
+## 🧙 交互式向导详解
+
+交互式向导提供了一个友好的交互界面，通过问答方式引导你完成配置文件的创建。
+
+### 启动向导
+
+```bash
+# 在当前项目目录启动
+unifypy . --init
+
+# 指定项目目录
+unifypy /path/to/project --init
+```
+
+### 交互流程
+
+#### 1️⃣ 基础配置
+
+| 配置项 | 说明 | 默认值 | 作用 |
+|--------|------|--------|------|
+| **Entry file** | Python 入口文件 | `main.py` | 指定程序的主入口，PyInstaller 会从这个文件开始分析依赖 |
+| **Project name** | 项目名称 | 从入口文件推断 | 用于生成可执行文件名，会自动转换为合法的文件名格式 |
+| **Display name** | 显示名称 | 与项目名称相同 | 在安装程序、应用菜单中显示的名称，支持中文和空格 |
+| **Version** | 版本号 | `1.0.0` | 应用程序版本，建议使用语义化版本（如 1.0.0, 2.1.3） |
+| **Publisher** | 发布者 | 可选 | 发布者或公司名称，用于安装程序和应用信息 |
+| **Description** | 应用描述 | 可选 | 应用程序的简短描述，用于包管理器和安装程序 |
+| **Icon path** | 图标路径 | `assets/icon.png` | 应用程序图标，支持 PNG/ICO/ICNS 格式，UnifyPy 会自动转换 |
+
+**操作方式**：
+- 输入文本后按 `Enter` 确认
+- 直接按 `Enter` 使用默认值
+- 输入 `?` 查看详细帮助
+
+#### 2️⃣ 目标平台选择
+
+| 平台 | 支持格式 | 说明 |
+|------|---------|------|
+| **macOS** | DMG 磁盘映像 | 标准的 macOS 安装包格式，拖放安装 |
+| **Windows** | EXE 安装程序 | 基于 Inno Setup 的标准 Windows 安装程序 |
+| **Linux** | DEB, RPM, AppImage | DEB (Debian/Ubuntu), RPM (RedHat/CentOS), AppImage (通用便携) |
+
+**操作方式**：
+- 使用 `↑` `↓` 箭头键移动光标
+- 按 `Space` 空格键选择/取消选择
+- 按 `Enter` 确认选择
+- 默认选中当前运行平台
+
+#### 3️⃣ PyInstaller 配置
+
+| 配置项 | 选项 | 说明 | 推荐场景 |
+|--------|------|------|---------|
+| **Single file mode** | Yes / No | `onefile: true/false` | **Yes**: 单个可执行文件，便于分发但启动稍慢<br>**No**: 目录模式，包含依赖库，启动快但文件多 |
+| **Windowed mode** | Yes / No | `windowed: true/false` | **Yes**: 窗口应用，隐藏控制台窗口（GUI 应用）<br>**No**: 控制台应用，显示命令行窗口（CLI 工具） |
+| **Data directories** | 多选 | 要打包的资源目录 | 自动扫描项目目录，推荐常见目录（assets, models, src 等）<br>选中的目录会被打包到应用中 |
+
+**操作方式**：
+- **Single file mode / Windowed mode**: 使用 `←` `→` 左右箭头键切换，`Enter` 确认
+- **Data directories**: 使用 `↑` `↓` 上下键移动，`Space` 空格键选择，`Enter` 确认
+
+**数据目录说明**：
+- ✅ 自动推荐：`assets`, `resources`, `data`, `models`, `src`, `config` 等
+- 🚫 自动排除：`__pycache__`, `.git`, `venv`, `build`, `dist` 等
+- 📊 显示信息：文件数量和目录大小
+
+#### 4️⃣ macOS 平台配置（如果选择了 macOS）
+
+| 配置项 | 说明 | 示例 | 作用 |
+|--------|------|------|------|
+| **Bundle Identifier** | macOS 应用唯一标识 | `com.company.appname` | 用于识别应用，格式：反向域名 + 应用名 |
+| **Minimum macOS version** | 最低支持的系统版本 | `10.13` | 指定应用支持的最低 macOS 版本 |
+| **App category** | 应用分类 | Productivity | 在 App Store 和启动台中的分类 |
+| **Permissions** | 系统权限选择 | 多选 | 选择应用需要的系统权限（麦克风、摄像头等） |
+| **Copyright** | 版权声明 | `© 2024 Company` | 显示在应用信息中的版权文本 |
+
+**可选权限列表**：
+
+| 权限 | 用途 | 对应的 Info.plist Key |
+|------|------|----------------------|
+| Microphone (麦克风) | 录音、语音识别 | `NSMicrophoneUsageDescription` |
+| Camera (摄像头) | 拍照、视频通话 | `NSCameraUsageDescription` |
+| Speech Recognition (语音识别) | 语音转文字 | `NSSpeechRecognitionUsageDescription` |
+| Local Network (本地网络) | 局域网访问 | `NSLocalNetworkUsageDescription` |
+| Audio (音频) | 音频播放 | `NSAppleMusicUsageDescription` |
+| Accessibility (辅助功能) | 全局快捷键、自动化 | `NSAccessibilityUsageDescription` |
+| Documents Folder (文档文件夹) | 读写文档 | `NSDocumentsFolderUsageDescription` |
+| Downloads Folder (下载文件夹) | 管理下载 | `NSDownloadsFolderUsageDescription` |
+| Apple Events (自动化) | AppleScript、应用间通信 | `NSAppleEventsUsageDescription` |
+| Calendar (日历) | 读写日历事件 | `NSCalendarsUsageDescription` |
+| Contacts (通讯录) | 读写联系人 | `NSContactsUsageDescription` |
+| Location (位置) | 获取地理位置 | `NSLocationUsageDescription` |
+| Photos (照片) | 访问相册 | `NSPhotoLibraryUsageDescription` |
+
+**操作方式**：
+- 使用 `↑` `↓` 箭头键移动
+- 按 `Space` 空格键选择/取消
+- 按 `Enter` 确认选择
+
+> 💡 **提示**：权限描述使用通用文本，你可以在生成的 `build.json` 中自定义描述文字。
+
+#### 5️⃣ Windows 平台配置（如果选择了 Windows）
+
+| 配置项 | 选项 | 说明 |
+|--------|------|------|
+| **Desktop icon** | Yes / No | 是否在桌面创建快捷方式 |
+| **Start menu shortcut** | Yes / No | 是否在开始菜单创建快捷方式 |
+| **Allow run after install** | Yes / No | 安装完成后是否询问用户立即运行应用 |
+| **Languages** | 多选 | 安装程序支持的语言（中文、英文、日文等） |
+
+**可选语言**：
+- 简体中文 (chinesesimplified)
+- 繁體中文 (chinesetraditional)
+- English (english)
+- 日本語 (japanese)
+- 한국어 (korean)
+- Français (french)
+- Deutsch (german)
+- Español (spanish)
+
+**操作方式**：
+- **图标和快捷方式**: 使用 `←` `→` 箭头键，`Enter` 确认
+- **Languages**: 使用 `↑` `↓` 上下键，`Space` 空格键选择，`Enter` 确认
+
+#### 6️⃣ Linux 平台配置（如果选择了 Linux）
+
+| 配置项 | 选项 | 说明 |
+|--------|------|------|
+| **Package formats** | DEB / RPM / AppImage | 选择要生成的包格式（可多选） |
+| **Package name** | 文本 | 包名称（小写字母、数字、连字符） |
+| **Desktop categories** | 多选 | 桌面环境中的应用分类 |
+
+**包格式说明**：
+- **DEB**: Debian、Ubuntu、Linux Mint 等系统使用
+- **RPM**: RedHat、CentOS、Fedora 等系统使用
+- **AppImage**: 通用便携格式，无需安装，双击即可运行
+
+**桌面分类**：
+- AudioVideo (音视频)
+- Development (开发)
+- Education (教育)
+- Game (游戏)
+- Graphics (图形)
+- Network (网络)
+- Office (办公)
+- Utility (实用工具)
+- System (系统)
+
+#### 7️⃣ 配置摘要与保存
+
+向导会显示完整的配置摘要，包括：
+- 📋 项目信息（名称、版本、发布者等）
+- 📦 打包配置（模式、控制台、数据目录）
+- 🌍 目标平台及各平台的详细配置
+
+确认后：
+1. 保存为 `build.json` 文件
+2. 提示高级配置选项（可手动编辑）
+3. 询问是否立即开始构建
+
+**立即构建选项**：
+- **Yes**: 执行 `unifypy . --config build.json --clean` 开始打包
+- **No**: 仅保存配置，稍后手动运行
+
+### 向导完成后
+
+向导完成后会显示提示信息，说明如何手动编辑 `build.json` 添加高级配置：
+
+```
+💡 你可以手动编辑 build.json 来添加高级配置:
+
+  📘 PyInstaller 高级选项:
+     • hidden_import: 动态导入的模块
+     • exclude_module: 排除不需要的模块以减小体积
+     • runtime_hook: 运行时钩子脚本
+     • splash: 启动画面
+     → 参考: https://pyinstaller.org/en/stable/usage.html
+
+  🪟 Windows 高级选项:
+     • compression: 压缩算法
+     • license_file: 许可证文件
+     → 参考: https://jrsoftware.org/ishelp/
+
+  🍎 macOS 高级选项:
+     • target_architecture: 架构选择
+     • codesign_identity: 代码签名证书
+     → 参考: https://developer.apple.com/documentation/
+
+  🐧 Linux 高级选项:
+     • depends: 依赖包列表
+     • postinst_script: 安装后脚本
+     → 参考文档见下方"高级配置参考"章节
+
+  📚 完整配置示例:
+     • 查看 build_comprehensive.json
+```
+
 ## 📋 支持的打包格式
 
 ### Windows
@@ -263,10 +480,10 @@ unifypy <project_dir> [选项]
       "bundle_identifier": "com.company.app",
       "minimum_system_version": "10.14.0",
       "category": "public.app-category.productivity",
-      
+
       "microphone_usage_description": "需要麦克风权限进行语音功能",
       "camera_usage_description": "需要摄像头权限进行视频功能",
-      
+
       "dmg": {
         "volname": "安装器名称",
         "window_size": [600, 400],
@@ -275,6 +492,41 @@ unifypy <project_dir> [选项]
     }
   }
 }
+```
+
+## 📚 高级配置参考
+
+UnifyPy 支持所有底层工具的原生配置项。配置项直接映射到对应工具的参数，因此你可以参考各工具的官方文档来使用高级功能。
+
+详细的高级配置选项请参考：
+
+📖 **[高级配置参考文档](docs/advanced-configuration.md)**
+
+包括：
+- **PyInstaller 高级配置**: hidden_import、exclude_module、runtime_hook、splash 等 30+ 配置项
+- **Windows 高级配置**: Inno Setup 脚本配置、压缩算法、安装向导样式等
+- **macOS 高级配置**: Info.plist 配置、DMG 定制、代码签名、架构选择等
+- **Linux 高级配置**: DEB/RPM 包配置、依赖管理、安装脚本等
+
+### 📝 配置示例文件
+
+项目中提供了多个完整的配置示例供参考：
+
+| 文件 | 说明 |
+|------|------|
+| `build.json` | 基础配置示例 |
+| `build_multiformat.json` | 多格式打包配置示例 |
+| `build_comprehensive.json` | **完整功能演示**，包含所有可用配置项 |
+| `build_macos_permissions_example.json` | macOS 权限配置详细示例 |
+
+**查看完整配置**：
+
+```bash
+# 查看完整配置示例（包含所有高级选项）
+cat build_comprehensive.json
+
+# 复制为自己的配置
+cp build_comprehensive.json my_build.json
 ```
 
 ## 🔄 并行构建
