@@ -44,36 +44,32 @@ class PreparePlugin(BasePlugin):
             ctx.file_ops.ensure_dir(str(ctx.dist_dir))
             ctx.file_ops.ensure_dir(str(ctx.installer_dir))
 
-        # 预生成多平台配置（按需）
+        # 初始化配置 hash（用于后续缓存检测）
         try:
             if ctx.cache_manager and ctx.cache_manager.should_pre_generate_all_configs(ctx.config.merged_config):
                 if ctx.progress:
-                    ctx.progress.update_stage(stage, 45, "预生成多平台配置", absolute=True)
-                # 仅在 verbose 下输出详细日志
-                def cb(msg, level='info'):
-                    if getattr(ctx.args, "verbose", False) and ctx.progress:
-                        ctx.progress.info(msg)
-                results = ctx.cache_manager.pre_generate_all_platform_configs(
-                    ctx.config.merged_config,
-                    ctx.config.config_path if hasattr(ctx.config, 'config_path') else None,
-                    progress_callback=cb,
-                )
-                # 简要摘要
-                success_count = len([k for k, v in results.items() if v is True])
-                total_count = len([k for k, v in results.items() if v != "skipped"]) or 0
-                if success_count > 0 and ctx.progress:
-                    if not getattr(ctx.args, "verbose", False):
-                        ctx.progress.info(f"✅ 已预生成 {success_count}/{total_count} 个平台配置")
-                    else:
-                        ctx.progress.info(f"✅ 预生成 {success_count}/{total_count} 个平台配置完成")
+                    ctx.progress.update_stage(stage, 45, "初始化配置缓存", absolute=True)
+
+                # 保存全局配置 hash
+                global_hash = ctx.cache_manager.calculate_config_hash(ctx.config.merged_config)
+                ctx.cache_manager.save_config_hash(global_hash)
+
+                # 保存各平台 hash
+                for platform in ["windows", "macos", "linux"]:
+                    if platform in ctx.config.merged_config.get("platforms", {}):
+                        platform_hash = ctx.cache_manager.calculate_config_hash(ctx.config.merged_config, platform)
+                        ctx.cache_manager.save_config_hash(platform_hash, platform)
+
+                if getattr(ctx.args, "verbose", False) and ctx.progress:
+                    ctx.progress.info("✅ 配置 hash 已初始化")
             else:
                 if ctx.progress:
                     ctx.progress.update_stage(stage, 45, "使用缓存配置", absolute=True)
                     if getattr(ctx.args, "verbose", False):
-                        ctx.progress.info("📋 使用现有缓存配置")
+                        ctx.progress.info("📋 配置未变化，使用现有 hash")
         except Exception as e:
             if ctx.progress:
-                ctx.progress.warning(f"配置预生成失败: {e}")
+                ctx.progress.warning(f"配置 hash 初始化失败: {e}")
 
         # 预处理图标（如无效则移除，避免PyInstaller报错）
         icon_path = ctx.config.get("icon")

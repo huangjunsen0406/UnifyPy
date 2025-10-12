@@ -66,18 +66,39 @@ class PyInstallerPlugin(BasePlugin):
         if "platforms" in ctx.config.raw_config:
             full_config["platforms"] = ctx.config.raw_config["platforms"]
 
-        # 生成 spec 文件
-        if ctx.progress:
-            ctx.progress.update_stage(stage, 10, "生成 spec 文件", absolute=True)
-
-        spec_content = builder.build_spec_file_content(full_config, entry)
+        # spec 文件缓存：检查配置是否变化
         app_name = ctx.config.get("name")
         spec_file = ctx.project_dir / f"{app_name}.spec"
 
-        with open(spec_file, 'w', encoding='utf-8') as f:
-            f.write(spec_content)
+        should_regenerate_spec = True
+        if spec_file.exists() and hasattr(ctx, 'cache_manager'):
+            # 检查配置是否变化
+            current_hash = ctx.cache_manager.calculate_config_hash(ctx.config.raw_config, ctx.config.current_platform)
+            stored_hash = ctx.cache_manager.load_cached_hash(ctx.config.current_platform)
 
-        cb(f"✅ spec 文件已生成: {spec_file}", 'success')
+            if getattr(ctx.args, 'verbose', False):
+                cb(f"🔍 spec 缓存检查: current={current_hash[:8] if current_hash else None}, stored={stored_hash[:8] if stored_hash else None}", 'info')
+
+            if current_hash == stored_hash and stored_hash is not None:
+                should_regenerate_spec = False
+                cb(f"✅ 配置未变化，使用现有 spec 文件: {spec_file}", 'success')
+
+        if should_regenerate_spec:
+            # 生成 spec 文件
+            if ctx.progress:
+                ctx.progress.update_stage(stage, 10, "生成 spec 文件", absolute=True)
+
+            spec_content = builder.build_spec_file_content(full_config, entry)
+
+            with open(spec_file, 'w', encoding='utf-8') as f:
+                f.write(spec_content)
+
+            cb(f"✅ spec 文件已生成: {spec_file}", 'success')
+
+            # 更新配置 hash
+            if hasattr(ctx, 'cache_manager'):
+                new_hash = ctx.cache_manager.calculate_config_hash(ctx.config.raw_config, ctx.config.current_platform)
+                ctx.cache_manager.save_config_hash(new_hash, ctx.config.current_platform)
 
         # 使用 spec 文件打包
         command = ["pyinstaller", str(spec_file)]

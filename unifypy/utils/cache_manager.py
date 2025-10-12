@@ -170,10 +170,10 @@ class CacheManager:
 
     def load_cached_hash(self, platform: str = None) -> Optional[str]:
         """加载缓存的配置哈希值
-        
+
         Args:
             platform: 平台名称（可选）
-            
+
         Returns:
             Optional[str]: 缓存的哈希值，如果不存在则返回 None
         """
@@ -181,14 +181,14 @@ class CacheManager:
             if self.metadata_file.exists():
                 with open(self.metadata_file, "r", encoding="utf-8") as f:
                     metadata = json.load(f)
-                
+
                 if platform:
                     return metadata.get("platform_hashes", {}).get(platform)
                 else:
                     return metadata.get("config_hash")
         except Exception:
             pass
-        
+
         return None
 
     def save_config_hash(self, config_hash: str, platform: str = None):
@@ -355,117 +355,24 @@ class CacheManager:
             print(f"更新配置文件失败: {e}")
             return False
 
-    def get_cached_file_path(self, platform: str, file_type: str, arch: str = None) -> Path:
-        """获取缓存文件路径
-        
-        Args:
-            platform: 平台名称 (windows, macos, linux)
-            file_type: 文件类型 (iss, control, spec, plist, dmg_config, pkg_config)
-            arch: 架构名称（可选，用于区分不同架构的配置）
-            
-        Returns:
-            Path: 缓存文件路径
-        """
-        filename_map = {
-            "windows": {
-                "iss": "setup.iss",
-            },
-            "linux": {
-                "control": "control",
-                "spec": "app.spec",
-                "desktop": "app.desktop",
-            },
-            "macos": {
-                "plist": "Info.plist",
-                "dmg_config": "dmg_config.json",
-                "pkg_config": "pkg_config.json",
-            }
-        }
-        
-        filename = filename_map.get(platform, {}).get(file_type)
-        if not filename:
-            raise ValueError(f"不支持的平台/文件类型: {platform}/{file_type}")
-        
-        # 如果指定了架构，在文件名中包含架构信息
-        if arch and platform in ["linux"]:  # Linux 可能需要区分不同架构
-            name, ext = filename.rsplit(".", 1) if "." in filename else (filename, "")
-            filename = f"{name}_{arch}.{ext}" if ext else f"{name}_{arch}"
-        
-        # 创建平台子目录
-        platform_dir = self.cache_dir / platform
-        platform_dir.mkdir(exist_ok=True)
-        
-        return platform_dir / filename
-
-    def save_cached_file(self, platform: str, file_type: str, content: str):
-        """保存缓存文件
-        
-        Args:
-            platform: 平台名称
-            file_type: 文件类型
-            content: 文件内容
-        """
-        file_path = self.get_cached_file_path(platform, file_type)
-        
-        # 确保目录存在
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # 写入文件
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(content)
-
-    def load_cached_file(self, platform: str, file_type: str) -> Optional[str]:
-        """加载缓存文件
-        
-        Args:
-            platform: 平台名称
-            file_type: 文件类型
-            
-        Returns:
-            Optional[str]: 文件内容，如果不存在则返回 None
-        """
-        try:
-            file_path = self.get_cached_file_path(platform, file_type)
-            if file_path.exists():
-                with open(file_path, "r", encoding="utf-8") as f:
-                    return f.read()
-        except Exception:
-            pass
-        
-        return None
-
     def clear_cache(self, platform: str = None):
-        """清理缓存
-        
+        """清理缓存（重置配置 hash）
+
         Args:
-            platform: 平台名称（可选），如果指定则只清理该平台的缓存
+            platform: 平台名称（可选），如果指定则只清理该平台的 hash
         """
+        metadata = self.load_metadata()
+
         if platform:
-            # 清理特定平台的缓存
-            metadata = self.load_metadata()
+            # 清理特定平台的 hash
             if "platform_hashes" in metadata and platform in metadata["platform_hashes"]:
                 del metadata["platform_hashes"][platform]
-                self.save_metadata(metadata)
-            
-            # 删除对应的缓存文件
-            for file_type in ["iss", "control", "spec", "plist"]:
-                try:
-                    file_path = self.get_cached_file_path(platform, file_type)
-                    if file_path.exists():
-                        file_path.unlink()
-                except Exception:
-                    pass
         else:
-            # 清理所有缓存
-            if self.cache_dir.exists():
-                shutil.rmtree(self.cache_dir)
-                self.cache_dir.mkdir()
-            
-            # 重置元数据
-            metadata = self.load_metadata()
+            # 清理所有 hash
             metadata["config_hash"] = None
             metadata["platform_hashes"] = {}
-            self.save_metadata(metadata)
+
+        self.save_metadata(metadata)
 
     def get_cache_info(self) -> Dict[str, Any]:
         """获取缓存信息
@@ -523,403 +430,16 @@ class CacheManager:
         
         return current_global_hash != cached_global_hash
 
-    def pre_generate_all_platform_configs(self, config: Dict[str, Any], config_file_path: str, progress_callback=None) -> Dict[str, bool]:
-        """预生成所有平台的配置文件
-
-        Args:
-            config: 配置字典
-            config_file_path: 配置文件路径
-            progress_callback: 进度回调函数 callback(message, level='info')
-
-        Returns:
-            Dict[str, bool]: 各平台配置生成结果
-        """
-        results = {}
-
-        def log(message, level='info'):
-            """统一的日志输出"""
-            if progress_callback:
-                progress_callback(message, level)
-            else:
-                print(message)
-
-        log("开始预生成多平台配置", 'info')
-
-        # 确保 AppID 存在
-        app_id = self.get_or_generate_app_id(config)
-        config_app_id = config.get("platforms", {}).get("windows", {}).get("inno_setup", {}).get("app_id")
-
-        # 只有在配置文件中没有 AppID 时才更新
-        if not config_app_id and config_file_path:
-            if self.update_build_config_with_app_id(config_file_path, app_id):
-                log(f"AppID 已生成并写入配置: {app_id[:8]}...", 'success')
-                # 重新加载配置
-                import json
-                try:
-                    with open(config_file_path, "r", encoding="utf-8") as f:
-                        config = json.load(f)
-                except Exception as e:
-                    log(f"重新加载配置失败: {e}", 'warning')
-            else:
-                log("AppID 写入配置文件失败", 'warning')
-        elif config_app_id:
-            log(f"使用现有 AppID: {config_app_id[:8]}...", 'info')
-
-        # 生成各平台配置
-        platform_generators = {
-            "windows": self._generate_windows_configs,
-            "macos": self._generate_macos_configs,
-            "linux": self._generate_linux_configs,
-        }
-
-        for platform, generator in platform_generators.items():
-            if platform in config.get("platforms", {}):
-                try:
-                    log(f"生成 {platform.upper()} 配置", 'info')
-                    success = generator(config, platform)
-                    results[platform] = success
-
-                    if success:
-                        # 保存平台配置哈希
-                        platform_hash = self.calculate_config_hash(config, platform)
-                        self.save_config_hash(platform_hash, platform)
-                        log(f"{platform.upper()} 配置已生成", 'success')
-                    else:
-                        log(f"{platform.upper()} 配置生成失败", 'error')
-
-                except Exception as e:
-                    log(f"{platform.upper()} 配置生成错误: {e}", 'error')
-                    results[platform] = False
-            else:
-                results[platform] = "skipped"
-
-        # 保存全局配置哈希
-        global_hash = self.calculate_config_hash(config)
-        self.save_config_hash(global_hash)
-
-        log("多平台配置预生成完成", 'success')
-        return results
-
-    def _generate_windows_configs(self, config: Dict[str, Any], platform: str) -> bool:
-        """生成 Windows 平台配置
-        
-        Args:
-            config: 配置字典
-            platform: 平台名称
-            
-        Returns:
-            bool: 生成是否成功
-        """
-        try:
-            from unifypy.platforms.windows.inno_setup import InnoSetupPackager
-            
-            # 模拟生成 ISS 文件内容
-            iss_content = self._build_windows_iss(config)
-            
-            # 保存 ISS 文件
-            self.save_cached_file("windows", "iss", iss_content)
-            
-            return True
-            
-        except Exception as e:
-            print(f"Windows 配置生成失败: {e}")
-            return False
-
-    def _generate_macos_configs(self, config: Dict[str, Any], platform: str) -> bool:
-        """生成 macOS 平台配置
-        
-        Args:
-            config: 配置字典
-            platform: 平台名称
-            
-        Returns:
-            bool: 生成是否成功
-        """
-        try:
-            # 生成 Info.plist
-            plist_content = self._build_macos_plist(config)
-            self.save_cached_file("macos", "plist", plist_content)
-            
-            # 生成 DMG 配置
-            dmg_config = self._build_dmg_config(config)
-            import json
-            dmg_config_str = json.dumps(dmg_config, indent=2, ensure_ascii=False)
-            self.save_cached_file("macos", "dmg_config", dmg_config_str)
-            
-            return True
-            
-        except Exception as e:
-            print(f"macOS 配置生成失败: {e}")
-            return False
-
-    def _generate_linux_configs(self, config: Dict[str, Any], platform: str) -> bool:
-        """生成 Linux 平台配置
-        
-        Args:
-            config: 配置字典
-            platform: 平台名称
-            
-        Returns:
-            bool: 生成是否成功
-        """
-        try:
-            # 生成 DEB 控制文件
-            if "deb" in config.get("platforms", {}).get("linux", {}):
-                control_content = self._build_linux_control(config)
-                self.save_cached_file("linux", "control", control_content)
-            
-            # 生成 RPM spec 文件
-            if "rpm" in config.get("platforms", {}).get("linux", {}):
-                spec_content = self._build_rpm_spec(config)
-                self.save_cached_file("linux", "spec", spec_content)
-            
-            # 生成桌面文件
-            desktop_content = self._build_desktop_file(config)
-            self.save_cached_file("linux", "desktop", desktop_content)
-            
-            return True
-            
-        except Exception as e:
-            print(f"Linux 配置生成失败: {e}")
-            return False
-
-    def _build_windows_iss(self, config: Dict[str, Any]) -> str:
-        """构建 Windows ISS 文件内容"""
-        app_name = config.get("name", "MyApp")
-        version = config.get("version", "1.0.0")
-        display_name = config.get("display_name", app_name)
-        publisher = config.get("publisher", "Unknown Publisher")
-        
-        inno_config = config.get("platforms", {}).get("windows", {}).get("inno_setup", {})
-        app_id = inno_config.get("app_id", "")
-        
-        iss_content = f"""[Setup]
-AppId={{{app_id}}}
-AppName={app_name}
-AppVersion={version}
-AppVerName={display_name} {version}
-AppPublisher={publisher}
-DefaultDirName={{autopf}}\\{app_name}
-DefaultGroupName={app_name}
-AllowNoIcons=yes
-OutputDir=output
-OutputBaseFilename={app_name}-{version}-setup
-Compression=lzma
-SolidCompression=yes
-WizardStyle=modern
-
-[Languages]
-Name: "english"; MessagesFile: "compiler:Default.isl"
-"""
-        
-        # 添加中文支持
-        languages = inno_config.get("languages", [])
-        if "chinesesimplified" in languages or "chinese" in languages:
-            iss_content += 'Name: "chinesesimplified"; MessagesFile: "compiler:Languages\\ChineseSimplified.isl"\n'
-        
-        # 添加任务
-        iss_content += "\n[Tasks]\n"
-        if inno_config.get("create_desktop_icon", True):
-            iss_content += 'Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked\n'
-        
-        # 添加文件
-        iss_content += f"""
-[Files]
-Source: "dist\\{app_name}.exe"; DestDir: "{{app}}"; Flags: ignoreversion
-
-[Icons]
-Name: "{{group}}\\{display_name}"; Filename: "{{app}}\\{app_name}.exe"
-"""
-        
-        if inno_config.get("create_desktop_icon", True):
-            iss_content += f'Name: "{{autodesktop}}\\{display_name}"; Filename: "{{app}}\\{app_name}.exe"; Tasks: desktopicon\n'
-        
-        # 添加运行
-        if inno_config.get("run_after_install", False):
-            iss_content += f"""
-[Run]
-Filename: "{{app}}\\{app_name}.exe"; Description: "{{cm:LaunchProgram,{display_name}}}"; Flags: nowait postinstall skipifsilent
-"""
-        
-        return iss_content
-
-    def _build_macos_plist(self, config: Dict[str, Any]) -> str:
-        """构建 macOS Info.plist 文件内容"""
-        app_name = config.get("name", "MyApp")
-        version = config.get("version", "1.0.0")
-        display_name = config.get("display_name", app_name)
-        
-        macos_config = config.get("platforms", {}).get("macos", {})
-        bundle_id = macos_config.get("bundle_identifier", f"com.example.{app_name.lower()}")
-        
-        plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleDisplayName</key>
-    <string>{display_name}</string>
-    <key>CFBundleExecutable</key>
-    <string>{app_name}</string>
-    <key>CFBundleIconFile</key>
-    <string>{app_name}.icns</string>
-    <key>CFBundleIdentifier</key>
-    <string>{bundle_id}</string>
-    <key>CFBundleInfoDictionaryVersion</key>
-    <string>6.0</string>
-    <key>CFBundleName</key>
-    <string>{app_name}</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleShortVersionString</key>
-    <string>{version}</string>
-    <key>CFBundleVersion</key>
-    <string>{version}</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>{macos_config.get("minimum_system_version", "10.15.0")}</string>
-    <key>NSHighResolutionCapable</key>
-    <{str(macos_config.get("high_resolution_capable", True)).lower()}/>
-    <key>NSSupportsAutomaticGraphicsSwitching</key>
-    <{str(macos_config.get("supports_automatic_graphics_switching", True)).lower()}/>
-</dict>
-</plist>
-"""
-        return plist_content
-
-    def _build_dmg_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
-        """构建 DMG 配置"""
-        app_name = config.get("name", "MyApp")
-        display_name = config.get("display_name", app_name)
-        
-        dmg_config = config.get("platforms", {}).get("macos", {}).get("create_dmg", {})
-        
-        return {
-            "volname": dmg_config.get("volname", f"{display_name} 安装器"),
-            "window_size": dmg_config.get("window_size", [600, 400]),
-            "window_pos": dmg_config.get("window_pos", [200, 120]),
-            "icon_size": dmg_config.get("icon_size", 128),
-            "icon_positions": dmg_config.get("icon", {
-                f"{app_name}.app": [140, 200],
-                "Applications": [460, 200]
-            }),
-            "format": dmg_config.get("format", "UDZO"),
-            "filesystem": dmg_config.get("filesystem", "HFS+")
-        }
-
-    def _build_linux_control(self, config: Dict[str, Any]) -> str:
-        """构建 Linux DEB 控制文件内容"""
-        app_name = config.get("name", "MyApp").lower()
-        version = config.get("version", "1.0.0")
-        
-        # 使用规范化架构映射
-        from unifypy.core.environment import EnvironmentManager
-        env_manager = EnvironmentManager(".")
-        arch = env_manager.get_arch_for_format("deb")
-        
-        deb_config = config.get("platforms", {}).get("linux", {}).get("deb", {})
-        
-        control_content = f"""Package: {app_name}
-Version: {version}
-Section: {deb_config.get('section', 'utils')}
-Priority: {deb_config.get('priority', 'optional')}
-Architecture: {arch}
-Maintainer: {deb_config.get('maintainer', config.get('publisher', 'Unknown <unknown@example.com>'))}
-Description: {deb_config.get('description', config.get('display_name', app_name))}
-"""
-        
-        # 添加依赖
-        depends = deb_config.get("depends", [])
-        if depends:
-            if isinstance(depends, list):
-                depends_str = ", ".join(depends)
-            else:
-                depends_str = str(depends)
-            control_content += f"Depends: {depends_str}\n"
-        
-        return control_content
-
-    def _build_rpm_spec(self, config: Dict[str, Any]) -> str:
-        """构建 RPM spec 文件内容"""
-        app_name = config.get("name", "MyApp")
-        version = config.get("version", "1.0.0")
-        
-        # 使用规范化架构映射
-        from unifypy.core.environment import EnvironmentManager
-        env_manager = EnvironmentManager(".")
-        arch = env_manager.get_arch_for_format("rpm")
-        
-        rpm_config = config.get("platforms", {}).get("linux", {}).get("rpm", {})
-        
-        spec_content = f"""Name:           {app_name.lower()}
-Version:        {version}
-Release:        1%{{?dist}}
-Summary:        {rpm_config.get('summary', config.get('display_name', app_name))}
-
-License:        {rpm_config.get('license', 'Unknown')}
-URL:            {rpm_config.get('url', '')}
-Source0:        %{{name}}-%{{version}}.tar.gz
-
-BuildArch:      {arch}
-
-%description
-{rpm_config.get('description', config.get('display_name', app_name))}
-
-%prep
-%setup -q
-
-%install
-rm -rf $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT/opt/{app_name}
-mkdir -p $RPM_BUILD_ROOT/usr/local/bin
-
-# 复制应用文件
-cp -r * $RPM_BUILD_ROOT/opt/{app_name}/
-
-# 创建启动脚本
-cat > $RPM_BUILD_ROOT/usr/local/bin/{app_name.lower()} << 'EOF'
-#!/bin/bash
-cd /opt/{app_name}
-exec ./{app_name} "$@"
-EOF
-chmod +x $RPM_BUILD_ROOT/usr/local/bin/{app_name.lower()}
-
-%files
-%defattr(-,root,root,-)
-/opt/{app_name}/*
-/usr/local/bin/{app_name.lower()}
-
-%changelog
-* {self._get_current_date()} {rpm_config.get('packager', 'Unknown <unknown@example.com>')} - {version}-1
-- Initial package
-"""
-        return spec_content
-
-    def _build_desktop_file(self, config: Dict[str, Any]) -> str:
-        """构建 Linux 桌面文件内容"""
-        app_name = config.get("name", "MyApp")
-        display_name = config.get("display_name", app_name)
-        
-        desktop_content = f"""[Desktop Entry]
-Type=Application
-Name={display_name}
-Exec={app_name.lower()}
-Icon={app_name.lower()}
-Comment={config.get('description', display_name)}
-Categories=Utility;Development;
-Terminal=false
-Version={config.get('version', '1.0.0')}
-"""
-        return desktop_content
-
     def _get_current_date(self) -> str:
         """获取当前日期（RPM格式）"""
         import datetime
         import locale
-        
+
         try:
             locale.setlocale(locale.LC_TIME, "C")
         except:
             pass
-        
+
         return datetime.datetime.now().strftime("%a %b %d %Y")
 
     def _filter_config_for_hash(self, config: Dict[str, Any]) -> Dict[str, Any]:

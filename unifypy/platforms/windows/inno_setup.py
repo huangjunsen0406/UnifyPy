@@ -111,49 +111,30 @@ class InnoSetupPackager(BasePackager):
                 )
                 return False
 
-        # 智能缓存管理：检查是否需要重新生成 ISS 脚本
-        use_cached_iss = False
-        cached_iss_content = None
-        
-        if not self.cache_manager.should_regenerate_config(self.config, "windows"):
-            # 配置未变化，尝试使用缓存的 ISS 文件
-            cached_iss_content = self.cache_manager.load_cached_file("windows", "iss")
-            if cached_iss_content:
-                use_cached_iss = True
-                self.progress.info("✅ 使用缓存的 ISS 配置")
-        
-        if not use_cached_iss:
-            # 需要重新生成 ISS 脚本
-            self.progress.info("🔄 生成新的 ISS 配置")
-            
-            # 处理 AppID：确保存在并写回配置文件
-            app_id = self.cache_manager.get_or_generate_app_id(self.config)
-            if not self.config.get("platforms", {}).get("windows", {}).get("inno_setup", {}).get("app_id"):
-                # AppID 不在配置中，需要写回
-                if self.cache_manager.update_build_config_with_app_id(self.config_file_path, app_id):
-                    self.progress.info(f"✅ AppID 已写入配置文件: {app_id}")
-                    # 重新加载配置以包含新的 AppID
-                    import json
-                    try:
-                        with open(self.config_file_path, "r", encoding="utf-8") as f:
-                            updated_config = json.load(f)
-                        self.config = updated_config
-                        inno_config = self.get_format_config("inno_setup")
-                    except Exception as e:
-                        self.progress.warning(f"重新加载配置失败: {e}")
-            
-            # 创建ISS脚本
-            iss_content = self._build_iss_script(inno_config, source_path, output_path)
-            
-            # 缓存生成的 ISS 文件
-            self.cache_manager.save_cached_file("windows", "iss", iss_content)
-            self.cache_manager.save_config_hash(
-                self.cache_manager.calculate_config_hash(self.config, "windows"), 
-                "windows"
-            )
-            self.progress.info("💾 ISS 配置已缓存")
-        else:
-            iss_content = cached_iss_content
+        # 处理 AppID：确保存在并写回配置文件
+        app_id = self.cache_manager.get_or_generate_app_id(self.config)
+        if not self.config.get("platforms", {}).get("windows", {}).get("inno_setup", {}).get("app_id"):
+            # AppID 不在配置中，需要写回
+            if self.cache_manager.update_build_config_with_app_id(self.config_file_path, app_id):
+                self.progress.info(f"✅ AppID 已写入配置文件: {app_id}")
+                # 重新加载配置以包含新的 AppID
+                import json
+                try:
+                    with open(self.config_file_path, "r", encoding="utf-8") as f:
+                        updated_config = json.load(f)
+                    self.config = updated_config
+                    inno_config = self.get_format_config("inno_setup")
+                except Exception as e:
+                    self.progress.warning(f"重新加载配置失败: {e}")
+
+        # 创建 ISS 脚本
+        iss_content = self._build_iss_script(inno_config, source_path, output_path)
+
+        # 更新配置 hash（用于后续变化检测）
+        self.cache_manager.save_config_hash(
+            self.cache_manager.calculate_config_hash(self.config, "windows"),
+            "windows"
+        )
 
         # 写入临时ISS文件 - 使用UTF-8 BOM编码确保中文字符正确显示
         with tempfile.NamedTemporaryFile(

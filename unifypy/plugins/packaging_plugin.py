@@ -39,7 +39,11 @@ class PackagingPlugin(BasePlugin):
         if ctx.config.get_pyinstaller_config().get("onefile"):
             source_path = ctx.dist_dir / f"{app_name}{ctx.file_ops.get_executable_extension()}"
         else:
-            source_path = ctx.dist_dir / app_name
+            # macOS BUNDLE 输出 .app，其他平台输出目录
+            if platform == "macos":
+                source_path = ctx.dist_dir / f"{app_name}.app"
+            else:
+                source_path = ctx.dist_dir / app_name
 
         # 并行或串行
         success_count = 0
