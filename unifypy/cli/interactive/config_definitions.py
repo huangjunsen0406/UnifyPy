@@ -5,7 +5,7 @@
 定义所有可配置的选项和默认值
 """
 
-from typing import Dict, Any
+from typing import Dict
 
 
 # macOS 权限定义（通用化描述）

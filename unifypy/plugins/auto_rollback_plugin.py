@@ -137,9 +137,9 @@ class AutoRollbackPlugin(BasePlugin):
         if not rb:
             return
         try:
-            ok = rb.rollback()
+            rb.rollback()
         except Exception:
-            ok = False
+            pass
         # 无论回滚是否成功，都清理当前会话，避免堆积
         try:
             rb.cleanup()

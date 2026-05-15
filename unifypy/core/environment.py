@@ -7,7 +7,6 @@
 
 import platform
 import subprocess
-import os
 import locale
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -114,9 +113,9 @@ class EnvironmentManager:
                 musl_files = list(Path("/lib").glob("libc.musl*"))
                 if musl_files:
                     return "musl"
-            except:
+            except Exception:
                 pass
-            
+
             # 默认假设为 glibc
             return "glibc"
 
@@ -140,7 +139,7 @@ class EnvironmentManager:
                 timeout=5
             )
             return result.stdout.strip() == "1"
-        except:
+        except Exception:
             return False
 
     def _generate_internal_key(self) -> str:
@@ -209,8 +208,8 @@ class EnvironmentManager:
         elif self.normalized_arch == "arm64":
             if format_type in ["deb"]:
                 return "arm64"  # Debian/Ubuntu 包名
-            elif format_type in ["rpm"]:
-                return "aarch64"  # RPM 包名 
+            elif format_type in ["rpm", "appimage"]:
+                return "aarch64"  # RPM/AppImage 包名
             elif format_type in ["dmg", "exe"]:
                 return "aarch64"  # 通用标准
             else:

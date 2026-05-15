@@ -131,6 +131,9 @@ class AppImagePackager(BasePackager):
 # 获取 AppImage 或 AppDir 的路径
 SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# 设置 LD_LIBRARY_PATH 以包含 PyInstaller onedir 依赖目录
+export LD_LIBRARY_PATH="$SELF_DIR/_internal:${{LD_LIBRARY_PATH}}"
+
 # 切换到应用目录
 cd "$SELF_DIR" || exit 1
 

@@ -34,7 +34,7 @@ def main() -> int:
             args.config = str(config_path)
             args.clean = True  # 自动添加 --clean
         else:
-            InputHandler.info(f"运行以下命令开始打包:")
+            InputHandler.info("运行以下命令开始打包:")
             print(f"  unifypy {args.project_dir} --config {config_path} --clean")
             return 0
 

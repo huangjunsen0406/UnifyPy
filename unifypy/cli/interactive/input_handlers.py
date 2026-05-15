@@ -6,7 +6,7 @@
 """
 
 import sys
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 # 尝试导入平台相关的模块
 try:

@@ -201,7 +201,7 @@ class FileOperations:
 
             required_bytes = required_mb * 1024 * 1024
             return free_bytes >= required_bytes
-        except:
+        except Exception:
             return True  # 无法检查时假设有足够空间
 
     def create_version_info_file(self, app_info: Dict[str, Any], output_path: str):

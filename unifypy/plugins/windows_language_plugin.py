@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-from pathlib import Path
 
 from unifypy.core.plugin import BasePlugin
 from unifypy.core.event_bus import EventBus
@@ -27,7 +26,7 @@ class WindowsLanguagePlugin(BasePlugin):
             win_cfg = ctx.config.get("platforms", {}).get("windows", {}) or {}
             inno_cfg = win_cfg.get("inno_setup", {}) or {}
             langs = inno_cfg.get("languages", []) or []
-            enable_cn = any(l in ["chinesesimplified", "chinese"] for l in langs)
+            enable_cn = any(lang in ["chinesesimplified", "chinese"] for lang in langs)
             if not enable_cn:
                 return
 

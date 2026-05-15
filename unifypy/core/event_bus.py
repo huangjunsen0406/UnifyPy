@@ -4,7 +4,7 @@
 事件总线：支持生命周期事件的订阅与触发，按优先级调用处理器。
 """
 
-from typing import Any, Callable, DefaultDict, Dict, List, Tuple
+from typing import Any, Callable, DefaultDict, List, Tuple
 from collections import defaultdict
 
 

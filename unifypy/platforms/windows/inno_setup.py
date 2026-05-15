@@ -148,7 +148,7 @@ class InnoSetupPackager(BasePackager):
             command = [compiler_path, "/Q", iss_file]
 
             success = self.runner.run_command(
-                command, "Windows打包", f"正在生成Windows安装程序...", 80, shell=False
+                command, "Windows打包", "正在生成Windows安装程序...", 80, shell=False
             )
 
             if success:
@@ -167,7 +167,7 @@ class InnoSetupPackager(BasePackager):
             # 清理临时文件
             try:
                 os.unlink(iss_file)
-            except:
+            except OSError:
                 pass
 
     def _find_inno_setup_compiler(self) -> str:
@@ -630,7 +630,7 @@ WizardStyle=modern"""
         # 任务节
         tasks_section = "[Tasks]"
         if config.get("create_desktop_icon", True):
-            tasks_section += f'\nName: "desktopicon"; Description: "{{cm:CreateDesktopIcon}}"; GroupDescription: "{{cm:AdditionalIcons}}"; Flags: unchecked'
+            tasks_section += '\nName: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked'
 
         # 文件节
         files_section = f"[Files]\n{source_files}"

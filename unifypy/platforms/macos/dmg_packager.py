@@ -5,7 +5,6 @@ MacOS DMG 打包器 使用create-dmg工具创建DMG安装包.
 """
 
 import os
-import shutil
 from pathlib import Path
 from typing import Any, Dict, List
 

@@ -17,8 +17,6 @@ from .config_definitions import (
     MACOS_PERMISSIONS,
     MACOS_APP_CATEGORIES,
     LINUX_DESKTOP_CATEGORIES,
-    LINUX_DEB_SECTIONS,
-    LINUX_RPM_GROUPS,
     WINDOWS_LANGUAGES,
 )
 
@@ -487,16 +485,16 @@ class InteractiveWizard:
 
         print("\n🌍 目标平台")
         platform_names = {'macos': 'macOS', 'windows': 'Windows', 'linux': 'Linux'}
-        for platform in self.platforms:
-            print(f"  ✓ {platform_names.get(platform, platform)}")
-            if platform == 'macos' and 'macos' in self.config.get('platforms', {}):
+        for plat in self.platforms:
+            print(f"  ✓ {platform_names.get(plat, plat)}")
+            if plat == 'macos' and 'macos' in self.config.get('platforms', {}):
                 macos_cfg = self.config['platforms']['macos']
                 print(f"    - Bundle ID: {macos_cfg.get('bundle_identifier')}")
                 # 统计权限数
                 perm_count = sum(1 for k in macos_cfg.keys() if k.endswith('_usage_description'))
                 if perm_count > 0:
                     print(f"    - 权限: {perm_count} 个")
-            elif platform == 'linux' and 'linux' in self.config.get('platforms', {}):
+            elif plat == 'linux' and 'linux' in self.config.get('platforms', {}):
                 linux_cfg = self.config['platforms']['linux']
                 formats = linux_cfg.get('formats', [])
                 print(f"    - 格式: {', '.join([f.upper() for f in formats])}")

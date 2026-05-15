@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from pathlib import Path
 
 from unifypy.core.plugin import BasePlugin
 from unifypy.core.event_bus import EventBus

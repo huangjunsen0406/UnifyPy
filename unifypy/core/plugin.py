@@ -4,7 +4,7 @@
 插件基类与插件管理：提供统一的注册机制，将处理器绑定到事件总线。
 """
 
-from typing import List, Type
+from typing import List
 
 from .event_bus import EventBus
 

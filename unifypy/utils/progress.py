@@ -320,7 +320,7 @@ class ProgressManager:
 
                     size = self._format_size(os.path.getsize(file_path))
                     table.add_row(item_type, file_path, size)
-                except:
+                except Exception:
                     table.add_row(item_type, file_path, "未知")
 
         self.console.print(table)

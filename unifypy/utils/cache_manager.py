@@ -8,9 +8,8 @@
 import os
 import json
 import hashlib
-import shutil
 from pathlib import Path
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional
 import uuid
 
 
@@ -437,7 +436,7 @@ class CacheManager:
 
         try:
             locale.setlocale(locale.LC_TIME, "C")
-        except:
+        except Exception:
             pass
 
         return datetime.datetime.now().strftime("%a %b %d %Y")
