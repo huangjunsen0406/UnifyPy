@@ -153,8 +153,10 @@ exec "$SELF_DIR/{app_name}" "$@"
 
         desktop 文件定义了应用的元数据和启动方式。
         """
-        app_name = self.config.get("name", "myapp")
-        display_name = self.config.get("display_name", app_name)
+        # AppImage name: prefer format-specific "name" field if provided
+        app_name = config.get("name", self.config.get("name", "myapp"))
+        # Display name: can be non-ASCII, used in .desktop Name= field
+        display_name = self.config.get("display_name", self.config.get("name", app_name))
 
         # 桌面文件内容
         desktop_content = f"""[Desktop Entry]
@@ -195,7 +197,8 @@ Version={self.config.get('version', '1.0.0')}
         - 支持 PNG, SVG 格式
         - 推荐尺寸：256x256 或更大
         """
-        app_name = self.config.get("name", "myapp")
+        # AppImage name: prefer format-specific "name" field if provided
+        app_name = config.get("name", self.config.get("name", "myapp"))
         icon_path = config.get("icon") or self.config.get("icon")
 
         if icon_path and os.path.exists(icon_path):

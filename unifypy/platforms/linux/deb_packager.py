@@ -82,7 +82,8 @@ class DEBPackager(BasePackager):
         安装应用文件到构建目录.
         """
         app_name = self.config.get("name", "myapp")
-        package_name = app_name.lower()
+        # DEB package name: prefer format-specific "package" field (must be ASCII for dpkg)
+        package_name = config.get("package", app_name).lower()
         install_dir = build_dir / "opt" / package_name
 
         # 创建安装目录
@@ -147,19 +148,21 @@ exec "./{main_executable}" "$@"
         """
         创建DEBIAN/control文件.
         """
-        app_name = self.config.get("name", "myapp").lower()
+        # DEB package name: prefer format-specific "package" field (must be ASCII for dpkg)
+        package_name = config.get("package", self.config.get("name", "myapp")).lower()
         version = self.config.get("version", "1.0.0")
+        display_name = self.config.get("display_name", self.config.get("name", package_name))
 
         # 使用环境管理器获取标准化的架构信息
         arch = self.env_manager.get_arch_for_format("deb")
 
-        control_content = f"""Package: {app_name}
+        control_content = f"""Package: {package_name}
 Version: {version}
 Section: {config.get('section', 'utils')}
 Priority: {config.get('priority', 'optional')}
 Architecture: {arch}
 Maintainer: {config.get('maintainer', self.config.get('publisher', 'Unknown <unknown@example.com>'))}
-Description: {config.get('description', self.config.get('display_name', app_name))}
+Description: {config.get('description', display_name)}
 """
 
         # 添加依赖
@@ -228,15 +231,16 @@ Description: {config.get('description', self.config.get('display_name', app_name
         if not config.get("create_desktop_file", True):
             return
 
-        app_name = self.config.get("name", "myapp")
-        display_name = self.config.get("display_name", app_name)
+        # DEB package name: prefer format-specific "package" field (must be ASCII for dpkg)
+        package_name = config.get("package", self.config.get("name", "myapp")).lower()
+        # Display name: can be non-ASCII, used in .desktop Name= field
+        display_name = self.config.get("display_name", self.config.get("name", package_name))
 
         # 创建applications目录
         apps_dir = build_dir / "usr" / "share" / "applications"
         apps_dir.mkdir(parents=True)
 
         # 桌面文件内容
-        package_name = app_name.lower()
         desktop_content = f"""[Desktop Entry]
 Type=Application
 Name={display_name}
@@ -249,7 +253,7 @@ Terminal={str(config.get('terminal', False)).lower()}
 """
 
         # 写入桌面文件
-        desktop_file = apps_dir / f"{app_name.lower()}.desktop"
+        desktop_file = apps_dir / f"{package_name}.desktop"
         with open(desktop_file, "w", encoding="utf-8") as f:
             f.write(desktop_content)
 
@@ -262,7 +266,7 @@ Terminal={str(config.get('terminal', False)).lower()}
 
             # 复制图标
             icon_ext = Path(icon_path).suffix
-            icon_dest = icon_dir / f"{app_name.lower()}{icon_ext}"
+            icon_dest = icon_dir / f"{package_name}{icon_ext}"
             shutil.copy2(icon_path, icon_dest)
 
     def _build_deb_package(self, build_dir: Path, output_path: Path) -> bool:

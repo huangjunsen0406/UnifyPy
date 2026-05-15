@@ -63,9 +63,12 @@ class RPMPackager(BasePackager):
             sources_dir = rpmbuild_dir / "SOURCES"
             self._prepare_sources(source_path, sources_dir, rpm_config)
 
+            # RPM package name: prefer format-specific "name" field (must be ASCII for rpmbuild)
+            rpm_package_name = rpm_config.get("name", self.config.get("name", "myapp"))
+
             # 创建spec文件
             spec_file = (
-                rpmbuild_dir / "SPECS" / f"{self.config.get('name', 'myapp')}.spec"
+                rpmbuild_dir / "SPECS" / f"{rpm_package_name}.spec"
             )
             self._create_spec_file(spec_file, rpm_config, sources_dir)
 
@@ -80,29 +83,32 @@ class RPMPackager(BasePackager):
         """
         准备源文件.
         """
-        app_name = self.config.get("name", "myapp")
+        # RPM package name: prefer format-specific "name" field (must be ASCII for rpmbuild)
+        package_name = config.get("name", self.config.get("name", "myapp"))
+        # Global app name used by PyInstaller for the executable
+        global_name = self.config.get("name", "myapp")
         version = self.config.get("version", "1.0.0")
 
         # 创建源码目录
-        source_tarball = sources_dir / f"{app_name}-{version}.tar.gz"
+        source_tarball = sources_dir / f"{package_name}-{version}.tar.gz"
 
         # 创建临时目录用于打包
         with tempfile.TemporaryDirectory() as temp_source_dir:
-            app_source_dir = Path(temp_source_dir) / f"{app_name}-{version}"
+            app_source_dir = Path(temp_source_dir) / f"{package_name}-{version}"
             app_source_dir.mkdir()
 
             if source_path.is_file():
                 # 单个可执行文件
-                shutil.copy2(source_path, app_source_dir / app_name)
-                (app_source_dir / app_name).chmod(0o755)
+                shutil.copy2(source_path, app_source_dir / source_path.name)
+                (app_source_dir / source_path.name).chmod(0o755)
             else:
                 # 目录 - 复制所有内容，并确保主可执行文件存在
                 main_executable = None
                 for item in source_path.iterdir():
                     if item.is_file():
                         shutil.copy2(item, app_source_dir / item.name)
-                        # 查找主可执行文件（通常与项目名称相同）
-                        if item.name == app_name or item.stem == app_name:
+                        # 查找主可执行文件（使用全局名称匹配，因为 PyInstaller 用全局名构建）
+                        if item.name == global_name or item.stem == global_name:
                             main_executable = app_source_dir / item.name
                             main_executable.chmod(0o755)
                     else:
@@ -119,7 +125,7 @@ class RPMPackager(BasePackager):
             import tarfile
 
             with tarfile.open(source_tarball, "w:gz") as tar:
-                tar.add(app_source_dir, arcname=f"{app_name}-{version}")
+                tar.add(app_source_dir, arcname=f"{package_name}-{version}")
 
         # 复制图标文件到 SOURCES 目录（作为 Source1）
         icon_path = config.get("icon") or self.config.get("icon")
@@ -139,7 +145,10 @@ class RPMPackager(BasePackager):
         """
         创建RPM spec文件.
         """
-        app_name = self.config.get("name", "myapp")
+        # RPM package name: prefer format-specific "name" field (must be ASCII for rpmbuild)
+        app_name = config.get("name", self.config.get("name", "myapp"))
+        # Global app name used by PyInstaller for the executable
+        global_name = self.config.get("name", "myapp")
         version = self.config.get("version", "1.0.0")
         release = config.get("release", "1")
 
@@ -207,7 +216,7 @@ mkdir -p $RPM_BUILD_ROOT/usr/local/bin
 cp -a . $RPM_BUILD_ROOT/opt/{app_name}/
 
 # 确保主可执行文件有执行权限
-chmod +x $RPM_BUILD_ROOT/opt/{app_name}/{app_name} 2>/dev/null || true
+chmod +x $RPM_BUILD_ROOT/opt/{app_name}/{global_name} 2>/dev/null || true
 
 # 创建启动脚本
 cat > $RPM_BUILD_ROOT/usr/local/bin/{app_name} << 'LAUNCHER_EOF'
@@ -216,7 +225,7 @@ cat > $RPM_BUILD_ROOT/usr/local/bin/{app_name} << 'LAUNCHER_EOF'
 SCRIPT_DIR=/opt/{app_name}
 export LD_LIBRARY_PATH="$SCRIPT_DIR/_internal:${{LD_LIBRARY_PATH}}"
 cd "$SCRIPT_DIR" || exit 1
-exec "$SCRIPT_DIR/{app_name}" "$@"
+exec "$SCRIPT_DIR/{global_name}" "$@"
 LAUNCHER_EOF
 chmod +x $RPM_BUILD_ROOT/usr/local/bin/{app_name}
 """
