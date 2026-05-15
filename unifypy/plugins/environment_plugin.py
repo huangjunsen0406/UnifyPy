@@ -51,13 +51,25 @@ class EnvironmentPlugin(BasePlugin):
 
         # 平台特定打包器
         if not getattr(ctx.args, "skip_installer", False):
-            # 如果用户指定了格式，只检查该格式需要的工具
             format_type = getattr(ctx.args, "format", None)
-            validator.validate_and_raise(
-                platform=ctx.config.current_platform,
-                verbose=True,
-                format_type=format_type
-            )
+            if format_type:
+                # CLI 指定了格式，只检查该格式的工具
+                validator.validate_and_raise(
+                    platform=ctx.config.current_platform,
+                    verbose=True,
+                    format_type=format_type,
+                    config=ctx.config.merged_config,
+                )
+            else:
+                # 从配置推断要打的格式，逐个检测
+                requested_formats = self._get_formats_from_config(ctx)
+                for fmt in requested_formats:
+                    validator.validate_and_raise(
+                        platform=ctx.config.current_platform,
+                        verbose=True,
+                        format_type=fmt,
+                        config=ctx.config.merged_config,
+                    )
 
         # 磁盘空间提示
         if ctx.file_ops and not ctx.file_ops.check_disk_space(str(ctx.project_dir), 500):
@@ -65,3 +77,26 @@ class EnvironmentPlugin(BasePlugin):
 
         if ctx.progress:
             ctx.progress.complete_stage(stage)
+
+    def _get_formats_from_config(self, ctx) -> list:
+        """从配置推断要打的格式列表."""
+        platform = ctx.config.current_platform
+        platform_config = ctx.config.get("platforms", {}).get(platform, {})
+
+        # 优先使用显式 formats 列表
+        if "formats" in platform_config:
+            explicit = platform_config["formats"]
+            if isinstance(explicit, list) and explicit:
+                return explicit
+
+        # fallback: 遍历 key 检测
+        formats = []
+        for key in platform_config.keys():
+            if ctx.packager_registry and ctx.packager_registry.is_format_supported(platform, key):
+                formats.append(key)
+
+        if not formats:
+            default_formats = {"windows": ["exe"], "macos": ["dmg"], "linux": ["deb"]}
+            formats = default_formats.get(platform, [])
+
+        return formats

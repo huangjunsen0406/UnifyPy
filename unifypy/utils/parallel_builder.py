@@ -51,6 +51,7 @@ class ParallelBuilder:
         source_path: Path,
         output_dir: Path,
         config: Dict[str, Any],
+        config_file_path: Optional[str] = None,
     ) -> Dict[str, bool]:
         """并行构建多种格式的安装包.
 
@@ -84,6 +85,7 @@ class ParallelBuilder:
                 None,  # 每个线程将创建自己的runner
                 None,  # 每个线程将创建自己的tool_manager
                 config,
+                config_file_path,
             )
 
             # 生成输出文件名
@@ -330,7 +332,7 @@ class CacheManager:
                 if file_age > max_age_seconds:
                     try:
                         cache_file.unlink()
-                    except:
+                    except OSError:
                         pass
 
     def get_cache_size(self) -> int:

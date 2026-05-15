@@ -201,9 +201,8 @@ Version={self.config.get('version', '1.0.0')}
             shutil.copy2(icon_path, icon_dest)
         else:
             # 如果没有图标，创建一个占位符（避免 appimagetool 警告）
-            self.progress.on_warning(
-                "未提供图标文件，AppImage 将使用默认图标"
-            )
+            if self.progress:
+                self.progress.warning("未提供图标文件，AppImage 将使用默认图标")
 
     def _build_appimage(self, app_dir: Path, output_path: Path) -> bool:
         """

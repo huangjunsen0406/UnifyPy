@@ -54,13 +54,12 @@ class MacOSCodeSigner:
             codesign_cmd = self.codesign_path if self.codesign_path else "codesign"
             cmd = [
                 codesign_cmd,
-                "--force",  # 强制签名
-                "--deep",  # 深度签名（包含所有内容）
-                "--sign",
-                "-",  # 使用 ad-hoc 签名（-表示本地签名）
+                "--force",
+                "--deep",
+                "--sign", "-",
+                "--options", "runtime",
             ]
 
-            # 如果有 entitlements 文件，添加到签名中
             if entitlements_path and entitlements_path.exists():
                 cmd.extend(["--entitlements", str(entitlements_path)])
                 self._print(f"  📜 使用 entitlements: {entitlements_path}")
@@ -91,7 +90,7 @@ class MacOSCodeSigner:
                     self._print("  ⚠️  签名验证失败，但应用仍可使用")
                     return True  # 即使验证失败，签名可能还是有效的
             else:
-                print(f"  ❌ 代码签名失败:")  # 错误信息始终显示
+                print("  ❌ 代码签名失败:")  # 错误信息始终显示
                 print(f"    错误输出: {result.stderr}")
 
                 # 尝试基本的可执行权限设置

@@ -28,7 +28,8 @@ class ToolValidator:
         self,
         platform: str,
         verbose: bool = False,
-        format_type: str = None
+        format_type: str = None,
+        config: dict = None
     ) -> List[Dict[str, Any]]:
         """
         检查指定平台的工具是否可用.
@@ -36,14 +37,12 @@ class ToolValidator:
         Args:
             platform: 平台名称 (windows/macos/linux)
             verbose: 是否显示详细信息
-            format_type: 打包格式 (可选，如 deb/rpm/dmg/inno_setup)
+            format_type: 打包格式 (可选，如 deb/rpm/dmg/appimage/inno_setup)
                         如果指定，则只检查该格式需要的工具
+            config: 可选配置字典，传递给工具检测以检查用户配置的路径
 
         Returns:
             List[Dict]: 缺失的工具列表
-
-        Raises:
-            RuntimeError: 如果有工具缺失且强制检查
         """
         # 获取需要检测的工具
         required_tools = self.tool_manager.get_required_tools_for_platform(
@@ -51,7 +50,6 @@ class ToolValidator:
         )
 
         if not required_tools:
-            # 没有需要检测的工具
             return []
 
         missing_tools = []
@@ -60,8 +58,7 @@ class ToolValidator:
             tool_name = tool_info["name"]
             tool_display_name = tool_info["display_name"]
 
-            # 检查工具是否可用
-            is_available = self.tool_manager.check_tool_available(tool_name)
+            is_available = self.tool_manager.check_tool_available(tool_name, config)
 
             if not is_available:
                 missing_tools.append(tool_info)
@@ -70,23 +67,46 @@ class ToolValidator:
 
         return missing_tools
 
-    def validate_and_raise(self, platform: str, verbose: bool = False, format_type: str = None):
+    def validate_and_raise(self, platform: str, verbose: bool = False, format_type: str = None, config: dict = None):
         """
-        检查工具并在缺失时抛出异常.
+        检查工具并在缺失时尝试自动安装，仍缺失则抛出异常.
 
         Args:
             platform: 平台名称
             verbose: 是否显示详细信息
-            format_type: 打包格式 (可选，如 deb/rpm/dmg/inno_setup)
-                        如果指定，则只检查该格式需要的工具
+            format_type: 打包格式 (可选)
+            config: 可选配置字典
 
         Raises:
-            RuntimeError: 如果有工具缺失
+            RuntimeError: 如果自动安装后仍有工具缺失
         """
-        missing_tools = self.check_platform_tools(platform, verbose, format_type)
+        missing_tools = self.check_platform_tools(platform, verbose, format_type, config)
 
-        if missing_tools:
-            self._display_missing_tools_error(missing_tools)
+        if not missing_tools:
+            return
+
+        # Attempt auto-install for each missing tool
+        still_missing = []
+        for tool_info in missing_tools:
+            tool_name = tool_info["name"]
+            display_name = tool_info["display_name"]
+
+            if self.progress:
+                self.progress.info(f"正在自动安装 {display_name}...")
+
+            try:
+                success = self.tool_manager.auto_install_tool(tool_name)
+            except Exception:
+                success = False
+
+            if success:
+                if self.progress:
+                    self.progress.info(f"{display_name} 安装成功")
+            else:
+                still_missing.append(tool_info)
+
+        if still_missing:
+            self._display_missing_tools_error(still_missing)
             raise RuntimeError("请安装缺失的打包工具后重试")
 
     def _display_missing_tools_error(self, missing_tools: List[Dict[str, Any]]):

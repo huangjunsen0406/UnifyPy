@@ -55,7 +55,15 @@ class PackagingPlugin(BasePlugin):
             try:
                 with ParallelBuilder(ctx.progress, ctx.args.max_workers) as pb:
                     pb.optimize_pyinstaller_build(ctx.config.get_pyinstaller_config(), str(ctx.project_dir / ctx.config.get("entry")), ctx.project_dir)
-                    results = pb.build_multiple_formats(platform, requested_formats, ctx.packager_registry, source_path, ctx.installer_dir, processed_config)
+                    results = pb.build_multiple_formats(
+                        platform,
+                        requested_formats,
+                        ctx.packager_registry,
+                        source_path,
+                        ctx.installer_dir,
+                        processed_config,
+                        config_file_path=getattr(ctx.config, "config_path", None),
+                    )
                     success_count = sum(1 for s in results.values() if s)
             except Exception as e:
                 ctx.progress.on_error(Exception(f"并行构建失败: {e}"), stage)
@@ -80,7 +88,13 @@ class PackagingPlugin(BasePlugin):
             ctx.progress.warning(f"未找到 {platform}/{format_type} 格式的打包器")
             return False
 
-        packager = packager_class(ctx.progress, ctx.runner, ctx.tool_manager, processed_config)
+        packager = packager_class(
+            ctx.progress,
+            ctx.runner,
+            ctx.tool_manager,
+            processed_config,
+            getattr(ctx.config, "config_path", None),
+        )
 
         errors = packager.validate_config(format_type)
         if errors:
@@ -114,6 +128,14 @@ class PackagingPlugin(BasePlugin):
             return [ctx.args.format]
 
         platform_config = ctx.config.get("platforms", {}).get(platform, {})
+
+        # 优先使用显式 formats 列表
+        if "formats" in platform_config:
+            explicit_formats = platform_config["formats"]
+            if isinstance(explicit_formats, list) and explicit_formats:
+                return explicit_formats
+
+        # fallback: 遍历平台配置的 key，检测哪些是支持的格式
         formats = []
         for key in platform_config.keys():
             if ctx.packager_registry.is_format_supported(platform, key):

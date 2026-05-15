@@ -81,16 +81,19 @@ class DEBPackager(BasePackager):
         """
         安装应用文件到构建目录.
         """
-        app_name = self.config.get("name", "myapp").lower()
-        install_dir = build_dir / "opt" / app_name
+        app_name = self.config.get("name", "myapp")
+        package_name = app_name.lower()
+        install_dir = build_dir / "opt" / package_name
 
         # 创建安装目录
         install_dir.mkdir(parents=True)
 
+        main_executable = self._detect_main_executable(source_path, app_name)
+
         if source_path.is_file():
             # 单个可执行文件
-            shutil.copy2(source_path, install_dir / app_name)
-            (install_dir / app_name).chmod(0o755)
+            shutil.copy2(source_path, install_dir / main_executable)
+            (install_dir / main_executable).chmod(0o755)
         else:
             # 目录 - 复制所有内容
             for item in source_path.iterdir():
@@ -104,15 +107,41 @@ class DEBPackager(BasePackager):
         bin_dir.mkdir(parents=True)
 
         # 创建启动脚本
-        launcher_script = bin_dir / app_name
+        launcher_script = bin_dir / package_name
         launcher_content = f"""#!/bin/bash
-cd /opt/{app_name}
-exec ./{app_name} "$@"
+export LD_LIBRARY_PATH="/opt/{package_name}/_internal:${{LD_LIBRARY_PATH}}"
+cd /opt/{package_name} || exit 1
+exec "./{main_executable}" "$@"
 """
 
         with open(launcher_script, "w") as f:
             f.write(launcher_content)
         launcher_script.chmod(0o755)
+
+    def _detect_main_executable(self, source_path: Path, app_name: str) -> str:
+        """
+        尝试定位主可执行文件名称（保持大小写一致）.
+        """
+        if source_path.is_file():
+            return source_path.name
+
+        # 优先匹配与应用名完全一致的文件
+        candidate = source_path / app_name
+        if candidate.exists() and candidate.is_file():
+            return candidate.name
+
+        # 再尝试大小写不敏感匹配
+        for item in source_path.iterdir():
+            if item.is_file() and item.name.lower() == app_name.lower():
+                return item.name
+
+        # 退化为第一个可执行文件
+        for item in source_path.iterdir():
+            if item.is_file() and os.access(item, os.X_OK):
+                return item.name
+
+        # 最终兜底
+        return app_name
 
     def _create_control_file(self, debian_dir: Path, config: Dict[str, Any]):
         """
@@ -207,11 +236,13 @@ Description: {config.get('description', self.config.get('display_name', app_name
         apps_dir.mkdir(parents=True)
 
         # 桌面文件内容
+        package_name = app_name.lower()
         desktop_content = f"""[Desktop Entry]
 Type=Application
 Name={display_name}
-Exec=/usr/local/bin/{app_name.lower()}
-Icon={app_name.lower()}
+Exec=/usr/local/bin/{package_name}
+Path=/opt/{package_name}
+Icon={package_name}
 Comment={config.get('description', display_name)}
 Categories={config.get('categories', 'Utility;')}
 Terminal={str(config.get('terminal', False)).lower()}
@@ -282,7 +313,7 @@ Terminal={str(config.get('terminal', False)).lower()}
                 errors.append(
                     "dpkg-deb工具未安装，请安装: sudo apt-get install dpkg-dev"
                 )
-        except:
+        except Exception:
             errors.append("无法检查dpkg-deb工具")
 
         return errors

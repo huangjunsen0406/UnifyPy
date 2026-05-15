@@ -214,6 +214,7 @@ cat > $RPM_BUILD_ROOT/usr/local/bin/{app_name} << 'LAUNCHER_EOF'
 #!/bin/bash
 # RPM 启动脚本
 SCRIPT_DIR=/opt/{app_name}
+export LD_LIBRARY_PATH="$SCRIPT_DIR/_internal:${{LD_LIBRARY_PATH}}"
 cd "$SCRIPT_DIR" || exit 1
 exec "$SCRIPT_DIR/{app_name}" "$@"
 LAUNCHER_EOF
@@ -230,6 +231,7 @@ cat > $RPM_BUILD_ROOT/usr/share/applications/{app_name}.desktop << 'EOF'
 Type=Application
 Name={self.config.get('display_name', app_name)}
 Exec=/usr/local/bin/{app_name}
+Path=/opt/{app_name}
 Icon={app_name}
 Comment={config.get('description', self.config.get('display_name', app_name))}
 Categories={config.get('categories', 'Utility;')}
@@ -293,7 +295,7 @@ cp %{{SOURCE1}} $RPM_BUILD_ROOT/usr/share/pixmaps/{app_name}{icon_ext}
         try:
             # 设置为英文locale以确保日期格式正确
             locale.setlocale(locale.LC_TIME, "C")
-        except:
+        except Exception:
             pass
 
         return datetime.datetime.now().strftime("%a %b %d %Y")
@@ -365,7 +367,7 @@ cp %{{SOURCE1}} $RPM_BUILD_ROOT/usr/share/pixmaps/{app_name}{icon_ext}
                 errors.append(
                     "rpmbuild工具未安装，请安装: sudo yum install rpm-build 或 sudo dnf install rpm-build, debian系列 sudo apt install rpm"
                 )
-        except:
+        except Exception:
             errors.append("无法检查rpmbuild工具")
 
         return errors

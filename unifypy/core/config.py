@@ -136,22 +136,30 @@ class ConfigManager:
         Returns:
             str: 处理后的路径项
         """
-        # 处理 "source:dest" 格式
-        if ":" in item or ";" in item:
-            separator = ":" if ":" in item else ";"
-            parts = item.split(separator, 1)
-            if len(parts) == 2:
-                source, dest = parts
-                if not os.path.isabs(source):
-                    source = str(self.project_dir / source)
-                return f"{source}{separator}{dest}"
-            else:
-                return item
-        else:
-            # 单个路径
-            if not os.path.isabs(item):
-                return str(self.project_dir / item)
-            return item
+        def split_source_dest(path_item: str):
+            if ";" in path_item:
+                return path_item.split(";", 1), ";"
+            if ":" in path_item:
+                # Windows 盘符路径仅在存在第二个冒号时视为分隔符
+                if os.name == "nt" and len(path_item) >= 2 and path_item[1] == ":":
+                    idx = path_item.find(":", 2)
+                    if idx == -1:
+                        return None, None
+                    return [path_item[:idx], path_item[idx + 1 :]], ":"
+                return path_item.split(":", 1), ":"
+            return None, None
+
+        parts, separator = split_source_dest(item)
+        if parts and len(parts) == 2:
+            source, dest = parts
+            if not os.path.isabs(source):
+                source = str(self.project_dir / source)
+            return f"{source}{separator}{dest}"
+
+        # 单个路径
+        if not os.path.isabs(item):
+            return str(self.project_dir / item)
+        return item
 
     def _process_nested_paths(
         self,
@@ -240,6 +248,12 @@ class ConfigManager:
 
         return result
 
+    # 安装器专属键，不应提升到 merged_config 顶层
+    INSTALLER_KEYS = {
+        "deb", "rpm", "appimage", "inno_setup", "dmg", "create_dmg",
+        "formats", "zip", "exe",
+    }
+
     def _merge_all_configs(self) -> Dict[str, Any]:
         """合并所有配置源 优先级: 命令行参数 > 平台特定配置 > 全局配置 > 默认配置.
 
@@ -260,11 +274,21 @@ class ConfigManager:
                 if k not in ["platform_specific", "platforms"]
             }
             merged = self._deep_merge(merged, global_config)
+            # 保留完整平台配置，供下游读取
+            if "platforms" in self.raw_config:
+                merged["platforms"] = self.raw_config["platforms"]
+            if "platform_specific" in self.raw_config:
+                merged["platform_specific"] = self.raw_config["platform_specific"]
 
-        # 深度合并平台特定配置
+        # 深度合并平台特定配置（排除安装器专属键）
         platform_config = self._get_platform_config()
         if platform_config:
-            merged = self._deep_merge(merged, platform_config)
+            platform_general = {
+                k: v for k, v in platform_config.items()
+                if k not in self.INSTALLER_KEYS
+            }
+            if platform_general:
+                merged = self._deep_merge(merged, platform_general)
 
         # 深度合并命令行参数
         if self.args:
@@ -331,6 +355,8 @@ class ConfigManager:
             "readme": "readme",
             "hooks": "hooks",
             "onefile": "onefile",
+            "windowed": "windowed",
+            "console": "console",
             "skip_installer": "skip_installer",
             "skip_exe": "skip_exe",
             "inno_setup_path": "inno_setup_path",
@@ -433,52 +459,39 @@ class ConfigManager:
     def get_pyinstaller_config(self) -> Dict[str, Any]:
         """获取PyInstaller配置.
 
+        优先级: CLI参数 > 平台pyinstaller > 全局pyinstaller > 顶层通用键
+
         Returns:
             Dict[str, Any]: PyInstaller配置
         """
-        config = {}
-
-        # 从顶级配置中获取PyInstaller相关项
-        pyinstaller_keys = [
-            "onefile",
-            "windowed",
-            "console",
-            "icon",
-            "name",
-            "distpath",
-            "workpath",
-            "specpath",
-            "debug",
-            "clean",
-            "noconfirm",
-            "strip",
-            "noupx",
-            "optimize",
+        # CLI 可覆盖的 PyInstaller 相关键
+        _CLI_PYINSTALLER_KEYS = [
+            "onefile", "windowed", "console", "icon", "name",
+            "distpath", "workpath", "specpath",
+            "debug", "clean", "noconfirm", "strip", "noupx", "optimize",
         ]
 
-        for key in pyinstaller_keys:
-            value = self.get(key)
+        config = {}
+
+        # Step 1: 从 merged_config 顶层取通用键作为基础
+        for key in _CLI_PYINSTALLER_KEYS:
+            value = self.merged_config.get(key)
             if value is not None:
                 config[key] = value
 
-        # 深度合并根级 pyinstaller 节
-        pyinstaller_section = self.get("pyinstaller", {})
+        # Step 2: 合并全局 pyinstaller section（merged_config 中已包含平台合并结果）
+        pyinstaller_section = self.merged_config.get("pyinstaller", {})
         config = self._deep_merge(config, pyinstaller_section)
 
-        # 深度合并平台特定的PyInstaller配置
-        platform_pyinstaller = self._get_platform_config().get("pyinstaller", {})
-        config = self._deep_merge(config, platform_pyinstaller)
-
-        # 深度合并命令行参数中的 PyInstaller 配置（如果有）
+        # Step 3: CLI 参数以最高优先级覆盖
         if self.args:
-            args_pyinstaller = self._args_to_config(self.args).get("pyinstaller", {})
-            config = self._deep_merge(config, args_pyinstaller)
+            for key in _CLI_PYINSTALLER_KEYS:
+                if key in self.args and self.args[key] is not None:
+                    config[key] = self.args[key]
 
-        # 添加 macOS 特定的配置
+        # macOS: 从平台配置中映射 bundle_identifier
         if self.current_platform == "macos":
             platform_config = self._get_platform_config()
-
-            # Bundle Identifier
             if "bundle_identifier" in platform_config:
                 config["osx_bundle_identifier"] = platform_config["bundle_identifier"]
 

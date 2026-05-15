@@ -213,11 +213,19 @@ class PyInstallerConfigBuilder:
         if ":" in path_item or ";" in path_item:
             # 规范化分隔符
             if self.current_platform == "windows":
-                # Windows使用分号
-                path_item = path_item.replace(":", ";")
+                # Windows 使用分号；避免破坏盘符
+                if ";" in path_item:
+                    return path_item
+                if len(path_item) >= 2 and path_item[1] == ":":
+                    idx = path_item.find(":", 2)
+                    if idx == -1:
+                        return path_item
+                    return f"{path_item[:idx]};{path_item[idx + 1:]}"
+                return path_item.replace(":", ";")
             else:
-                # Unix系统使用冒号
-                path_item = path_item.replace(";", ":")
+                # Unix 系统使用冒号
+                if ";" in path_item and ":" not in path_item:
+                    return path_item.replace(";", ":")
 
         return path_item
 
@@ -432,9 +440,19 @@ pyz = {pyz_config}
                     source_path = parts[0]
                     dest_path = parts[1]
                 elif ":" in item:
-                    parts = item.split(":", 1)
-                    source_path = parts[0]
-                    dest_path = parts[1]
+                    # Windows 盘符处理：仅在存在第二个冒号时视为分隔符
+                    if self.current_platform == "windows" and len(item) >= 2 and item[1] == ":":
+                        idx = item.find(":", 2)
+                        if idx == -1:
+                            source_path = item
+                            dest_path = os.path.basename(item)
+                        else:
+                            source_path = item[:idx]
+                            dest_path = item[idx + 1 :]
+                    else:
+                        parts = item.split(":", 1)
+                        source_path = parts[0]
+                        dest_path = parts[1]
                 else:
                     # 如果没有指定目标路径，使用源路径的文件名
                     source_path = item

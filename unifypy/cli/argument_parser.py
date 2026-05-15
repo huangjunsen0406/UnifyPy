@@ -74,8 +74,8 @@ class ArgumentParser:
         )
         parser.add_argument("--name", help="应用程序名称", default=None)
         parser.add_argument("--display-name", help="应用程序显示名称", default=None)
-        parser.add_argument("--entry", help="入口Python文件", default="main.py")
-        parser.add_argument("--version", help="应用程序版本", default="1.0.0")
+        parser.add_argument("--entry", help="入口Python文件", default=None)
+        parser.add_argument("--version", help="应用程序版本", default=None)
         parser.add_argument("--publisher", help="发布者名称", default=None)
 
     @staticmethod
@@ -92,17 +92,20 @@ class ArgumentParser:
         parser.add_argument(
             "--onefile",
             help="生成单文件模式的可执行文件",
-            action="store_true"
+            action="store_true",
+            default=None,
         )
         parser.add_argument(
             "--windowed",
             help="窗口模式（不显示控制台）",
-            action="store_true"
+            action="store_true",
+            default=None,
         )
         parser.add_argument(
             "--console",
             help="控制台模式",
-            action="store_true"
+            action="store_true",
+            default=None,
         )
 
     @staticmethod
@@ -111,12 +114,14 @@ class ArgumentParser:
         parser.add_argument(
             "--skip-exe",
             help="跳过可执行文件构建",
-            action="store_true"
+            action="store_true",
+            default=None,
         )
         parser.add_argument(
             "--skip-installer",
             help="跳过安装程序构建",
-            action="store_true"
+            action="store_true",
+            default=None,
         )
         parser.add_argument(
             "--dry-run",

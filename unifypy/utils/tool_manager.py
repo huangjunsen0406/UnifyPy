@@ -126,9 +126,25 @@ class ToolManager:
                     "download_url": "通常预装在 RedHat/CentOS/Fedora 系统",
                     "install_instructions": [
                         "在 RedHat/CentOS/Fedora 系统上安装:",
-                        "  sudo yum install rpm-build  # 或 sudo dnf install rpm-build"
+                        "  sudo yum install rpm-build  # 或 sudo dnf install rpm-build",
+                        "在 Debian/Ubuntu 系统上安装:",
+                        "  sudo apt-get install rpm"
                     ],
                     "check_method": "_check_rpmbuild"
+                },
+                {
+                    "name": "appimagetool",
+                    "display_name": "appimagetool",
+                    "description": "AppImage 打包工具",
+                    "download_url": "https://github.com/AppImage/AppImageKit/releases",
+                    "install_instructions": [
+                        "下载并安装 appimagetool:",
+                        "  wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O /usr/local/bin/appimagetool",
+                        "  chmod +x /usr/local/bin/appimagetool",
+                        "或通过包管理器安装（如果可用）:",
+                        "  sudo apt-get install appimagetool  # 部分发行版"
+                    ],
+                    "check_method": "_check_appimagetool"
                 }
             ]
         }
@@ -380,12 +396,12 @@ class ToolManager:
         print(f"📝 描述: {tool_config.get('description', '第三方工具')}")
         print(f"🌐 下载地址: {download_url}")
         print(f"\n⚠️  由于 {tool_name} 是完整的安装包软件，需要手动安装：")
-        print(f"   1. 访问上述URL下载安装包")
-        print(f"   2. 运行安装程序完成安装")
-        print(f"   3. 重新运行UnifyPy构建命令")
-        print(f"\n💡 或者，您可以在配置文件中指定已安装的路径：")
+        print("   1. 访问上述URL下载安装包")
+        print("   2. 运行安装程序完成安装")
+        print("   3. 重新运行UnifyPy构建命令")
+        print("\n💡 或者，您可以在配置文件中指定已安装的路径：")
         print(
-            f'   "inno_setup_path": "C:\\\\Program Files (x86)\\\\Inno Setup 6\\\\ISCC.exe"'
+            '   "inno_setup_path": "C:\\\\Program Files (x86)\\\\Inno Setup 6\\\\ISCC.exe"'
         )
 
         # 检查是否已经安装
@@ -649,8 +665,10 @@ class ToolManager:
         format_mapping = {
             "deb": "dpkg-deb",
             "rpm": "rpmbuild",
+            "appimage": "appimagetool",
             "dmg": "create-dmg",
             "inno_setup": "inno-setup",
+            "exe": "inno-setup",
         }
 
         # 获取实际工具名称
@@ -661,34 +679,43 @@ class ToolManager:
 
         return filtered_tools
 
-    def check_tool_available(self, tool_name: str) -> bool:
+    def check_tool_available(self, tool_name: str, config: dict = None) -> bool:
         """检查工具是否可用.
 
         Args:
             tool_name: 工具名称
+            config: 可选配置字典，用于检查用户配置的工具路径
 
         Returns:
             bool: 工具是否可用
         """
-        # 根据工具名称调用对应的检测方法
         if tool_name == "inno-setup":
-            return self._check_inno_setup()
+            return self._check_inno_setup(config)
         elif tool_name == "create-dmg":
             return self._check_create_dmg()
         elif tool_name == "dpkg-deb":
             return self._check_dpkg_deb()
         elif tool_name == "rpmbuild":
             return self._check_rpmbuild()
+        elif tool_name == "appimagetool":
+            return self._check_appimagetool()
         else:
-            # 未知工具，尝试通过 shutil.which 检查
             return shutil.which(tool_name) is not None
 
-    def _check_inno_setup(self) -> bool:
+    def _check_inno_setup(self, config: dict = None) -> bool:
         """检查 Inno Setup 是否可用.
+
+        Args:
+            config: 可选配置字典，检查 inno_setup_path 字段
 
         Returns:
             bool: 是否可用
         """
+        # 优先检查用户配置中指定的路径
+        if config:
+            inno_path = config.get("inno_setup_path")
+            if inno_path and os.path.exists(inno_path):
+                return True
         return self._detect_existing_inno_setup() is not None
 
     def _check_create_dmg(self) -> bool:
@@ -721,3 +748,143 @@ class ToolManager:
             bool: 是否可用
         """
         return shutil.which("rpmbuild") is not None
+
+    def _check_appimagetool(self) -> bool:
+        """检查 appimagetool 是否可用.
+
+        Returns:
+            bool: 是否可用
+        """
+        return shutil.which("appimagetool") is not None
+
+    # ------------------------------------------------------------------ #
+    #  Auto-install methods                                                #
+    # ------------------------------------------------------------------ #
+
+    def auto_install_tool(self, tool_name: str) -> bool:
+        """Attempt to auto-install a missing tool.
+
+        Args:
+            tool_name: 工具名称
+
+        Returns:
+            bool: 安装成功返回 True，失败返回 False
+        """
+        installers = {
+            "appimagetool": self._auto_install_appimagetool,
+            "dpkg-deb": self._auto_install_dpkg_deb,
+            "rpmbuild": self._auto_install_rpmbuild,
+            "inno-setup": self._auto_install_inno_setup,
+        }
+        installer = installers.get(tool_name)
+        if installer:
+            try:
+                return installer()
+            except Exception:
+                return False
+        return False
+
+    def _auto_install_appimagetool(self) -> bool:
+        """Download appimagetool from GitHub and install to user cache dir.
+
+        Returns:
+            bool: 安装成功返回 True
+        """
+        import platform as _platform
+        arch = _platform.machine()  # x86_64 or aarch64
+        url = (
+            "https://github.com/AppImage/AppImageKit/releases/download/"
+            f"continuous/appimagetool-{arch}.AppImage"
+        )
+        target = self.tools_dir / "appimagetool"
+        try:
+            self._download_file(url, target)
+            os.chmod(target, 0o755)
+            # Add tools_dir to PATH for current process so subsequent
+            # shutil.which() calls can find the binary.
+            os.environ["PATH"] = (
+                str(self.tools_dir) + os.pathsep + os.environ.get("PATH", "")
+            )
+            return shutil.which("appimagetool") is not None
+        except Exception:
+            return False
+
+    def _auto_install_dpkg_deb(self) -> bool:
+        """Install dpkg-dev via system package manager.
+
+        Returns:
+            bool: 安装成功返回 True
+        """
+        import subprocess
+
+        commands = [
+            ["sudo", "apt-get", "install", "-y", "dpkg-dev"],
+            ["sudo", "dnf", "install", "-y", "dpkg"],
+        ]
+        for cmd in commands:
+            try:
+                result = subprocess.run(cmd, capture_output=True, timeout=120)
+                if result.returncode == 0:
+                    return shutil.which("dpkg-deb") is not None
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                continue
+        return False
+
+    def _auto_install_rpmbuild(self) -> bool:
+        """Install rpm-build via system package manager.
+
+        Returns:
+            bool: 安装成功返回 True
+        """
+        import subprocess
+
+        commands = [
+            ["sudo", "apt-get", "install", "-y", "rpm"],
+            ["sudo", "dnf", "install", "-y", "rpm-build"],
+            ["sudo", "yum", "install", "-y", "rpm-build"],
+        ]
+        for cmd in commands:
+            try:
+                result = subprocess.run(cmd, capture_output=True, timeout=120)
+                if result.returncode == 0:
+                    return shutil.which("rpmbuild") is not None
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                continue
+        return False
+
+    def _auto_install_inno_setup(self) -> bool:
+        """Download and silently install Inno Setup on Windows.
+
+        Returns:
+            bool: 安装成功返回 True
+        """
+        if self.current_platform != "windows":
+            return False
+
+        import subprocess
+
+        download_url = "https://jrsoftware.org/download.php/is.exe"
+        try:
+            installer_path = Path(tempfile.gettempdir()) / "innosetup_installer.exe"
+            self._download_file(download_url, installer_path)
+            result = subprocess.run(
+                [
+                    str(installer_path),
+                    "/VERYSILENT",
+                    "/SP-",
+                    "/SUPPRESSMSGBOXES",
+                    "/NORESTART",
+                ],
+                capture_output=True,
+                timeout=300,
+            )
+            # Clean up installer
+            try:
+                installer_path.unlink()
+            except OSError:
+                pass
+            if result.returncode == 0:
+                return self._detect_existing_inno_setup() is not None
+        except Exception:
+            pass
+        return False

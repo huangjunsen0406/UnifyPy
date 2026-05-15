@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from pathlib import Path
-import os
-
 from unifypy.core.plugin import BasePlugin
 from unifypy.core.event_bus import EventBus
 from unifypy.core.events import BUILD_EXECUTABLE
@@ -73,7 +70,7 @@ class PyInstallerPlugin(BasePlugin):
         should_regenerate_spec = True
         if spec_file.exists() and hasattr(ctx, 'cache_manager'):
             # 检查配置是否变化
-            current_hash = ctx.cache_manager.calculate_config_hash(ctx.config.raw_config, ctx.config.current_platform)
+            current_hash = ctx.cache_manager.calculate_config_hash(ctx.config.merged_config, ctx.config.current_platform)
             stored_hash = ctx.cache_manager.load_cached_hash(ctx.config.current_platform)
 
             if getattr(ctx.args, 'verbose', False):
@@ -97,7 +94,7 @@ class PyInstallerPlugin(BasePlugin):
 
             # 更新配置 hash
             if hasattr(ctx, 'cache_manager'):
-                new_hash = ctx.cache_manager.calculate_config_hash(ctx.config.raw_config, ctx.config.current_platform)
+                new_hash = ctx.cache_manager.calculate_config_hash(ctx.config.merged_config, ctx.config.current_platform)
                 ctx.cache_manager.save_config_hash(new_hash, ctx.config.current_platform)
 
         # 使用 spec 文件打包

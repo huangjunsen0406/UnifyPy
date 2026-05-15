@@ -105,16 +105,18 @@ class MacOSPostProcessor:
             bool: 是否处理成功
         """
         if not self.is_macos():
-            return True  # 非 macOS 平台，无需处理
+            return True
 
-        # 查找 .app 包
         app_path = dist_dir / f"{app_name}.app"
 
         if not app_path.exists():
             print(f"⚠️ 未找到 .app 包: {app_path}")
             return False
 
-        # 验证 Info.plist 和代码签名（仅在 verbose 模式）
+        # 使用 entitlements 重新签名（确保权限生效）
+        self._sign_app(app_path, project_dir)
+
+        # 验证 Info.plist 和代码签名
         if self.verbose:
             print("🔍 验证 macOS .app 包配置...")
             self._verify_info_plist(app_path, config)
