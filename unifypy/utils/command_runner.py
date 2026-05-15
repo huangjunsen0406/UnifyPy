@@ -61,6 +61,7 @@ class SilentRunner:
         capture_output: bool = True,
         shell: bool = True,
         cwd: Optional[str] = None,
+        env: Optional[dict] = None,
     ) -> bool:
         """执行命令，只在错误时显示输出.
 
@@ -96,9 +97,9 @@ class SilentRunner:
                     capture_output=True,
                     text=True,
                     encoding=encoding,
-                    # 无法解码的字节替换为 � (防止崩溃)
                     errors='replace',
                     cwd=cwd,
+                    env=env,
                 )
             else:
                 result = subprocess.run(
@@ -108,9 +109,9 @@ class SilentRunner:
                     stderr=subprocess.PIPE,
                     text=True,
                     encoding=encoding,
-                    # 无法解码的字节替换为 � (防止崩溃)
                     errors='replace',
                     cwd=cwd,
+                    env=env,
                 )
 
             # 检查执行结果
