@@ -282,7 +282,7 @@ cp %{{SOURCE1}} $RPM_BUILD_ROOT/usr/share/pixmaps/{app_name}{icon_ext}
 """
 
         # 写入spec文件
-        with open(spec_file, "w") as f:
+        with open(spec_file, "w", encoding="utf-8") as f:
             f.write(spec_content)
 
     def _get_current_date(self) -> str:

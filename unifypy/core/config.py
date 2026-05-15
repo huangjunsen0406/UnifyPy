@@ -254,6 +254,12 @@ class ConfigManager:
         "formats", "zip", "exe",
     }
 
+    # 预期会在全局和平台配置中同时出现的键（平台覆盖全局是正常行为）
+    EXPECTED_OVERRIDE_KEYS = {
+        "pyinstaller", "icon", "name", "version", "display_name",
+        "entry", "publisher",
+    }
+
     def _merge_all_configs(self) -> Dict[str, Any]:
         """合并所有配置源 优先级: 命令行参数 > 平台特定配置 > 全局配置 > 默认配置.
 
@@ -418,6 +424,9 @@ class ConfigManager:
     def _check_duplicate_configs(self) -> List[str]:
         """
         检查重复配置项.
+
+        排除预期会在全局和平台配置中同时出现的键（如 pyinstaller、icon 等），
+        因为平台覆盖全局是正常的设计行为。
         """
         duplicates = []
 
@@ -431,7 +440,7 @@ class ConfigManager:
         platform_config = self._get_platform_config()
         platform_keys = set(platform_config.keys())
 
-        duplicate_keys = global_keys.intersection(platform_keys)
+        duplicate_keys = global_keys.intersection(platform_keys) - self.EXPECTED_OVERRIDE_KEYS
         duplicates.extend(duplicate_keys)
 
         return duplicates

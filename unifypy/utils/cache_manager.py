@@ -43,7 +43,7 @@ class CacheManager:
         # 创建 .gitignore 文件（仅忽略日志）
         gitignore_path = self.unifypy_dir / ".gitignore"
         if not gitignore_path.exists():
-            with open(gitignore_path, "w") as f:
+            with open(gitignore_path, "w", encoding="utf-8") as f:
                 f.write("# UnifyPy 缓存目录\n")
                 f.write("# 大部分文件应该加入版本控制以支持 CI/CD\n\n")
                 f.write("# 仅忽略日志文件\n")

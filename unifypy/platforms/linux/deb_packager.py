@@ -114,7 +114,7 @@ cd /opt/{package_name} || exit 1
 exec "./{main_executable}" "$@"
 """
 
-        with open(launcher_script, "w") as f:
+        with open(launcher_script, "w", encoding="utf-8") as f:
             f.write(launcher_content)
         launcher_script.chmod(0o755)
 
@@ -203,7 +203,7 @@ Description: {config.get('description', self.config.get('display_name', app_name
             control_content += f"Homepage: {homepage}\n"
 
         # 写入控制文件
-        with open(debian_dir / "control", "w") as f:
+        with open(debian_dir / "control", "w", encoding="utf-8") as f:
             f.write(control_content)
 
     def _create_scripts(self, debian_dir: Path, config: Dict[str, Any]):
@@ -216,7 +216,7 @@ Description: {config.get('description', self.config.get('display_name', app_name
             script_content = config.get(f"{script}_script")
             if script_content:
                 script_file = debian_dir / script
-                with open(script_file, "w") as f:
+                with open(script_file, "w", encoding="utf-8") as f:
                     f.write("#!/bin/bash\n")
                     f.write(script_content)
                 script_file.chmod(0o755)
@@ -250,7 +250,7 @@ Terminal={str(config.get('terminal', False)).lower()}
 
         # 写入桌面文件
         desktop_file = apps_dir / f"{app_name.lower()}.desktop"
-        with open(desktop_file, "w") as f:
+        with open(desktop_file, "w", encoding="utf-8") as f:
             f.write(desktop_content)
 
         # 复制图标文件
