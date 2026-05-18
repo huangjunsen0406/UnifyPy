@@ -495,6 +495,8 @@ pyz = {pyz_config}
             "CFBundleShortVersionString": config.get("version", "1.0.0"),
             "CFBundleIdentifier": bundle_id,
             "NSPrincipalClass": "NSApplication",
+            "CFBundleDevelopmentRegion": "en",
+            "LSHasLocalizedDisplayName": True,
             "NSHighResolutionCapable": True,
             "LSMinimumSystemVersion": "10.13.0",
             "LSApplicationCategoryType": "public.app-category.productivity",

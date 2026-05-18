@@ -41,7 +41,11 @@ class PackagingPlugin(BasePlugin):
         else:
             # macOS BUNDLE 输出 .app，其他平台输出目录
             if platform == "macos":
-                source_path = ctx.dist_dir / f"{app_name}.app"
+                display_name = ctx.config.get("display_name")
+                if display_name and (ctx.dist_dir / f"{display_name}.app").exists():
+                    source_path = ctx.dist_dir / f"{display_name}.app"
+                else:
+                    source_path = ctx.dist_dir / f"{app_name}.app"
             else:
                 source_path = ctx.dist_dir / app_name
 

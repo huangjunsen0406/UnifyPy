@@ -113,6 +113,11 @@ class MacOSPostProcessor:
             print(f"⚠️ 未找到 .app 包: {app_path}")
             return False
 
+        # 写入本地化 display_name（Launchpad 需要 lproj 才能显示 CFBundleDisplayName）
+        display_name = config.get("display_name")
+        if display_name and display_name != app_name:
+            self._write_localized_display_name(app_path, display_name)
+
         # 使用 entitlements 重新签名（确保权限生效）
         self._sign_app(app_path, project_dir)
 
@@ -122,7 +127,30 @@ class MacOSPostProcessor:
             self._verify_info_plist(app_path, config)
             self._verify_code_signature(app_path, project_dir)
 
+        # 重命名 .app 为 display_name（Launchpad 直接显示文件名）
+        if display_name and display_name != app_name:
+            new_app_path = dist_dir / f"{display_name}.app"
+            if new_app_path.exists():
+                import shutil
+                shutil.rmtree(new_app_path)
+            app_path.rename(new_app_path)
+            print(f"✅ 已重命名: {app_name}.app → {display_name}.app")
+
         return True
+
+    def _write_localized_display_name(self, app_path: Path, display_name: str) -> None:
+        resources_dir = app_path / "Contents" / "Resources"
+        for lproj in ("zh-Hans.lproj", "en.lproj", "Base.lproj"):
+            lproj_dir = resources_dir / lproj
+            lproj_dir.mkdir(parents=True, exist_ok=True)
+            strings_file = lproj_dir / "InfoPlist.strings"
+            strings_file.write_text(
+                f'"CFBundleDisplayName" = "{display_name}";\n'
+                f'"CFBundleName" = "{display_name}";\n',
+                encoding="utf-8",
+            )
+        if self.verbose:
+            print(f"✅ 已写入本地化显示名称: {display_name}")
 
     def _update_info_plist(self, app_path: Path, config) -> bool:
         """
