@@ -30,7 +30,7 @@ class PyInstallerPlugin(BasePlugin):
         cb = ProgressCallbackFactory.create_callback(ctx.progress, verbose=getattr(ctx.args, "verbose", False))
 
         # 构建器与 macOS 处理器
-        builder = PyInstallerConfigBuilder(current_platform=ctx.config.current_platform, verbose=getattr(ctx.args, "verbose", False), progress_callback=cb)
+        builder = PyInstallerConfigBuilder(current_platform=ctx.config.current_platform, verbose=getattr(ctx.args, "verbose", False), progress_callback=cb, project_dir=ctx.project_dir)
         info_plist_updater = InfoPlistUpdater(verbose=getattr(ctx.args, "verbose", False))
         mac_codesigner = MacOSCodeSigner(verbose=getattr(ctx.args, "verbose", False))
         mac_processor = MacOSPostProcessor(info_plist_updater, mac_codesigner, builder, verbose=getattr(ctx.args, "verbose", False))
@@ -48,7 +48,7 @@ class PyInstallerPlugin(BasePlugin):
 
         # 生成 spec 文件并执行
         py_cfg = ctx.config.get_pyinstaller_config()
-        entry = str((ctx.project_dir / ctx.config.get("entry")).resolve())
+        entry = ctx.config.get("entry")
 
         # 构建完整的配置字典（包含 platforms.macos 配置）
         full_config = {

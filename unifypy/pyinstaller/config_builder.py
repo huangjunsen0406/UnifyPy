@@ -109,17 +109,19 @@ class PyInstallerConfigBuilder:
         "resource",
     }
 
-    def __init__(self, current_platform: Optional[str] = None, verbose: bool = False, progress_callback=None):
+    def __init__(self, current_platform: Optional[str] = None, verbose: bool = False, progress_callback=None, project_dir: Optional[Path] = None):
         """初始化配置构建器.
 
         Args:
             current_platform: 当前平台 (windows/macos/linux)
             verbose: 是否显示详细输出
             progress_callback: 进度回调函数 callback(message, level='info')
+            project_dir: 项目目录，用于解析相对路径的验证
         """
         self.current_platform = current_platform or self._detect_platform()
         self.verbose = verbose
         self.progress_callback = progress_callback
+        self.project_dir = project_dir
         self.entitlements_generator = EntitlementsGenerator(progress_callback=progress_callback)
         self.icon_converter = IconConverter(verbose=verbose, progress_callback=progress_callback)
 
@@ -247,8 +249,10 @@ class PyInstallerConfigBuilder:
         else:
             source_path = path_item
 
-        # 检查路径是否存在
+        # 检查路径是否存在（支持基于 project_dir 的相对路径解析）
         if os.path.exists(source_path):
+            return True
+        elif self.project_dir and os.path.exists(os.path.join(str(self.project_dir), source_path)):
             return True
         else:
             self._log(f"跳过不存在的路径: {source_path} (来自 {config_key})", 'warning')
@@ -458,8 +462,8 @@ pyz = {pyz_config}
                     source_path = item
                     dest_path = os.path.basename(item)
 
-                # 验证源路径是否存在
-                if os.path.exists(source_path):
+                # 验证源路径是否存在（支持基于 project_dir 的相对路径解析）
+                if os.path.exists(source_path) or (self.project_dir and os.path.exists(os.path.join(str(self.project_dir), source_path))):
                     tuples_list.append((source_path, dest_path))
                 else:
                     self._log(f"跳过不存在的路径: {source_path}", 'warning')
