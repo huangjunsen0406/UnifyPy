@@ -53,6 +53,7 @@ class PyInstallerPlugin(BasePlugin):
         # 构建完整的配置字典（包含 platforms.macos 配置）
         full_config = {
             "name": ctx.config.get("name"),
+            "display_name": ctx.config.get("display_name"),
             "version": ctx.config.get("version"),
             "icon": ctx.config.get("icon"),
             "publisher": ctx.config.get("publisher", ""),

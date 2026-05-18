@@ -485,9 +485,10 @@ pyz = {pyz_config}
         )
 
         # Info.plist配置
+        display_name = config.get("display_name", app_name)
         info_plist = {
             "CFBundleName": app_name,
-            "CFBundleDisplayName": app_name,
+            "CFBundleDisplayName": display_name,
             "CFBundleExecutable": app_name,
             "CFBundlePackageType": "APPL",
             "CFBundleVersion": config.get("version", "1.0.0"),
