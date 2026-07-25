@@ -73,17 +73,17 @@ class ToolValidator:
         verbose: bool = False,
         format_type: str = None,
         config: dict = None,
-        allow_auto_install: bool = False,
+        allow_auto_install: bool = True,
     ):
         """
-        检查工具；仅在 allow_auto_install 时尝试自动安装，否则打印指引并报错.
+        检查工具；在 allow_auto_install 时尝试自动安装，否则打印指引并报错.
 
         Args:
             platform: 平台名称
             verbose: 是否显示详细信息
             format_type: 打包格式 (可选)
             config: 可选配置字典
-            allow_auto_install: 是否允许自动安装
+            allow_auto_install: 是否允许自动安装（默认 True）
 
         Raises:
             RuntimeError: 如果有工具缺失
@@ -93,9 +93,9 @@ class ToolValidator:
         if not missing_tools:
             return
 
-        # Only auto-install when explicitly allowed
+        # Auto-install when allowed (default on; disable via --no-allow-auto-install)
         still_missing = []
-        if allow_auto_install or getattr(self.tool_manager, "allow_auto_install", False):
+        if allow_auto_install or getattr(self.tool_manager, "allow_auto_install", True):
             # Ensure tool manager flag is set for nested checks
             self.tool_manager.allow_auto_install = True
             for tool_info in missing_tools:
@@ -134,7 +134,7 @@ class ToolValidator:
     def _display_missing_tools_error(
         self,
         missing_tools: List[Dict[str, Any]],
-        allow_auto_install: bool = False,
+        allow_auto_install: bool = True,
     ):
         """
         显示缺失工具的详细错误信息.
@@ -165,8 +165,8 @@ class ToolValidator:
 
             if tool_info.get("name") in auto_installable and not allow_auto_install:
                 print(
-                    "   提示: 可使用 --allow-auto-install 尝试自动安装"
-                    "（需 sudo / 网络；appimagetool 将校验 SHA256）"
+                    "   提示: 自动安装默认开启；若被 --no-allow-auto-install 关闭，"
+                    "可去掉该参数以尝试自动安装（需 sudo / 网络；appimagetool 将校验 SHA256）"
                 )
             if tool_info.get("name") == "inno-setup":
                 print("   注意: Inno Setup 出于安全考虑不会自动下载执行，请手动安装。")

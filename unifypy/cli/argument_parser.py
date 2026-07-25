@@ -32,7 +32,7 @@ class ArgumentParser:
   unifypy . --config build.json
   unifypy /path/to/project --name myapp --app-version 1.0.0
   unifypy . --config build.json --verbose
-  unifypy . --config build.json --allow-auto-install
+  unifypy . --config build.json --no-allow-auto-install
   unifypy --version
             """,
         )
@@ -247,9 +247,21 @@ class ArgumentParser:
     @staticmethod
     def _add_tool_arguments(parser: argparse.ArgumentParser):
         """添加工具安装相关参数"""
+        # Python 3.8-compatible BooleanOptionalAction equivalent:
+        # default True for CI friendliness; disable with --no-allow-auto-install.
         parser.add_argument(
             "--allow-auto-install",
-            help="允许自动安装缺失工具（sudo 装包、下载 appimagetool 等；Inno Setup 仍需手动安装）",
+            dest="allow_auto_install",
             action="store_true",
-            default=False,
+            default=True,
+            help=(
+                "自动安装缺失打包工具（默认开启；CI 友好；"
+                "sudo 装包 / 下载 appimagetool 等；Inno Setup 仍需手动安装）"
+            ),
+        )
+        parser.add_argument(
+            "--no-allow-auto-install",
+            dest="allow_auto_install",
+            action="store_false",
+            help="禁用自动安装缺失工具（仅打印安装指引）",
         )

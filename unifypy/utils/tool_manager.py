@@ -57,13 +57,13 @@ class ToolManager:
     def __init__(
         self,
         tools_dir: Optional[str] = None,
-        allow_auto_install: bool = False,
+        allow_auto_install: bool = True,
     ):
         """初始化工具管理器.
 
         Args:
             tools_dir: 工具存储目录，默认为用户缓存目录下的unifypy_tools
-            allow_auto_install: 是否允许自动安装缺失工具（默认 False）
+            allow_auto_install: 是否允许自动安装缺失工具（默认 True，CI 友好）
         """
         self.allow_auto_install = allow_auto_install
 
@@ -183,7 +183,7 @@ class ToolManager:
                         "  1. 打开 https://github.com/AppImage/appimagetool/releases",
                         "  2. 下载对应架构的 AppImage 并 chmod +x",
                         "  3. 放到 PATH 中（如 /usr/local/bin/appimagetool）",
-                        "或使用 --allow-auto-install（需内置 SHA256 可用时）自动下载校验",
+                        "默认会尝试自动下载校验（需内置 SHA256 可用）；可用 --no-allow-auto-install 关闭",
                     ],
                     "check_method": "_check_appimagetool"
                 }

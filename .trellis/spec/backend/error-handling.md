@@ -17,7 +17,7 @@ Build failures are collected on `BuildContext.errors` via the EventBus and surfa
 | Missing config / entry | `FileNotFoundError`, `ValueError` | progress / raise |
 | Missing packaging tools | `RuntimeError` after install guidance print | print block + raise |
 | Download hash mismatch | `RuntimeError` | raise; file deleted |
-| Auto-install disabled | `RuntimeError` | instructions + mention `--allow-auto-install` |
+| Auto-install disabled | `RuntimeError` | instructions + note default-on / `--no-allow-auto-install` |
 | PyInstaller / packager failure | `RuntimeError` | stage error |
 | Unsupported arch | `ValueError` / `RuntimeError` | environment check |
 
@@ -56,7 +56,8 @@ Handlers that fail append to `ctx.errors`; Engine returns non-zero. Do not rely 
 |------|------|
 | `--version` | Tool version; exits |
 | `--app-version` | Application version for the build (`dest=version`) |
-| `--allow-auto-install` | Opt-in automatic tool install (still hash-gated) |
+| `--allow-auto-install` | Automatic tool install (default **on**, still hash-gated) |
+| `--no-allow-auto-install` | Disable automatic tool install; print instructions only |
 | `--development` | Opt-in macOS development entitlements |
 
 ---

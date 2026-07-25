@@ -30,8 +30,8 @@ class EnvironmentPlugin(BasePlugin):
         if not entry_file.exists():
             raise FileNotFoundError(f"入口文件不存在: {entry_file}")
 
-        # 工具检测
-        allow_auto_install = bool(getattr(ctx.args, "allow_auto_install", False))
+        # 工具检测（默认允许自动安装；可用 --no-allow-auto-install 关闭）
+        allow_auto_install = bool(getattr(ctx.args, "allow_auto_install", True))
         ctx.tool_manager = ctx.tool_manager or ToolManager(
             allow_auto_install=allow_auto_install
         )

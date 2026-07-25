@@ -12,19 +12,19 @@ UnifyPy is a CLI packaging tool (PyInstaller + platform installers). Prefer fail
 
 ## Forbidden Patterns
 
-### Don't: Silent tool install / sudo without explicit opt-in
+### Don't: Silent tool install / sudo when auto-install is disabled
 
 ```python
-# Bad — auto install with no user flag
-tool_manager.auto_install_tool("appimagetool")
-
-# Bad — sudo without allow_auto_install
+# Bad — ignore allow_auto_install flag and always sudo
 subprocess.run(["sudo", "apt-get", "install", "-y", "dpkg-dev"])
+
+# Bad — download/run binaries when allow_auto_install is False
+tool_manager.auto_install_tool("appimagetool")  # must no-op if flag False
 ```
 
-**Why**: CI and shared machines must not escalate privileges or execute downloaded binaries by default.
+**Why**: Shared/sensitive machines may disable auto-install via `--no-allow-auto-install`. Downloads must still be SHA256-gated.
 
-**Instead**: Gate on `allow_auto_install` (CLI `--allow-auto-install`). Inno Setup must never silent-download-and-execute; print manual install instructions only.
+**Instead**: Gate on `allow_auto_install` (default **True** for CI; disable with CLI `--no-allow-auto-install`). Inno Setup must never silent-download-and-execute; print manual install instructions only.
 
 ### Don't: Download binaries without SHA256 when auto-installing
 
@@ -98,7 +98,7 @@ Minimum coverage themes:
 
 ## Code Review Checklist
 
-- [ ] Auto-install / download paths fail closed without `--allow-auto-install` and without hashes
+- [ ] Auto-install respects `--no-allow-auto-install`; downloads fail closed without hashes
 - [ ] No new `shell=True` defaults
 - [ ] Packagers receive real `project_dir`
 - [ ] CLI: tool `--version` vs app `--app-version` not confused

@@ -197,7 +197,8 @@ unifypy <project_dir> [选项]
 | `--skip-installer` | 跳过安装程序构建 | `--skip-installer` |
 | `--clean` | 清理之前的构建文件 | `--clean` |
 | `--format FORMAT` | 指定输出格式 (exe,dmg,deb,rpm,appimage) | `--format dmg` |
-| `--allow-auto-install` | 允许自动安装缺失工具（sudo / 下载 appimagetool；Inno 仍需手动） | `--allow-auto-install` |
+| `--allow-auto-install` | 自动安装缺失工具（**默认开启**；sudo / 下载 appimagetool；Inno 仍需手动） | `--allow-auto-install` |
+| `--no-allow-auto-install` | 禁用自动安装，仅打印安装指引 | `--no-allow-auto-install` |
 
 ### 工具路径选项
 | 参数 | 说明 | 示例 |
@@ -236,10 +237,10 @@ unifypy <project_dir> [选项]
 
 ## ⚠️ 行为变更说明（安全默认）
 
-自 2.0.17 起，默认行为更偏安全（Approach C）：
+自 2.0.17 起，默认行为更偏安全（Approach C）；后续为 CI 友好调整了自动安装默认值：
 
-1. **自动安装默认关闭**：缺失 `dpkg`/`rpmbuild`/`appimagetool` 时只打印安装指引；需显式 `--allow-auto-install` 才会尝试自动安装（`sudo` 装包或下载工具）。
-2. **Inno Setup 永不静默安装**：即使开启 `--allow-auto-install`，也只提示手动安装链接，不自动下载执行安装包。
+1. **自动安装默认开启（CI 友好）**：缺失 `dpkg`/`rpmbuild`/`appimagetool` 时会尝试自动安装（`sudo` 装包或下载工具）。共享/敏感环境请用 `--no-allow-auto-install` 关闭，仅打印安装指引。
+2. **Inno Setup 永不静默安装**：即使自动安装开启，也只提示手动安装链接，不自动下载执行安装包。
 3. **下载校验 SHA256**：自动下载的 appimagetool 等必须匹配内置 hash；校验失败会删除文件并报错。Zip 解压拒绝路径逃逸（Zip Slip）。
 4. **macOS entitlements 默认 production**：不再默认带开发调试权限；需要调试时显式加 `--development`。
 5. **`--config` 相对路径**相对 **project_dir** 解析（而非当前工作目录）。

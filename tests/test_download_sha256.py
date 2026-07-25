@@ -60,7 +60,13 @@ def test_download_accepts_good_hash(tmp_path):
     assert target.read_bytes() == payload
 
 
-def test_auto_install_disabled_by_default(tmp_path):
+def test_auto_install_enabled_by_default(tmp_path):
+    """Default allow_auto_install is True (CI-friendly)."""
+    tm = ToolManager(tools_dir=str(tmp_path / "tools"))
+    assert tm.allow_auto_install is True
+
+
+def test_auto_install_disabled_when_flag_false(tmp_path):
     tm = ToolManager(tools_dir=str(tmp_path / "tools"), allow_auto_install=False)
     assert tm.auto_install_tool("appimagetool") is False
     assert tm.auto_install_tool("dpkg-deb") is False
