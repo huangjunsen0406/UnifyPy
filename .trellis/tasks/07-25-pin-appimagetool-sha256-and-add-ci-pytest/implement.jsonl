@@ -1,0 +1,3 @@
+{"file": ".trellis/tasks/07-25-pin-appimagetool-sha256-and-add-ci-pytest/prd.md", "reason": "Requirements for hash pin and CI"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Safety defaults for downloads"}
+{"file": "AUDIT_REPORT.md", "reason": "CI and tool download backlog"}
