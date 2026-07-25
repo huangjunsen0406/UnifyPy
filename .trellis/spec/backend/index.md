@@ -14,11 +14,11 @@ Guidelines for the `unifypy` package: engine, plugins, platform packagers, and t
 
 | Guide | Description | Status |
 |-------|-------------|--------|
-| [Directory Structure](./directory-structure.md) | Module organization and file layout | To fill |
-| [Database Guidelines](./database-guidelines.md) | N/A for this project | N/A |
+| [Directory Structure](./directory-structure.md) | Module organization and file layout | Filled |
+| [Database Guidelines](./database-guidelines.md) | No application DB (intentionally N/A) | N/A |
 | [Error Handling](./error-handling.md) | Tool install, download, CLI errors | Filled |
 | [Quality Guidelines](./quality-guidelines.md) | Safety defaults, tests, review | Filled |
-| [Logging Guidelines](./logging-guidelines.md) | Structured logging, log levels | To fill |
+| [Logging Guidelines](./logging-guidelines.md) | ProgressManager + logutil | Filled |
 
 ---
 
