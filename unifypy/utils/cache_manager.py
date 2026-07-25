@@ -63,9 +63,11 @@ class CacheManager:
         # 过滤配置，排除动态参数
         filtered_config = self._filter_config_for_hash(config)
         
+        from unifypy.core.version import get_version
+
         # 构建哈希因子
         hash_factors = {
-            "unifypy_version": "2.0.0",  # TODO: 从版本文件读取
+            "unifypy_version": get_version(),
             "build_config": filtered_config,
         }
         
@@ -227,9 +229,11 @@ class CacheManager:
             except Exception:
                 pass
         
+        from unifypy.core.version import get_version
+
         # 返回默认元数据
         return {
-            "version": "2.0.0",
+            "version": get_version(),
             "created": None,
             "app_id": None,
             "config_hash": None,

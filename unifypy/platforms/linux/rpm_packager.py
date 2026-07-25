@@ -329,7 +329,12 @@ cp %{{SOURCE1}} $RPM_BUILD_ROOT/usr/share/pixmaps/{app_name}{icon_ext}
         ]
 
         success = self.runner.run_command(
-            command, "Linux RPM打包", "正在构建RPM包...", 80, shell=False
+            command,
+            "Linux RPM打包",
+            "正在构建RPM包...",
+            80,
+            shell=False,
+            env=env,
         )
 
         if success:

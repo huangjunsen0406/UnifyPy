@@ -66,13 +66,9 @@ class MacOSPostProcessor:
         if not self.is_macos():
             return {}
 
-        # 判断是否为开发版本（默认开启，适用于未签名应用）
-        # 只有明确指定 --production 时才禁用开发模式
-        production = getattr(args, "production", False)
-        development = (
-            not production
-            or getattr(args, "development", False)
-            or getattr(args, "debug", False)
+        # 默认 production entitlements；仅 --development 或 --debug 开启开发权限
+        development = bool(
+            getattr(args, "development", False) or getattr(args, "debug", False)
         )
 
         # 更新配置以包含自动生成的 entitlements

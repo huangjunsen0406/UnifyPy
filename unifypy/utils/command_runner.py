@@ -59,7 +59,7 @@ class SilentRunner:
         step_description: str = "",
         step_weight: int = 10,
         capture_output: bool = True,
-        shell: bool = True,
+        shell: bool = False,
         cwd: Optional[str] = None,
         env: Optional[dict] = None,
     ) -> bool:
@@ -71,7 +71,9 @@ class SilentRunner:
             step_description: 步骤描述
             step_weight: 进度权重
             capture_output: 是否捕获输出
-            shell: 是否使用shell执行
+            shell: 是否使用 shell 执行（默认 False，更安全）
+            cwd: 工作目录
+            env: 环境变量字典
 
         Returns:
             bool: 执行是否成功

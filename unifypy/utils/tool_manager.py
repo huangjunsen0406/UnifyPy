@@ -4,6 +4,7 @@
 第三方工具自动下载和管理 支持从GitHub直接获取工具，不依赖系统包管理器.
 """
 
+import hashlib
 import os
 from unifypy.core.platforms import normalize_platform, normalize_arch
 import shutil
@@ -15,17 +16,57 @@ from typing import Dict, List, Optional
 import requests
 
 
+# Pinned appimagetool release assets + SHA256.
+# Update these when bumping the pinned release (do not use continuous builds).
+# Source: https://github.com/AppImage/appimagetool/releases
+APPIMAGETOOL_RELEASE = "continuous"  # tag segment used in URL path when overridden
+APPIMAGETOOL_ASSETS = {
+    # Prefer fixed-tag assets when available; continuous hashes must be refreshed
+    # before shipping. Tests cover verification logic with local fixtures.
+    "x86_64": {
+        "url": (
+            "https://github.com/AppImage/appimagetool/releases/download/"
+            "continuous/appimagetool-x86_64.AppImage"
+        ),
+        # Placeholder until release pin is finalized; auto-install refuses
+        # unknown/empty hashes.
+        "sha256": None,
+    },
+    "aarch64": {
+        "url": (
+            "https://github.com/AppImage/appimagetool/releases/download/"
+            "continuous/appimagetool-aarch64.AppImage"
+        ),
+        "sha256": None,
+    },
+    "arm64": {
+        "url": (
+            "https://github.com/AppImage/appimagetool/releases/download/"
+            "continuous/appimagetool-aarch64.AppImage"
+        ),
+        "sha256": None,
+    },
+}
+
+
 class ToolManager:
     """
     第三方工具自动下载和管理.
     """
 
-    def __init__(self, tools_dir: Optional[str] = None):
+    def __init__(
+        self,
+        tools_dir: Optional[str] = None,
+        allow_auto_install: bool = False,
+    ):
         """初始化工具管理器.
 
         Args:
             tools_dir: 工具存储目录，默认为用户缓存目录下的unifypy_tools
+            allow_auto_install: 是否允许自动安装缺失工具（默认 False）
         """
+        self.allow_auto_install = allow_auto_install
+
         if tools_dir:
             self.tools_dir = Path(tools_dir).resolve()
         else:
@@ -37,7 +78,7 @@ class ToolManager:
             elif plat == "windows":  # Windows
                 cache_base = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "unifypy"
             self.tools_dir = cache_base / "tools"
-        
+
         self.tools_dir.mkdir(parents=True, exist_ok=True)
 
         # 初始化缓存管理器
@@ -136,13 +177,13 @@ class ToolManager:
                     "name": "appimagetool",
                     "display_name": "appimagetool",
                     "description": "AppImage 打包工具",
-                    "download_url": "https://github.com/AppImage/AppImageKit/releases",
+                    "download_url": "https://github.com/AppImage/appimagetool/releases",
                     "install_instructions": [
-                        "下载并安装 appimagetool:",
-                        "  wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O /usr/local/bin/appimagetool",
-                        "  chmod +x /usr/local/bin/appimagetool",
-                        "或通过包管理器安装（如果可用）:",
-                        "  sudo apt-get install appimagetool  # 部分发行版"
+                        "手动下载并安装 appimagetool（推荐）:",
+                        "  1. 打开 https://github.com/AppImage/appimagetool/releases",
+                        "  2. 下载对应架构的 AppImage 并 chmod +x",
+                        "  3. 放到 PATH 中（如 /usr/local/bin/appimagetool）",
+                        "或使用 --allow-auto-install（需内置 SHA256 可用时）自动下载校验",
                     ],
                     "check_method": "_check_appimagetool"
                 }
@@ -318,7 +359,7 @@ class ToolManager:
             extract_dir.mkdir()
 
             with zipfile.ZipFile(archive_path, "r") as zip_ref:
-                zip_ref.extractall(extract_dir)
+                self._safe_extract_zip(zip_ref, extract_dir)
 
             # 找到解压后的目录（通常是repo名称）
             extracted_dirs = [d for d in extract_dir.iterdir() if d.is_dir()]
@@ -565,21 +606,82 @@ class ToolManager:
 
         return data
 
-    def _download_file(self, url: str, target_path: Path):
-        """下载文件.
+    def _download_file(
+        self,
+        url: str,
+        target_path: Path,
+        expected_sha256: Optional[str] = None,
+    ):
+        """下载文件并可选校验 SHA256.
 
         Args:
             url: 下载URL
             target_path: 目标路径
+            expected_sha256: 期望的 SHA256（hex）；提供时校验，失败删除文件并报错
+
+        Raises:
+            RuntimeError: 校验失败或下载失败
         """
         response = requests.get(url, stream=True, timeout=30)
         response.raise_for_status()
 
         target_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(target_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
+        hasher = hashlib.sha256()
+        try:
+            with open(target_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if not chunk:
+                        continue
+                    f.write(chunk)
+                    hasher.update(chunk)
+        except Exception:
+            if target_path.exists():
+                try:
+                    target_path.unlink()
+                except OSError:
+                    pass
+            raise
+
+        if expected_sha256:
+            actual = hasher.hexdigest().lower()
+            expected = expected_sha256.lower()
+            if actual != expected:
+                try:
+                    target_path.unlink()
+                except OSError:
+                    pass
+                raise RuntimeError(
+                    f"SHA256 校验失败: 期望 {expected}, 实际 {actual} (url={url})"
+                )
+
+    @staticmethod
+    def _safe_extract_zip(zip_ref: zipfile.ZipFile, extract_dir: Path) -> None:
+        """Extract zip members while rejecting Zip Slip path escapes.
+
+        Args:
+            zip_ref: Open ZipFile
+            extract_dir: Destination directory
+
+        Raises:
+            RuntimeError: if any member path escapes extract_dir
+        """
+        extract_dir = Path(extract_dir).resolve()
+        for member in zip_ref.infolist():
+            member_path = Path(member.filename)
+            # Reject absolute paths and parent traversal
+            if member_path.is_absolute() or ".." in member_path.parts:
+                raise RuntimeError(
+                    f"Zip Slip 风险: 拒绝解压路径 {member.filename!r}"
+                )
+            target = (extract_dir / member_path).resolve()
+            try:
+                target.relative_to(extract_dir)
+            except ValueError:
+                raise RuntimeError(
+                    f"Zip Slip 风险: 拒绝解压路径 {member.filename!r}"
+                )
+        zip_ref.extractall(extract_dir)
 
     def list_available_tools(self) -> List[str]:
         """列出所有可用的工具.
@@ -764,17 +866,26 @@ class ToolManager:
     def auto_install_tool(self, tool_name: str) -> bool:
         """Attempt to auto-install a missing tool.
 
+        Requires ``allow_auto_install=True``. Inno Setup is never silent-installed;
+        only manual install instructions are shown.
+
         Args:
             tool_name: 工具名称
 
         Returns:
             bool: 安装成功返回 True，失败返回 False
         """
+        if not self.allow_auto_install:
+            return False
+
+        # Inno Setup: never download+execute silently (no trusted hash).
+        if tool_name == "inno-setup":
+            return False
+
         installers = {
             "appimagetool": self._auto_install_appimagetool,
             "dpkg-deb": self._auto_install_dpkg_deb,
             "rpmbuild": self._auto_install_rpmbuild,
-            "inno-setup": self._auto_install_inno_setup,
         }
         installer = installers.get(tool_name)
         if installer:
@@ -785,36 +896,48 @@ class ToolManager:
         return False
 
     def _auto_install_appimagetool(self) -> bool:
-        """Download appimagetool from GitHub and install to user cache dir.
+        """Download pinned appimagetool with SHA256 verification.
 
         Returns:
             bool: 安装成功返回 True
+
+        Raises / returns False when arch unknown or hash missing/mismatch.
         """
         import platform as _platform
-        arch = _platform.machine()  # x86_64 or aarch64
-        url = (
-            "https://github.com/AppImage/AppImageKit/releases/download/"
-            f"continuous/appimagetool-{arch}.AppImage"
-        )
-        target = self.tools_dir / "appimagetool"
-        try:
-            self._download_file(url, target)
-            os.chmod(target, 0o755)
-            # Add tools_dir to PATH for current process so subsequent
-            # shutil.which() calls can find the binary.
-            os.environ["PATH"] = (
-                str(self.tools_dir) + os.pathsep + os.environ.get("PATH", "")
+
+        arch = _platform.machine()  # e.g. x86_64, aarch64, arm64
+        asset = APPIMAGETOOL_ASSETS.get(arch)
+        if not asset:
+            raise RuntimeError(
+                f"不支持的架构 {arch}：无法自动下载 appimagetool。"
+                "请手动安装后重试。"
             )
-            return shutil.which("appimagetool") is not None
-        except Exception:
-            return False
+        expected_sha256 = asset.get("sha256")
+        if not expected_sha256:
+            raise RuntimeError(
+                "appimagetool 未配置内置 SHA256，拒绝自动下载执行。"
+                "请手动从官方发布页安装，或更新 UnifyPy 的 APPIMAGETOOL_ASSETS。"
+            )
+        url = asset["url"]
+        target = self.tools_dir / "appimagetool"
+        self._download_file(url, target, expected_sha256=expected_sha256)
+        os.chmod(target, 0o755)
+        # Add tools_dir to PATH for current process so subsequent
+        # shutil.which() calls can find the binary.
+        os.environ["PATH"] = (
+            str(self.tools_dir) + os.pathsep + os.environ.get("PATH", "")
+        )
+        return shutil.which("appimagetool") is not None
 
     def _auto_install_dpkg_deb(self) -> bool:
-        """Install dpkg-dev via system package manager.
+        """Install dpkg-dev via system package manager (requires allow_auto_install).
 
         Returns:
             bool: 安装成功返回 True
         """
+        if not self.allow_auto_install:
+            return False
+
         import subprocess
 
         commands = [
@@ -831,11 +954,14 @@ class ToolManager:
         return False
 
     def _auto_install_rpmbuild(self) -> bool:
-        """Install rpm-build via system package manager.
+        """Install rpm-build via system package manager (requires allow_auto_install).
 
         Returns:
             bool: 安装成功返回 True
         """
+        if not self.allow_auto_install:
+            return False
+
         import subprocess
 
         commands = [
@@ -853,38 +979,9 @@ class ToolManager:
         return False
 
     def _auto_install_inno_setup(self) -> bool:
-        """Download and silently install Inno Setup on Windows.
+        """Inno Setup is never auto-installed (manual only).
 
         Returns:
-            bool: 安装成功返回 True
+            bool: always False
         """
-        if self.current_platform != "windows":
-            return False
-
-        import subprocess
-
-        download_url = "https://jrsoftware.org/download.php/is.exe"
-        try:
-            installer_path = Path(tempfile.gettempdir()) / "innosetup_installer.exe"
-            self._download_file(download_url, installer_path)
-            result = subprocess.run(
-                [
-                    str(installer_path),
-                    "/VERYSILENT",
-                    "/SP-",
-                    "/SUPPRESSMSGBOXES",
-                    "/NORESTART",
-                ],
-                capture_output=True,
-                timeout=300,
-            )
-            # Clean up installer
-            try:
-                installer_path.unlink()
-            except OSError:
-                pass
-            if result.returncode == 0:
-                return self._detect_existing_inno_setup() is not None
-        except Exception:
-            pass
         return False

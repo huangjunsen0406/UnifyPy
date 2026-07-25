@@ -36,7 +36,12 @@ class ConfigManager:
             self.project_dir = Path.cwd()
 
         if config_path:
-            self.raw_config = self._load_config(config_path)
+            # 相对路径相对 project_dir 解析（绝对路径不变）
+            config_path_obj = Path(config_path)
+            if not config_path_obj.is_absolute():
+                config_path_obj = (self.project_dir / config_path_obj).resolve()
+            self.config_path = str(config_path_obj)
+            self.raw_config = self._load_config(self.config_path)
 
         self.merged_config = self._merge_all_configs()
         self._validate_config()

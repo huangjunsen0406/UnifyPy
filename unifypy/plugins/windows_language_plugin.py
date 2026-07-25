@@ -34,12 +34,14 @@ class WindowsLanguagePlugin(BasePlugin):
             from unifypy.platforms.windows.inno_setup import InnoSetupPackager
 
             # 构建临时 packager 用于复用其检测与生成逻辑
+            # 必须传入真实 project_dir，否则 EnvironmentManager 会回退到 cwd
             packager = InnoSetupPackager(
                 ctx.progress,
                 ctx.runner,
                 ctx.tool_manager,
                 ctx.config.merged_config,
                 getattr(ctx.config, "config_path", None) or "build.json",
+                project_dir=ctx.project_dir,
             )
 
             # 定位 Inno Setup 编译器并推导 Languages 目录

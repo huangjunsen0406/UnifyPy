@@ -26,9 +26,12 @@ class ConfigPlugin(BasePlugin):
         ctx.packager_registry = ctx.packager_registry or PackagerRegistry()
         ctx.env_manager = ctx.env_manager or EnvironmentManager(str(ctx.project_dir))
 
-        # 加载配置
+        # 加载配置（相对路径相对 project_dir 解析，而非 cwd）
         try:
-            ctx.config = ConfigManager(config_path=ctx.args.config, args=vars(ctx.args))
+            config_path = self._resolve_config_path(
+                getattr(ctx.args, "config", None), ctx.project_dir
+            )
+            ctx.config = ConfigManager(config_path=config_path, args=vars(ctx.args))
         except Exception as e:
             ctx.errors.append(("load_config", e))
             raise
@@ -39,3 +42,15 @@ class ConfigPlugin(BasePlugin):
         # 创建常用目录
         ctx.file_ops.ensure_dir(str(ctx.dist_dir))
         ctx.file_ops.ensure_dir(str(ctx.installer_dir))
+
+    @staticmethod
+    def _resolve_config_path(config_path, project_dir):
+        """Resolve --config relative to project_dir when not absolute."""
+        if not config_path:
+            return config_path
+        from pathlib import Path
+
+        path = Path(config_path)
+        if path.is_absolute():
+            return str(path)
+        return str((Path(project_dir) / path).resolve())

@@ -67,7 +67,7 @@ unifypy /path/to/project --init
 unifypy . --config build.json
 
 # 命令行快速打包
-unifypy . --name myapp --version 1.0.0 --entry main.py --onefile
+unifypy . --name myapp --app-version 1.0.0 --entry main.py --onefile
 
 # 多格式并行构建
 unifypy . --config build_multiformat.json --parallel --max-workers 4
@@ -171,7 +171,8 @@ unifypy <project_dir> [选项]
 | `--name NAME` | 应用程序名称 | `--name MyApp` |
 | `--display-name DISPLAY_NAME` | 应用程序显示名称 | `--display-name "我的应用"` |
 | `--entry ENTRY` | 入口Python文件 | `--entry main.py` |
-| `--version VERSION` | 应用程序版本 | `--version 1.0.0` |
+| `--app-version VERSION` | 应用程序版本 | `--app-version 1.0.0` |
+| `--version` | 显示 UnifyPy 工具版本并退出 | `--version` |
 | `--publisher PUBLISHER` | 发布者名称 | `--publisher "我的公司"` |
 
 ### 文件和资源参数
@@ -195,7 +196,8 @@ unifypy <project_dir> [选项]
 | `--skip-exe` | 跳过可执行文件构建 | `--skip-exe` |
 | `--skip-installer` | 跳过安装程序构建 | `--skip-installer` |
 | `--clean` | 清理之前的构建文件 | `--clean` |
-| `--format FORMAT` | 指定输出格式 | `--format dmg` |
+| `--format FORMAT` | 指定输出格式 (exe,dmg,deb,rpm,appimage) | `--format dmg` |
+| `--allow-auto-install` | 允许自动安装缺失工具（sudo / 下载 appimagetool；Inno 仍需手动） | `--allow-auto-install` |
 
 ### 工具路径选项
 | 参数 | 说明 | 示例 |
@@ -224,13 +226,25 @@ unifypy <project_dir> [选项]
 ### macOS开发选项
 | 参数 | 说明 | 示例 |
 |------|------|------|
-| `--development` | 强制开发版本（启用调试权限） | `--development` |
-| `--production` | 生产版本（禁用调试权限，仅用于签名应用） | `--production` |
+| `--development` | 启用开发版 entitlements（调试权限；**默认 production**） | `--development` |
+| `--production` | 生产版本（默认行为，禁用调试权限） | `--production` |
 
 ### 帮助选项
 | 参数 | 说明 | 示例 |
 |------|------|------|
 | `-h, --help` | 显示帮助信息并退出 | `--help` |
+
+## ⚠️ 行为变更说明（安全默认）
+
+自 2.0.17 起，默认行为更偏安全（Approach C）：
+
+1. **自动安装默认关闭**：缺失 `dpkg`/`rpmbuild`/`appimagetool` 时只打印安装指引；需显式 `--allow-auto-install` 才会尝试自动安装（`sudo` 装包或下载工具）。
+2. **Inno Setup 永不静默安装**：即使开启 `--allow-auto-install`，也只提示手动安装链接，不自动下载执行安装包。
+3. **下载校验 SHA256**：自动下载的 appimagetool 等必须匹配内置 hash；校验失败会删除文件并报错。Zip 解压拒绝路径逃逸（Zip Slip）。
+4. **macOS entitlements 默认 production**：不再默认带开发调试权限；需要调试时显式加 `--development`。
+5. **`--config` 相对路径**相对 **project_dir** 解析（而非当前工作目录）。
+6. **`shell=False` 默认**：命令执行默认不走 shell。
+7. **`--version` 打印工具版本**；应用版本请用 `--app-version`。
 
 ## 🧙 交互式向导详解
 

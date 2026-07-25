@@ -67,6 +67,7 @@ class PackagingPlugin(BasePlugin):
                         ctx.installer_dir,
                         processed_config,
                         config_file_path=getattr(ctx.config, "config_path", None),
+                        project_dir=ctx.project_dir,
                     )
                     success_count = sum(1 for s in results.values() if s)
             except Exception as e:
@@ -98,6 +99,7 @@ class PackagingPlugin(BasePlugin):
             ctx.tool_manager,
             processed_config,
             getattr(ctx.config, "config_path", None),
+            project_dir=ctx.project_dir,
         )
 
         errors = packager.validate_config(format_type)

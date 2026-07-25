@@ -78,15 +78,19 @@ class ProgressManager:
     统一的进度管理器.
     """
 
-    def __init__(self, verbose: bool = False):
+    def __init__(self, verbose: bool = False, quiet: bool = False):
         """初始化进度管理器.
 
         Args:
             verbose: 是否显示详细输出
+            quiet: 静默模式（降低进度输出；错误/警告仍显示）
         """
+        # Do not set Console(quiet=True): that would suppress error panels too.
         self.console = Console()
-        self.verbose = verbose
+        self.verbose = verbose and not quiet
+        self.quiet = quiet
         self.current_stage = ""
+        self.started = False
 
         # 创建进度条组件
         self.custom_time_column = CustomTimeColumn(self)
@@ -116,14 +120,20 @@ class ProgressManager:
         """
         启动进度显示.
         """
+        if self.quiet:
+            self.started = False
+            return
         if not self.verbose:
             self.progress.start()
             self._show_header()
+        self.started = True
 
     def stop(self):
         """
         停止进度显示.
         """
+        if self.quiet:
+            return
         if not self.verbose:
             self.progress.stop()
 
@@ -155,6 +165,9 @@ class ProgressManager:
         self.current_stage = stage_name
         self.stage_start_times[stage_name] = time.time()
 
+        if self.quiet:
+            return None
+
         if self.verbose:
             self.console.print(f"\n🔄 开始阶段: {stage_name}")
             if description:
@@ -182,6 +195,9 @@ class ProgressManager:
             description: 更新描述
             absolute: 如果为True，advance表示绝对进度值；如果为False，表示增量
         """
+        if self.quiet:
+            return
+
         if self.verbose and description:
             self.console.print(f"   • {description}")
             return
@@ -221,6 +237,9 @@ class ProgressManager:
             self.stage_durations[stage_name] = duration
             duration_str = self._format_duration(duration)
 
+            if self.quiet:
+                return
+
             if self.verbose:
                 self.console.print(f"✅ 完成阶段: {stage_name} (用时: {duration_str})")
                 return
@@ -230,6 +249,8 @@ class ProgressManager:
                 task_id = self.tasks[stage_name]
                 self.progress.update(task_id, completed=100)
         else:
+            if self.quiet:
+                return
             if self.verbose:
                 self.console.print(f"✅ 完成阶段: {stage_name}")
                 return
@@ -246,10 +267,11 @@ class ProgressManager:
             stage: 发生错误的阶段
             details: 错误详情
         """
-        if not self.verbose:
+        # Stop progress bar only if it was started (quiet mode never starts it)
+        if not self.verbose and not self.quiet and self.started:
             self.progress.stop()
 
-        # 显示错误信息
+        # 显示错误信息（quiet 模式仍输出错误）
         error_panel = Panel(
             f"[red]❌ 错误发生在 {stage}[/red]\n\n"
             f"[yellow]错误信息:[/yellow] {str(error)}\n"
@@ -302,8 +324,15 @@ class ProgressManager:
         Args:
             output_info: 输出信息字典
         """
-        if not self.verbose:
+        if not self.verbose and not self.quiet and self.started:
             self.progress.stop()
+
+        # quiet: 仅简要列出产物路径
+        if self.quiet:
+            for item_type, file_path in output_info.items():
+                if isinstance(file_path, str) and file_path:
+                    self.console.print(f"{item_type}: {file_path}")
+            return
 
         # 创建结果表格
         table = Table(
@@ -353,14 +382,16 @@ class ProgressManager:
 
     def info(self, message: str):
         """
-        显示信息.
+        显示信息（quiet 下不输出进度类 info；verbose 才打印）.
         """
+        if self.quiet:
+            return
         if self.verbose:
             self.console.print(f"ℹ️  {message}")
 
     def warning(self, message: str):
         """
-        显示警告.
+        显示警告（quiet 仍输出）.
         """
         self.console.print(f"[yellow]⚠️  {message}[/yellow]")
 
@@ -368,4 +399,6 @@ class ProgressManager:
         """
         显示成功信息.
         """
+        if self.quiet:
+            return
         self.console.print(f"[green]✅ {message}[/green]")

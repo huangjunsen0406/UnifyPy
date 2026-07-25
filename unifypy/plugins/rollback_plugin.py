@@ -35,7 +35,7 @@ class RollbackPlugin(BasePlugin):
                     if start_time:
                         print(f"  时间: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
                     print(f"  操作数: {info.get('operation_count', 0)}")
-                    print(f"  回滚命令: python main.py . --rollback {session_id}")
+                    print(f"  回滚命令: unifypy . --rollback {session_id}")
                     print()
             ctx.exit_code = 0
             ctx.should_exit = True

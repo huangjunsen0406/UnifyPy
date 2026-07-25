@@ -134,9 +134,33 @@ class PyInstallerPlugin(BasePlugin):
     def _verify_output(self, ctx):
         app_name = ctx.config.get("name")
         onefile = ctx.config.get_pyinstaller_config().get("onefile")
+        platform = getattr(ctx.config, "current_platform", None)
+
         if onefile:
             exe_path = ctx.dist_dir / f"{app_name}{ctx.file_ops.get_executable_extension()}"
-        else:
-            exe_path = ctx.dist_dir / app_name / f"{app_name}{ctx.file_ops.get_executable_extension()}"
+            if not exe_path.exists():
+                raise RuntimeError(f"PyInstaller输出文件不存在: {exe_path}")
+            return
+
+        # macOS BUNDLE 输出为 .app 目录
+        if platform == "macos":
+            candidates = [ctx.dist_dir / f"{app_name}.app"]
+            display_name = ctx.config.get("display_name")
+            if display_name and display_name != app_name:
+                candidates.insert(0, ctx.dist_dir / f"{display_name}.app")
+            for path in candidates:
+                if path.exists():
+                    return
+            raise RuntimeError(
+                f"PyInstaller输出文件不存在: {candidates[-1]}"
+                + (f" (或 {candidates[0]})" if len(candidates) > 1 else "")
+            )
+
+        # 其他平台 onedir
+        exe_path = (
+            ctx.dist_dir
+            / app_name
+            / f"{app_name}{ctx.file_ops.get_executable_extension()}"
+        )
         if not exe_path.exists():
             raise RuntimeError(f"PyInstaller输出文件不存在: {exe_path}")

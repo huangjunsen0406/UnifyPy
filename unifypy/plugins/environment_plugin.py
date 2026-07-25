@@ -31,7 +31,12 @@ class EnvironmentPlugin(BasePlugin):
             raise FileNotFoundError(f"入口文件不存在: {entry_file}")
 
         # 工具检测
-        ctx.tool_manager = ctx.tool_manager or ToolManager()
+        allow_auto_install = bool(getattr(ctx.args, "allow_auto_install", False))
+        ctx.tool_manager = ctx.tool_manager or ToolManager(
+            allow_auto_install=allow_auto_install
+        )
+        # Keep flag in sync if tool_manager was pre-created
+        ctx.tool_manager.allow_auto_install = allow_auto_install
         validator = ToolValidator(tool_manager=ctx.tool_manager, progress_manager=ctx.progress)
 
         # 架构检测（仅支持 x64/arm64）
@@ -59,6 +64,7 @@ class EnvironmentPlugin(BasePlugin):
                     verbose=True,
                     format_type=format_type,
                     config=ctx.config.merged_config,
+                    allow_auto_install=allow_auto_install,
                 )
             else:
                 # 从配置推断要打的格式，逐个检测
@@ -69,6 +75,7 @@ class EnvironmentPlugin(BasePlugin):
                         verbose=True,
                         format_type=fmt,
                         config=ctx.config.merged_config,
+                        allow_auto_install=allow_auto_install,
                     )
 
         # 磁盘空间提示

@@ -17,8 +17,14 @@ class ProgressPlugin(BasePlugin):
         bus.subscribe(ON_ERROR, self.on_error, priority=5)
 
     def on_start(self, ctx):
-        ctx.progress = ProgressManager(verbose=getattr(ctx.args, "verbose", False))
-        ctx.progress.start()
+        quiet = getattr(ctx.args, "quiet", False)
+        verbose = getattr(ctx.args, "verbose", False) and not quiet
+        ctx.progress = ProgressManager(verbose=verbose, quiet=quiet)
+        if not quiet:
+            ctx.progress.start()
+        else:
+            # quiet 模式下仍初始化但不启动 rich 进度条
+            ctx.progress.started = False
 
     def on_exit(self, ctx):
         if ctx.progress:

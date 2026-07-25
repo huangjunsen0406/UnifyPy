@@ -1,0 +1,5 @@
+{"file": ".trellis/tasks/07-25-fix-p0-audit-findings-correctness-safety-defaults-entry-contracts/prd.md", "reason": "Approach C requirements, AC, technical approach"}
+{"file": "AUDIT_REPORT.md", "reason": "Source of P0 findings and entry-chain issues"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend guidelines index"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Error handling conventions if filled"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Quality standards if filled"}

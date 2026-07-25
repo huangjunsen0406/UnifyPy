@@ -8,6 +8,8 @@
 import argparse
 from typing import Any
 
+from unifypy.core.version import get_version
+
 
 class ArgumentParser:
     """
@@ -27,9 +29,11 @@ class ArgumentParser:
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 示例用法:
-  python main.py . --config build.json
-  python main.py /path/to/project --name myapp --version 1.0.0
-  python main.py . --config build.json --verbose
+  unifypy . --config build.json
+  unifypy /path/to/project --name myapp --app-version 1.0.0
+  unifypy . --config build.json --verbose
+  unifypy . --config build.json --allow-auto-install
+  unifypy --version
             """,
         )
 
@@ -60,12 +64,21 @@ class ArgumentParser:
         # ========== macOS 开发选项 ==========
         ArgumentParser._add_macos_arguments(parser)
 
+        # ========== 工具自动安装 ==========
+        ArgumentParser._add_tool_arguments(parser)
+
         return parser.parse_args()
 
     @staticmethod
     def _add_basic_arguments(parser: argparse.ArgumentParser):
         """添加基本参数"""
-        parser.add_argument("project_dir", help="Python项目根目录路径")
+        # 可选位置参数，便于 `unifypy --version` 无需 project_dir
+        parser.add_argument(
+            "project_dir",
+            nargs="?",
+            default=".",
+            help="Python项目根目录路径（默认当前目录）",
+        )
         parser.add_argument("--config", help="配置文件路径 (JSON格式)", default=None)
         parser.add_argument(
             "--init",
@@ -75,7 +88,19 @@ class ArgumentParser:
         parser.add_argument("--name", help="应用程序名称", default=None)
         parser.add_argument("--display-name", help="应用程序显示名称", default=None)
         parser.add_argument("--entry", help="入口Python文件", default=None)
-        parser.add_argument("--version", help="应用程序版本", default=None)
+        # 应用版本（构建产物）；工具版本用 --version
+        parser.add_argument(
+            "--app-version",
+            help="应用程序版本",
+            default=None,
+            dest="version",
+        )
+        parser.add_argument(
+            "--version",
+            action="version",
+            version=f"unifypy {get_version()}",
+            help="显示 UnifyPy 工具版本并退出",
+        )
         parser.add_argument("--publisher", help="发布者名称", default=None)
 
     @staticmethod
@@ -142,16 +167,17 @@ class ArgumentParser:
     @staticmethod
     def _add_output_arguments(parser: argparse.ArgumentParser):
         """添加输出控制参数"""
-        parser.add_argument(
+        output_group = parser.add_mutually_exclusive_group()
+        output_group.add_argument(
             "--verbose",
             "-v",
             help="显示详细输出",
             action="store_true"
         )
-        parser.add_argument(
+        output_group.add_argument(
             "--quiet",
             "-q",
-            help="静默模式",
+            help="静默模式（降低进度输出）",
             action="store_true"
         )
 
@@ -160,7 +186,7 @@ class ArgumentParser:
         """添加平台选项"""
         parser.add_argument(
             "--format",
-            help="输出格式 (exe,dmg,deb,rpm)",
+            help="输出格式 (exe,dmg,deb,rpm,appimage)",
             default=None
         )
 
@@ -209,11 +235,21 @@ class ArgumentParser:
         """添加 macOS 开发选项"""
         parser.add_argument(
             "--development",
-            help="强制开发版本（启用调试权限）",
+            help="启用开发版 entitlements（调试相关权限；默认 production）",
             action="store_true"
         )
         parser.add_argument(
             "--production",
-            help="生产版本（禁用调试权限，仅用于签名应用）",
+            help="生产版本（默认行为，禁用调试权限）",
             action="store_true"
+        )
+
+    @staticmethod
+    def _add_tool_arguments(parser: argparse.ArgumentParser):
+        """添加工具安装相关参数"""
+        parser.add_argument(
+            "--allow-auto-install",
+            help="允许自动安装缺失工具（sudo 装包、下载 appimagetool 等；Inno Setup 仍需手动安装）",
+            action="store_true",
+            default=False,
         )

@@ -29,6 +29,11 @@ dependencies = [
 [project.scripts]
 unifypy = "unifypy.__main__:main"
 
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0",
+]
+
 [tool.setuptools]
 include-package-data = true
 
@@ -38,3 +43,8 @@ include = [
   "unifypy",
   "unifypy.*",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+

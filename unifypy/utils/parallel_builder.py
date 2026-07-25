@@ -52,6 +52,7 @@ class ParallelBuilder:
         output_dir: Path,
         config: Dict[str, Any],
         config_file_path: Optional[str] = None,
+        project_dir=None,
     ) -> Dict[str, bool]:
         """并行构建多种格式的安装包.
 
@@ -62,6 +63,8 @@ class ParallelBuilder:
             source_path: 源文件路径
             output_dir: 输出目录
             config: 配置字典
+            config_file_path: 配置文件路径
+            project_dir: 用户项目根目录
 
         Returns:
             Dict[str, bool]: 每种格式的构建结果
@@ -86,6 +89,7 @@ class ParallelBuilder:
                 None,  # 每个线程将创建自己的tool_manager
                 config,
                 config_file_path,
+                project_dir=project_dir,
             )
 
             # 生成输出文件名

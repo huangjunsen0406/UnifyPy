@@ -67,58 +67,87 @@ class ToolValidator:
 
         return missing_tools
 
-    def validate_and_raise(self, platform: str, verbose: bool = False, format_type: str = None, config: dict = None):
+    def validate_and_raise(
+        self,
+        platform: str,
+        verbose: bool = False,
+        format_type: str = None,
+        config: dict = None,
+        allow_auto_install: bool = False,
+    ):
         """
-        检查工具并在缺失时尝试自动安装，仍缺失则抛出异常.
+        检查工具；仅在 allow_auto_install 时尝试自动安装，否则打印指引并报错.
 
         Args:
             platform: 平台名称
             verbose: 是否显示详细信息
             format_type: 打包格式 (可选)
             config: 可选配置字典
+            allow_auto_install: 是否允许自动安装
 
         Raises:
-            RuntimeError: 如果自动安装后仍有工具缺失
+            RuntimeError: 如果有工具缺失
         """
         missing_tools = self.check_platform_tools(platform, verbose, format_type, config)
 
         if not missing_tools:
             return
 
-        # Attempt auto-install for each missing tool
+        # Only auto-install when explicitly allowed
         still_missing = []
-        for tool_info in missing_tools:
-            tool_name = tool_info["name"]
-            display_name = tool_info["display_name"]
+        if allow_auto_install or getattr(self.tool_manager, "allow_auto_install", False):
+            # Ensure tool manager flag is set for nested checks
+            self.tool_manager.allow_auto_install = True
+            for tool_info in missing_tools:
+                tool_name = tool_info["name"]
+                display_name = tool_info["display_name"]
 
-            if self.progress:
-                self.progress.info(f"正在自动安装 {display_name}...")
+                # Inno Setup never auto-installs
+                if tool_name == "inno-setup":
+                    still_missing.append(tool_info)
+                    continue
 
-            try:
-                success = self.tool_manager.auto_install_tool(tool_name)
-            except Exception:
-                success = False
-
-            if success:
                 if self.progress:
-                    self.progress.info(f"{display_name} 安装成功")
-            else:
-                still_missing.append(tool_info)
+                    self.progress.info(f"正在自动安装 {display_name}...")
+
+                try:
+                    success = self.tool_manager.auto_install_tool(tool_name)
+                except Exception as e:
+                    success = False
+                    if self.progress:
+                        self.progress.warning(f"{display_name} 自动安装失败: {e}")
+
+                if success:
+                    if self.progress:
+                        self.progress.info(f"{display_name} 安装成功")
+                else:
+                    still_missing.append(tool_info)
+        else:
+            still_missing = list(missing_tools)
 
         if still_missing:
-            self._display_missing_tools_error(still_missing)
+            self._display_missing_tools_error(
+                still_missing, allow_auto_install=bool(allow_auto_install)
+            )
             raise RuntimeError("请安装缺失的打包工具后重试")
 
-    def _display_missing_tools_error(self, missing_tools: List[Dict[str, Any]]):
+    def _display_missing_tools_error(
+        self,
+        missing_tools: List[Dict[str, Any]],
+        allow_auto_install: bool = False,
+    ):
         """
         显示缺失工具的详细错误信息.
 
         Args:
             missing_tools: 缺失的工具列表
+            allow_auto_install: 当前是否已启用自动安装
         """
         print("\n" + "=" * 70)
         print("❌ 缺少必要的打包工具")
         print("=" * 70)
+
+        auto_installable = {"appimagetool", "dpkg-deb", "rpmbuild"}
 
         for tool_info in missing_tools:
             print(f"\n📦 工具: {tool_info['display_name']}")
@@ -133,6 +162,14 @@ class ToolValidator:
             if "config_example" in tool_info:
                 print("   或在配置文件中指定路径:")
                 print(f"      {tool_info['config_example']}")
+
+            if tool_info.get("name") in auto_installable and not allow_auto_install:
+                print(
+                    "   提示: 可使用 --allow-auto-install 尝试自动安装"
+                    "（需 sudo / 网络；appimagetool 将校验 SHA256）"
+                )
+            if tool_info.get("name") == "inno-setup":
+                print("   注意: Inno Setup 出于安全考虑不会自动下载执行，请手动安装。")
 
         print("\n" + "=" * 70)
 
