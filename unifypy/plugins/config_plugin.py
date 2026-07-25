@@ -39,10 +39,6 @@ class ConfigPlugin(BasePlugin):
         # 初始化缓存管理器
         ctx.cache_manager = CacheManager(str(ctx.project_dir))
 
-        # 创建常用目录
-        ctx.file_ops.ensure_dir(str(ctx.dist_dir))
-        ctx.file_ops.ensure_dir(str(ctx.installer_dir))
-
     @staticmethod
     def _resolve_config_path(config_path, project_dir):
         """Resolve --config relative to project_dir when not absolute."""

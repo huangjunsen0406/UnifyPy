@@ -7,6 +7,7 @@
 import json
 import os
 from .platforms import normalize_platform
+from . import logutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -422,9 +423,9 @@ class ConfigManager:
         if errors:
             raise ValueError(f"配置验证失败: {'; '.join(errors)}")
 
-        # 记录警告（这里可以通过日志系统输出）
+        # 记录警告（通过 logutil，无 handler 时回退 print）
         for warning in warnings:
-            print(f"警告: {warning}")
+            logutil.warn(warning)
 
     def _check_duplicate_configs(self) -> List[str]:
         """

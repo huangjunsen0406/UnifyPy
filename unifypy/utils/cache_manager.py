@@ -83,12 +83,8 @@ class CacheManager:
             hash_factors["resource_files"] = resource_files
 
         # 模板文件（如存在）也纳入哈希，确保模板变更触发重生
-        template_paths = [
-            self.project_dir / "unifypy" / "templates" / "setup.iss.template",
-            self.project_dir / "unifypy" / "templates" / "ChineseSimplified.isl.template",
-        ]
         template_meta = {}
-        for p in template_paths:
+        for p in self._package_template_paths():
             try:
                 if p.exists():
                     stat = p.stat()
@@ -101,6 +97,19 @@ class CacheManager:
         # 计算 SHA256
         content = json.dumps(hash_factors, sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(content.encode('utf-8')).hexdigest()
+
+    @staticmethod
+    def _package_template_paths() -> list:
+        """Return package-installed template paths (not project_dir/unifypy/templates).
+
+        Resolves relative to the unifypy package root so hashes work when
+        UnifyPy is installed as a package, not only from a source checkout.
+        """
+        pkg_root = Path(__file__).resolve().parent.parent  # unifypy/
+        return [
+            pkg_root / "templates" / "setup.iss.template",
+            pkg_root / "templates" / "ChineseSimplified.isl.template",
+        ]
 
     def _get_resource_files(self, config: Dict[str, Any], platform: str = None) -> Dict[str, str]:
         """获取资源文件的哈希值

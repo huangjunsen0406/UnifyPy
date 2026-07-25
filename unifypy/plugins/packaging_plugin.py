@@ -59,7 +59,6 @@ class PackagingPlugin(BasePlugin):
         if getattr(ctx.args, "parallel", False) and total_formats > 1:
             try:
                 with ParallelBuilder(ctx.progress, ctx.args.max_workers) as pb:
-                    pb.optimize_pyinstaller_build(ctx.config.get_pyinstaller_config(), str(ctx.project_dir / ctx.config.get("entry")), ctx.project_dir)
                     results = pb.build_multiple_formats(
                         platform,
                         requested_formats,
