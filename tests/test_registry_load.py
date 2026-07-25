@@ -12,8 +12,9 @@ from unifypy.platforms.registry import PackagerRegistry
 
 def test_registry_loads_defaults():
     reg = PackagerRegistry()
-    # All five should load in a normal checkout
+    # Default packagers should load in a normal checkout
     assert reg.is_format_supported("windows", "exe")
+    assert reg.is_format_supported("windows", "msi")
     assert reg.is_format_supported("macos", "dmg")
     assert reg.is_format_supported("linux", "deb")
     assert reg.is_format_supported("linux", "rpm")

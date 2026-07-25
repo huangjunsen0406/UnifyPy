@@ -28,7 +28,7 @@ def test_download_rejects_bad_hash(tmp_path):
     payload = b"hello-world"
 
     with patch(
-        "unifypy.utils.tool_manager.requests.get",
+        "unifypy.utils.tool_download.requests.get",
         return_value=_FakeResponse(payload),
     ):
         with pytest.raises(RuntimeError, match="SHA256"):
@@ -48,7 +48,7 @@ def test_download_accepts_good_hash(tmp_path):
     digest = hashlib.sha256(payload).hexdigest()
 
     with patch(
-        "unifypy.utils.tool_manager.requests.get",
+        "unifypy.utils.tool_download.requests.get",
         return_value=_FakeResponse(payload),
     ):
         tm._download_file(

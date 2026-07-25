@@ -143,35 +143,37 @@ class ToolValidator:
             missing_tools: 缺失的工具列表
             allow_auto_install: 当前是否已启用自动安装
         """
-        print("\n" + "=" * 70)
-        print("❌ 缺少必要的打包工具")
-        print("=" * 70)
+        from unifypy.core import logutil
+
+        logutil.error("=" * 70)
+        logutil.error("缺少必要的打包工具")
+        logutil.error("=" * 70)
 
         auto_installable = {"appimagetool", "dpkg-deb", "rpmbuild"}
 
         for tool_info in missing_tools:
-            print(f"\n📦 工具: {tool_info['display_name']}")
-            print(f"   描述: {tool_info['description']}")
-            print(f"   下载地址: {tool_info['download_url']}")
+            logutil.error(f"工具: {tool_info['display_name']}")
+            logutil.info(f"   描述: {tool_info['description']}")
+            logutil.info(f"   下载地址: {tool_info['download_url']}")
 
             if "install_instructions" in tool_info:
-                print("   安装说明:")
+                logutil.info("   安装说明:")
                 for instruction in tool_info["install_instructions"]:
-                    print(f"      {instruction}")
+                    logutil.info(f"      {instruction}")
 
             if "config_example" in tool_info:
-                print("   或在配置文件中指定路径:")
-                print(f"      {tool_info['config_example']}")
+                logutil.info("   或在配置文件中指定路径:")
+                logutil.info(f"      {tool_info['config_example']}")
 
             if tool_info.get("name") in auto_installable and not allow_auto_install:
-                print(
+                logutil.info(
                     "   提示: 自动安装默认开启；若被 --no-allow-auto-install 关闭，"
                     "可去掉该参数以尝试自动安装（需 sudo / 网络；appimagetool 将校验 SHA256）"
                 )
             if tool_info.get("name") == "inno-setup":
-                print("   注意: Inno Setup 出于安全考虑不会自动下载执行，请手动安装。")
+                logutil.info("   注意: Inno Setup 出于安全考虑不会自动下载执行，请手动安装。")
 
-        print("\n" + "=" * 70)
+        logutil.error("=" * 70)
 
     def get_missing_tools_summary(
         self,

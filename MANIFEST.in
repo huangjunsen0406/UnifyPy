@@ -14,3 +14,4 @@ recursive-include unifypy/cli *.py
 recursive-include unifypy/core *.py
 recursive-include unifypy/plugins *.py
 recursive-include unifypy/utils *.py
+recursive-include unifypy/schemas *

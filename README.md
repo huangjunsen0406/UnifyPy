@@ -864,6 +864,67 @@ unifypy . --config build.json --verbose
 - 测试不同平台的依赖兼容性
 - **重要**: 配置文件中的相对路径会自动解析为相对于项目目录的绝对路径
 
+
+
+## 高级功能笔记
+
+### JSON Schema 配置校验（可选）
+
+安装可选依赖后，加载 `build.json` 时会按 draft-07 schema 校验类型与结构：
+
+```bash
+pip install "unifypy[schema]"
+# 或开发依赖
+pip install -e ".[dev]"
+```
+
+未安装 `jsonschema` 时会跳过 schema 校验并仅警告一次。类型错误（例如 `name` 为数字）会在加载阶段以 `ValueError` 失败。
+
+### macOS 公证（`--notarize`）
+
+构建安装包后可请求 Apple 公证（需 macOS + Xcode CLT 的 `notarytool`）：
+
+```bash
+export UNIFYPY_APPLE_ID="you@example.com"
+export UNIFYPY_TEAM_ID="TEAMID"
+export UNIFYPY_APPLE_PASSWORD="app-specific-password"
+# 或使用钥匙串 profile：
+# export UNIFYPY_NOTARY_PROFILE="AC_PASSWORD"
+
+unifypy . --config build.json --notarize
+```
+
+也可在配置中写：
+
+```json
+{
+  "platforms": {
+    "macos": {
+      "notarize": {
+        "apple_id": "you@example.com",
+        "team_id": "TEAMID",
+        "password_env": "UNIFYPY_APPLE_PASSWORD",
+        "profile": "AC_PASSWORD"
+      }
+    }
+  }
+}
+```
+
+**注意**：ad-hoc 签名的应用无法公证；正式公证需要配置有效的 codesign identity。缺少工具或凭据且传入 `--notarize` 时构建会报错。
+
+### Windows MSI（实验性）
+
+注册格式 `msi`，使用 WiX Toolset（`candle` / `light` 需在 PATH）：
+
+```bash
+# 安装 WiX 后
+unifypy . --config build.json --format msi
+```
+
+默认 Windows 格式仍为 `exe`（Inno Setup）；`msi` 需显式请求。当前 MVP 仅打包主可执行文件，不含完整 UI/升级策略定制。
+
+
 ## 📄 许可证
 
 MIT License - 详见 [LICENSE](LICENSE) 文件

@@ -45,8 +45,50 @@ class ConfigManager:
             self.raw_config = self._load_config(self.config_path)
 
         self.merged_config = self._merge_all_configs()
+        self._validate_schema()
         self._validate_config()
-    
+
+    def _validate_schema(self) -> None:
+        """Optional JSON Schema validation of raw_config when jsonschema is installed.
+
+        Soft mode:
+        - missing jsonschema → logutil warn once and skip
+        - ValidationError → raise ValueError with path details
+        """
+        if not self.raw_config:
+            return
+        try:
+            import jsonschema
+            from jsonschema import Draft7Validator
+        except ImportError:
+            logutil.warn_once_schema_missing()
+            return
+
+        schema_path = Path(__file__).resolve().parent.parent / "schemas" / "build.schema.json"
+        if not schema_path.exists():
+            logutil.warn(f"JSON Schema 文件不存在: {schema_path}")
+            return
+
+        try:
+            with open(schema_path, "r", encoding="utf-8") as f:
+                schema = json.load(f)
+        except (OSError, json.JSONDecodeError) as e:
+            logutil.warn(f"无法加载 JSON Schema: {e}")
+            return
+
+        validator = Draft7Validator(schema)
+        errors = sorted(validator.iter_errors(self.raw_config), key=lambda e: list(e.path))
+        if not errors:
+            return
+
+        messages = []
+        for err in errors:
+            path = ".".join(str(p) for p in err.absolute_path) or "(root)"
+            messages.append(f"{path}: {err.message}")
+        raise ValueError(
+            "配置 JSON Schema 校验失败: " + "; ".join(messages)
+        )
+
     def resolve_path(self, path: str) -> Path:
         """
         解析配置中的路径，相对路径相对于项目目录.

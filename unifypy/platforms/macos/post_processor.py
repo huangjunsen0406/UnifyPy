@@ -9,6 +9,7 @@ from unifypy.core.macos_permissions import CONFIG_TO_PLIST_MAPPING
 from unifypy.core.platforms import normalize_platform
 from pathlib import Path
 from typing import Optional
+from ...core import logutil
 
 
 class MacOSPostProcessor:
@@ -107,7 +108,7 @@ class MacOSPostProcessor:
         app_path = dist_dir / f"{app_name}.app"
 
         if not app_path.exists():
-            print(f"⚠️ 未找到 .app 包: {app_path}")
+            logutil.warn(f"⚠️ 未找到 .app 包: {app_path}")
             return False
 
         # 写入本地化 display_name（Launchpad 需要 lproj 才能显示 CFBundleDisplayName）
@@ -117,14 +118,14 @@ class MacOSPostProcessor:
 
         # Apply permission descriptions from config when missing from BUNDLE
         if not self._update_info_plist(app_path, config):
-            print("⚠️ Info.plist 更新失败，继续尝试代码签名")
+            logutil.error("⚠️ Info.plist 更新失败，继续尝试代码签名")
 
         # 使用 entitlements 重新签名（确保权限生效）
         self._sign_app(app_path, project_dir)
 
         # 验证 Info.plist 和代码签名
         if self.verbose:
-            print("🔍 验证 macOS .app 包配置...")
+            logutil.info("🔍 验证 macOS .app 包配置...")
             self._verify_info_plist(app_path, config)
             self._verify_code_signature(app_path, project_dir)
 
@@ -135,7 +136,7 @@ class MacOSPostProcessor:
                 import shutil
                 shutil.rmtree(new_app_path)
             app_path.rename(new_app_path)
-            print(f"✅ 已重命名: {app_name}.app → {display_name}.app")
+            logutil.info(f"✅ 已重命名: {app_name}.app → {display_name}.app")
 
         return True
 
@@ -151,7 +152,7 @@ class MacOSPostProcessor:
                 encoding="utf-8",
             )
         if self.verbose:
-            print(f"✅ 已写入本地化显示名称: {display_name}")
+            logutil.info(f"✅ 已写入本地化显示名称: {display_name}")
 
     def _update_info_plist(self, app_path: Path, config) -> bool:
         """
@@ -175,11 +176,11 @@ class MacOSPostProcessor:
 
             if not macos_config:
                 if self.verbose:
-                    print("⚠️ 未找到 macOS 平台配置")
+                    logutil.warn("⚠️ 未找到 macOS 平台配置")
                 return True  # 没有配置不算失败
 
             if self.verbose:
-                print("🔧 更新 macOS 权限描述...")
+                logutil.info("🔧 更新 macOS 权限描述...")
 
             success = self.info_plist_updater.update_app_info_plist(
                 app_path, macos_config
@@ -187,23 +188,23 @@ class MacOSPostProcessor:
 
             if success:
                 if self.verbose:
-                    print("✅ Info.plist 权限描述更新完成")
+                    logutil.info("✅ Info.plist 权限描述更新完成")
 
                     # 显示已添加的权限
                     permissions = self.info_plist_updater.list_app_permissions(
                         app_path
                     )
                     if permissions:
-                        print("📋 已配置的权限描述:")
+                        logutil.info("📋 已配置的权限描述:")
                         for key, desc in permissions.items():
-                            print(f"  • {key}: {desc[:60]}...")
+                            logutil.info(f"  • {key}: {desc[:60]}...")
             else:
-                print("⚠️ Info.plist 权限描述更新失败")  # 错误信息始终显示
+                logutil.error("⚠️ Info.plist 权限描述更新失败")  # 错误信息始终显示
 
             return success
 
         except Exception as e:
-            print(f"❌ Info.plist 更新异常: {e}")
+            logutil.error(f"❌ Info.plist 更新异常: {e}")
             return False
 
     def _sign_app(self, app_path: Path, project_dir: Path):
@@ -216,11 +217,11 @@ class MacOSPostProcessor:
         """
         try:
             if self.verbose:
-                print(f"🔐 准备对 {app_path.name} 执行代码签名...")
+                logutil.info(f"🔐 准备对 {app_path.name} 执行代码签名...")
 
             # 检查 codesign 工具是否可用
             if not self.macos_codesigner.check_codesign_available():
-                print("⚠️ codesign 工具不可用，跳过代码签名")  # 错误信息始终显示
+                logutil.error("⚠️ codesign 工具不可用，跳过代码签名")  # 错误信息始终显示
                 return
 
             # 查找 entitlements.plist 文件
@@ -235,12 +236,12 @@ class MacOSPostProcessor:
 
             if success:
                 if self.verbose:
-                    print("✅ macOS 代码签名完成，权限应该已生效")
+                    logutil.info("✅ macOS 代码签名完成，权限应该已生效")
             else:
-                print("⚠️ 代码签名失败，但应用仍可正常使用")  # 警告信息始终显示
+                logutil.error("⚠️ 代码签名失败，但应用仍可正常使用")  # 警告信息始终显示
 
         except Exception as e:
-            print(f"❌ macOS 代码签名异常: {e}")
+            logutil.error(f"❌ macOS 代码签名异常: {e}")
 
     def _find_entitlements_file(
         self,
@@ -261,14 +262,14 @@ class MacOSPostProcessor:
         project_entitlements = project_dir / "entitlements.plist"
         if project_entitlements.exists():
             if self.verbose:
-                print(f"📜 找到 entitlements 文件: {project_entitlements}")
+                logutil.info(f"📜 找到 entitlements 文件: {project_entitlements}")
             return project_entitlements
 
         # 如果没找到，检查 .app 包内的 entitlements
         app_entitlements = app_path / "Contents" / "entitlements.plist"
         if app_entitlements.exists():
             if self.verbose:
-                print(f"📜 使用 .app 包内的 entitlements: {app_entitlements}")
+                logutil.info(f"📜 使用 .app 包内的 entitlements: {app_entitlements}")
             return app_entitlements
 
         return None
@@ -283,23 +284,23 @@ class MacOSPostProcessor:
         if not self.verbose or not self.is_macos():
             return
 
-        print("\n🔍 PyInstaller 命令调试:")
-        print(f"完整命令: {' '.join(command)}")
+        logutil.info("\n🔍 PyInstaller 命令调试:")
+        logutil.info(f"完整命令: {' '.join(command)}")
 
         # 检查关键参数
         if "--osx-bundle-identifier" in command:
             idx = command.index("--osx-bundle-identifier")
             if idx + 1 < len(command):
-                print(f"  Bundle ID: {command[idx + 1]}")
+                logutil.info(f"  Bundle ID: {command[idx + 1]}")
 
         if "--osx-entitlements-file" in command:
             idx = command.index("--osx-entitlements-file")
             if idx + 1 < len(command):
                 entitlements_path = command[idx + 1]
-                print(f"  Entitlements: {entitlements_path}")
-                print(f"  文件存在: {Path(entitlements_path).exists()}")
+                logutil.info(f"  Entitlements: {entitlements_path}")
+                logutil.info(f"  文件存在: {Path(entitlements_path).exists()}")
 
-        print()
+        logutil.info("")
 
     def _verify_info_plist(self, app_path: Path, config) -> bool:
         """
@@ -314,7 +315,7 @@ class MacOSPostProcessor:
         """
         info_plist_path = app_path / "Contents" / "Info.plist"
         if not info_plist_path.exists():
-            print("  ⚠️ Info.plist 不存在")
+            logutil.error("  ⚠️ Info.plist 不存在")
             return False
 
         try:
@@ -340,19 +341,19 @@ class MacOSPostProcessor:
                         missing.append(plist_key)
 
             if missing:
-                print(f"  ⚠️ Info.plist 缺少权限描述: {', '.join(missing)}")
+                logutil.warn(f"  ⚠️ Info.plist 缺少权限描述: {', '.join(missing)}")
                 return False
 
             if present:
-                print(f"  ✅ Info.plist 包含 {len(present)} 个权限描述")
+                logutil.info(f"  ✅ Info.plist 包含 {len(present)} 个权限描述")
                 for key in present:
                     desc = plist_data[key]
-                    print(f"    • {key}: {desc[:50]}...")
+                    logutil.info(f"    • {key}: {desc[:50]}...")
 
             return True
 
         except Exception as e:
-            print(f"  ❌ Info.plist 验证异常: {e}")
+            logutil.error(f"  ❌ Info.plist 验证异常: {e}")
             return False
 
     def _verify_code_signature(self, app_path: Path, project_dir: Path) -> bool:
@@ -380,9 +381,9 @@ class MacOSPostProcessor:
             )
 
             if result.returncode == 0:
-                print("  ✅ 代码签名验证通过")
+                logutil.info("  ✅ 代码签名验证通过")
             else:
-                print(f"  ⚠️ 代码签名验证失败: {result.stderr}")
+                logutil.error(f"  ⚠️ 代码签名验证失败: {result.stderr}")
                 return False
 
             # 检查 entitlements
@@ -395,22 +396,22 @@ class MacOSPostProcessor:
             )
 
             if entitlements_result.returncode == 0 and entitlements_result.stdout:
-                print("  ✅ Entitlements 已应用")
+                logutil.info("  ✅ Entitlements 已应用")
                 if self.verbose:
                     # 显示 entitlements 内容摘要
                     if 'com.apple.security.device.microphone' in entitlements_result.stdout:
-                        print("    • 麦克风权限")
+                        logutil.info("    • 麦克风权限")
                     if 'com.apple.security.device.camera' in entitlements_result.stdout:
-                        print("    • 摄像头权限")
+                        logutil.info("    • 摄像头权限")
                     if 'com.apple.security.files.user-selected.read-write' in entitlements_result.stdout:
-                        print("    • 文件访问权限")
+                        logutil.info("    • 文件访问权限")
                     if 'com.apple.security.network.client' in entitlements_result.stdout:
-                        print("    • 网络客户端权限")
+                        logutil.info("    • 网络客户端权限")
             else:
-                print("  ⚠️ 未检测到 entitlements")
+                logutil.warn("  ⚠️ 未检测到 entitlements")
 
             return True
 
         except Exception as e:
-            print(f"  ❌ 代码签名验证异常: {e}")
+            logutil.error(f"  ❌ 代码签名验证异常: {e}")
             return False

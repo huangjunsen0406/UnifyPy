@@ -4,9 +4,9 @@
 第三方工具自动下载和管理 支持从GitHub直接获取工具，不依赖系统包管理器.
 """
 
-import hashlib
 import os
 from unifypy.core.platforms import normalize_platform, normalize_arch
+from unifypy.core import logutil
 import shutil
 import tempfile
 import zipfile
@@ -15,44 +15,15 @@ from typing import Dict, List, Optional
 
 import requests
 
+from .tool_assets import APPIMAGETOOL_ASSETS, APPIMAGETOOL_RELEASE
+from .tool_download import download_file, safe_extract_zip
 
-# Pinned appimagetool continuous-release assets + SHA256.
-# Source: https://github.com/AppImage/appimagetool/releases/tag/continuous
-#
-# Continuous builds are mutable: when auto-install starts failing SHA256
-# verification, re-download the AppImages and refresh the hashes below.
-# Hashes recorded 2026-07-25.
-APPIMAGETOOL_RELEASE = "continuous"  # tag segment used in URL path when overridden
-APPIMAGETOOL_ASSETS = {
-    "x86_64": {
-        "url": (
-            "https://github.com/AppImage/appimagetool/releases/download/"
-            "continuous/appimagetool-x86_64.AppImage"
-        ),
-        "sha256": (
-            "a6d71e2b6cd66f8e8d16c37ad164658985e0cf5fcaa950c90a482890cb9d13e0"
-        ),
-    },
-    "aarch64": {
-        "url": (
-            "https://github.com/AppImage/appimagetool/releases/download/"
-            "continuous/appimagetool-aarch64.AppImage"
-        ),
-        "sha256": (
-            "1b00524ba8c6b678dc15ef88a5c25ec24def36cdfc7e3abb32ddcd068e8007fe"
-        ),
-    },
-    # arm64 uses the same aarch64 AppImage asset.
-    "arm64": {
-        "url": (
-            "https://github.com/AppImage/appimagetool/releases/download/"
-            "continuous/appimagetool-aarch64.AppImage"
-        ),
-        "sha256": (
-            "1b00524ba8c6b678dc15ef88a5c25ec24def36cdfc7e3abb32ddcd068e8007fe"
-        ),
-    },
-}
+# Re-export for stable public imports (tests import from tool_manager)
+__all__ = [
+    "ToolManager",
+    "APPIMAGETOOL_ASSETS",
+    "APPIMAGETOOL_RELEASE",
+]
 
 
 class ToolManager:
@@ -443,27 +414,27 @@ class ToolManager:
             raise ValueError(f"工具 {tool_name} 缺少下载URL配置")
 
         # 提示用户手动安装
-        print(f"\n🔧 需要安装 {tool_name}")
-        print(f"📝 描述: {tool_config.get('description', '第三方工具')}")
-        print(f"🌐 下载地址: {download_url}")
-        print(f"\n⚠️  由于 {tool_name} 是完整的安装包软件，需要手动安装：")
-        print("   1. 访问上述URL下载安装包")
-        print("   2. 运行安装程序完成安装")
-        print("   3. 重新运行UnifyPy构建命令")
-        print("\n💡 或者，您可以在配置文件中指定已安装的路径：")
-        print(
+        logutil.info(f"\n需要安装 {tool_name}")
+        logutil.info(f"描述: {tool_config.get('description', '第三方工具')}")
+        logutil.info(f"下载地址: {download_url}")
+        logutil.warn(f"由于 {tool_name} 是完整的安装包软件，需要手动安装：")
+        logutil.info("   1. 访问上述URL下载安装包")
+        logutil.info("   2. 运行安装程序完成安装")
+        logutil.info("   3. 重新运行UnifyPy构建命令")
+        logutil.info("或者，您可以在配置文件中指定已安装的路径：")
+        logutil.info(
             '   "inno_setup_path": "C:\\\\Program Files (x86)\\\\Inno Setup 6\\\\ISCC.exe"'
         )
 
         # 检查是否已经安装
-        print(f"\n🔍 正在检查系统中是否已安装 {tool_name}...")
+        logutil.info(f"正在检查系统中是否已安装 {tool_name}...")
 
         # 尝试自动检测
         if tool_name == "inno-setup":
             # 调用Inno Setup打包器的检测逻辑
             detected_path = self._detect_existing_inno_setup()
             if detected_path:
-                print(f"✅ 检测到已安装的 {tool_name}: {detected_path}")
+                logutil.info(f"检测到已安装的 {tool_name}: {detected_path}")
                 return detected_path
 
         # 如果没有检测到，抛出异常
@@ -622,76 +593,13 @@ class ToolManager:
         target_path: Path,
         expected_sha256: Optional[str] = None,
     ):
-        """下载文件并可选校验 SHA256.
-
-        Args:
-            url: 下载URL
-            target_path: 目标路径
-            expected_sha256: 期望的 SHA256（hex）；提供时校验，失败删除文件并报错
-
-        Raises:
-            RuntimeError: 校验失败或下载失败
-        """
-        response = requests.get(url, stream=True, timeout=30)
-        response.raise_for_status()
-
-        target_path.parent.mkdir(parents=True, exist_ok=True)
-
-        hasher = hashlib.sha256()
-        try:
-            with open(target_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if not chunk:
-                        continue
-                    f.write(chunk)
-                    hasher.update(chunk)
-        except Exception:
-            if target_path.exists():
-                try:
-                    target_path.unlink()
-                except OSError:
-                    pass
-            raise
-
-        if expected_sha256:
-            actual = hasher.hexdigest().lower()
-            expected = expected_sha256.lower()
-            if actual != expected:
-                try:
-                    target_path.unlink()
-                except OSError:
-                    pass
-                raise RuntimeError(
-                    f"SHA256 校验失败: 期望 {expected}, 实际 {actual} (url={url})"
-                )
+        """下载文件并可选校验 SHA256（委托 tool_download.download_file）."""
+        download_file(url, Path(target_path), expected_sha256=expected_sha256)
 
     @staticmethod
     def _safe_extract_zip(zip_ref: zipfile.ZipFile, extract_dir: Path) -> None:
-        """Extract zip members while rejecting Zip Slip path escapes.
-
-        Args:
-            zip_ref: Open ZipFile
-            extract_dir: Destination directory
-
-        Raises:
-            RuntimeError: if any member path escapes extract_dir
-        """
-        extract_dir = Path(extract_dir).resolve()
-        for member in zip_ref.infolist():
-            member_path = Path(member.filename)
-            # Reject absolute paths and parent traversal
-            if member_path.is_absolute() or ".." in member_path.parts:
-                raise RuntimeError(
-                    f"Zip Slip 风险: 拒绝解压路径 {member.filename!r}"
-                )
-            target = (extract_dir / member_path).resolve()
-            try:
-                target.relative_to(extract_dir)
-            except ValueError:
-                raise RuntimeError(
-                    f"Zip Slip 风险: 拒绝解压路径 {member.filename!r}"
-                )
-        zip_ref.extractall(extract_dir)
+        """Extract zip members while rejecting Zip Slip path escapes."""
+        safe_extract_zip(zip_ref, extract_dir)
 
     def list_available_tools(self) -> List[str]:
         """列出所有可用的工具.

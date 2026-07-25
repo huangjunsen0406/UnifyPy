@@ -11,6 +11,7 @@ from typing import Any, Dict
 from unifypy.core.macos_permissions import CONFIG_TO_PLIST_MAPPING
 
 from .command_runner import get_subprocess_encoding
+from unifypy.core import logutil
 
 
 class InfoPlistUpdater:
@@ -26,7 +27,7 @@ class InfoPlistUpdater:
         只在 verbose 模式下打印信息.
         """
         if self.verbose:
-            print(message)
+            logutil.info(message)
 
     # Shared config key → Info.plist NS*UsageDescription mapping
     PERMISSION_MAPPING = CONFIG_TO_PLIST_MAPPING
@@ -44,13 +45,13 @@ class InfoPlistUpdater:
             bool: 更新是否成功
         """
         if not app_path.exists() or not app_path.name.endswith(".app"):
-            print(f"❌ 无效的 .app 包路径: {app_path}")  # 错误信息始终显示
+            logutil.error(f"❌ 无效的 .app 包路径: {app_path}")  # 错误信息始终显示
             return False
 
         info_plist_path = app_path / "Contents" / "Info.plist"
 
         if not info_plist_path.exists():
-            print(f"❌ Info.plist 不存在: {info_plist_path}")  # 错误信息始终显示
+            logutil.error(f"❌ Info.plist 不存在: {info_plist_path}")  # 错误信息始终显示
             return False
 
         self._print(f"🔧 更新 Info.plist 权限描述: {info_plist_path}")
@@ -79,7 +80,7 @@ class InfoPlistUpdater:
                     success_count += 1
                     self._print(f"  ✅ {plist_key}: {description[:50]}...")
                 else:
-                    print(f"  ❌ {plist_key}: 更新失败")  # 错误信息始终显示
+                    logutil.error(f"  ❌ {plist_key}: 更新失败")  # 错误信息始终显示
 
                 total_permissions += 1
 
@@ -141,7 +142,7 @@ class InfoPlistUpdater:
             return result.returncode == 0
 
         except Exception as e:
-            print(f"❌ PlistBuddy 执行异常: {e}")  # 错误信息始终显示
+            logutil.error(f"❌ PlistBuddy 执行异常: {e}")  # 错误信息始终显示
             return False
 
     def _add_special_permissions(self, plist_path: Path, macos_config: Dict[str, Any]):

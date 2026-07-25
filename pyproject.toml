@@ -32,6 +32,10 @@ unifypy = "unifypy.__main__:main"
 [project.optional-dependencies]
 dev = [
   "pytest>=7.0",
+  "jsonschema>=4.0",
+]
+schema = [
+  "jsonschema>=4.0",
 ]
 
 [tool.setuptools]

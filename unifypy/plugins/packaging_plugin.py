@@ -84,8 +84,91 @@ class PackagingPlugin(BasePlugin):
         elif success_count < total_formats:
             ctx.progress.warning(f"部分安装包生成失败 ({success_count}/{total_formats} 成功)")
 
+        # Optional macOS notarization after successful packaging
+        if getattr(ctx.args, "notarize", False) and success_count > 0:
+            self._maybe_notarize(ctx, platform, source_path)
+
         if ctx.progress:
             ctx.progress.complete_stage(stage)
+
+    def _maybe_notarize(self, ctx, platform: str, source_path: Path) -> None:
+        """Run notarytool when --notarize is set; fail the build on hard errors."""
+        from unifypy.utils.macos_notarize import (
+            can_notarize,
+            credentials_ready,
+            notarize_and_staple,
+            resolve_notarize_credentials,
+        )
+
+        if platform != "macos":
+            msg = "--notarize 仅支持 macOS 主机构建，已跳过"
+            if ctx.progress:
+                ctx.progress.warning(msg)
+            return
+
+        if not can_notarize():
+            err = RuntimeError(
+                "xcrun notarytool 不可用，无法公证。"
+                "请安装 Xcode Command Line Tools。"
+            )
+            if ctx.progress:
+                ctx.progress.on_error(err, "macOS 公证")
+            raise err
+
+        creds = resolve_notarize_credentials(
+            getattr(ctx.config, "merged_config", None)
+            or getattr(ctx.config, "raw_config", None)
+            or {}
+        )
+        if not credentials_ready(creds):
+            err = RuntimeError(
+                "缺少公证凭据。设置 platforms.macos.notarize 或环境变量 "
+                "UNIFYPY_APPLE_ID / UNIFYPY_TEAM_ID / UNIFYPY_APPLE_PASSWORD "
+                "或 UNIFYPY_NOTARY_PROFILE。"
+                "注意：ad-hoc 签名的应用无法公证，需配置 codesign identity。"
+            )
+            if ctx.progress:
+                ctx.progress.on_error(err, "macOS 公证")
+            raise err
+
+        # Prefer DMG in installer_dir, else the .app source
+        target = None
+        app_name = ctx.config.get("name")
+        if ctx.installer_dir and ctx.installer_dir.exists():
+            dmgs = sorted(ctx.installer_dir.glob("*.dmg"))
+            if dmgs:
+                target = dmgs[-1]
+        if target is None:
+            display_name = ctx.config.get("display_name")
+            candidates = []
+            if display_name:
+                candidates.append(ctx.dist_dir / f"{display_name}.app")
+            candidates.append(ctx.dist_dir / f"{app_name}.app")
+            candidates.append(source_path)
+            for c in candidates:
+                if c and Path(c).exists():
+                    target = Path(c)
+                    break
+
+        if target is None or not Path(target).exists():
+            err = RuntimeError("未找到可公证的 .dmg 或 .app 产物")
+            if ctx.progress:
+                ctx.progress.on_error(err, "macOS 公证")
+            raise err
+
+        try:
+            notarize_and_staple(
+                Path(target),
+                apple_id=creds.get("apple_id"),
+                team_id=creds.get("team_id"),
+                password=creds.get("password"),
+                profile=creds.get("profile"),
+                progress=ctx.progress,
+            )
+        except Exception as e:
+            if ctx.progress:
+                ctx.progress.on_error(e, "macOS 公证")
+            raise
 
     def _build_single_format(self, ctx, platform: str, format_type: str, source_path: Path, processed_config: dict, progress_weight: int) -> bool:
         packager_class = ctx.packager_registry.get_packager(platform, format_type)

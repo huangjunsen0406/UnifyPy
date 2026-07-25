@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Optional
 
 from .command_runner import get_subprocess_encoding
+from unifypy.core import logutil
 
 
 class IconConverter:
@@ -23,11 +24,11 @@ class IconConverter:
         self.progress_callback = progress_callback
 
     def _print(self, message: str):
-        """
-        只在 verbose 模式下打印信息.
-        """
-        if self.verbose:
-            print(message)
+        """Route verbose messages through progress callback or logutil."""
+        if self.progress_callback:
+            self.progress_callback(message)
+        elif self.verbose:
+            logutil.info(message)
 
     def ensure_icon_format(
         self, icon_path: str, target_format: str, project_dir: Path
@@ -52,7 +53,7 @@ class IconConverter:
             source_path = project_dir / icon_path
 
         if not source_path.exists():
-            print(f"❌ 图标文件不存在: {source_path}")  # 错误信息始终显示
+            logutil.error(f"❌ 图标文件不存在: {source_path}")  # 错误信息始终显示
             return None
 
         # 检查是否已经是目标格式
@@ -70,7 +71,7 @@ class IconConverter:
                 return str(target_path)
 
         # 如果转换失败或不支持，返回原始路径
-        print(f"ℹ️  使用原始图标格式: {source_path}")
+        logutil.info(f"ℹ️  使用原始图标格式: {source_path}")
         return str(source_path)
 
     def _convert_png_to_icns(self, png_path: Path, icns_path: Path) -> bool:
@@ -96,7 +97,7 @@ class IconConverter:
                     # 标准分辨率
                     target_file = iconset_dir / f"icon_{size}x{size}.png"
                     if not self._resize_with_sips(png_path, target_file, size):
-                        print(f"❌ 生成 {size}x{size} 图标失败")  # 错误信息始终显示
+                        logutil.error(f"❌ 生成 {size}x{size} 图标失败")  # 错误信息始终显示
                         return False
 
                     # 高分辨率版本（@2x，除了 1024px）
@@ -105,7 +106,7 @@ class IconConverter:
                         if not self._resize_with_sips(
                             png_path, target_file_2x, size * 2
                         ):
-                            print(
+                            logutil.error(
                                 f"❌ 生成 {size}x{size}@2x 图标失败"
                             )  # 错误信息始终显示
 
@@ -124,11 +125,11 @@ class IconConverter:
                     self._print(f"✅ 图标转换成功: {png_path.name} -> {icns_path.name}")
                     return True
                 else:
-                    print(f"❌ iconutil 执行失败: {result.stderr}")  # 错误信息始终显示
+                    logutil.error(f"❌ iconutil 执行失败: {result.stderr}")  # 错误信息始终显示
                     return False
 
         except Exception as e:
-            print(f"❌ 图标转换异常: {e}")  # 错误信息始终显示
+            logutil.error(f"❌ 图标转换异常: {e}")  # 错误信息始终显示
             return False
 
     def _resize_with_sips(self, source: Path, target: Path, size: int) -> bool:

@@ -1,0 +1,177 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://unifypy.dev/schemas/build.schema.json",
+  "title": "UnifyPy build configuration",
+  "description": "JSON Schema for UnifyPy build.json (draft-07)",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Application package name"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Human-readable display name"
+    },
+    "version": {
+      "type": "string",
+      "description": "Application version string"
+    },
+    "entry": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Python entry script path"
+    },
+    "publisher": {
+      "type": "string"
+    },
+    "icon": {
+      "type": "string"
+    },
+    "license": {
+      "type": "string"
+    },
+    "readme": {
+      "type": "string"
+    },
+    "onefile": {
+      "type": "boolean"
+    },
+    "windowed": {
+      "type": "boolean"
+    },
+    "console": {
+      "type": "boolean"
+    },
+    "pyinstaller": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "onefile": { "type": "boolean" },
+        "onedir": { "type": "boolean" },
+        "windowed": { "type": "boolean" },
+        "console": { "type": "boolean" },
+        "name": { "type": "string" },
+        "icon": { "type": "string" },
+        "distpath": { "type": "string" },
+        "workpath": { "type": "string" },
+        "specpath": { "type": "string" },
+        "add_data": {
+          "oneOf": [
+            { "type": "array", "items": { "type": "string" } },
+            { "type": "string" }
+          ]
+        },
+        "add_binary": {
+          "oneOf": [
+            { "type": "array", "items": { "type": "string" } },
+            { "type": "string" }
+          ]
+        },
+        "hidden_import": {
+          "oneOf": [
+            { "type": "array", "items": { "type": "string" } },
+            { "type": "string" }
+          ]
+        },
+        "exclude_module": {
+          "oneOf": [
+            { "type": "array", "items": { "type": "string" } },
+            { "type": "string" }
+          ]
+        },
+        "clean": { "type": "boolean" },
+        "noconfirm": { "type": "boolean" },
+        "debug": { "type": "boolean" },
+        "strip": { "type": "boolean" },
+        "noupx": { "type": "boolean" },
+        "optimize": { "type": ["integer", "string"] },
+        "osx_bundle_identifier": { "type": "string" },
+        "codesign_identity": { "type": "string" },
+        "osx_entitlements_file": { "type": "string" },
+        "target_architecture": { "type": "string" }
+      }
+    },
+    "platforms": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "windows": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "formats": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "inno_setup": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "msi": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        },
+        "macos": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "formats": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "bundle_identifier": { "type": "string" },
+            "notarize": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "apple_id": { "type": "string" },
+                "team_id": { "type": "string" },
+                "password_env": { "type": "string" },
+                "profile": { "type": "string" }
+              }
+            },
+            "create_dmg": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        },
+        "linux": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "formats": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "deb": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "rpm": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "appimage": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      }
+    },
+    "platform_specific": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "plugins": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

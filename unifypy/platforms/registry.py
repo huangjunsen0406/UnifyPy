@@ -41,6 +41,7 @@ class PackagerRegistry:
         """
         defaults = [
             ("windows", "exe", "unifypy.platforms.windows.inno_setup", "InnoSetupPackager"),
+            ("windows", "msi", "unifypy.platforms.windows.msi_packager", "MSIPackager"),
             ("macos", "dmg", "unifypy.platforms.macos.dmg_packager", "DMGPackager"),
             ("linux", "appimage", "unifypy.platforms.linux.appimage_packager", "AppImagePackager"),
             ("linux", "deb", "unifypy.platforms.linux.deb_packager", "DEBPackager"),

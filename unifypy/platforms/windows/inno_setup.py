@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from ..base import BasePackager
+from .iss_builder import generate_iss_script, process_iss_template
 
 
 class InnoSetupPackager(BasePackager):
@@ -412,115 +413,14 @@ class InnoSetupPackager(BasePackager):
         """
         处理ISS模板文件.
         """
-        app_name = self.config.get("name", "MyApp")
-        app_version = self.config.get("version", "1.0.0")
-        publisher = self.config.get("publisher", "Unknown Publisher")
-        app_url = config.get("app_url", "")
-        display_name = self.config.get("display_name", app_name)
-        
-        # 生成APP_ID - 修复格式问题
-        app_id = config.get('app_id', None)
-        if not app_id:
-            # 生成基于应用名称的伪GUID格式，注意这里不包含花括号
-            import hashlib
-            name_hash = hashlib.md5(app_name.encode()).hexdigest()[:8].upper()
-            app_id = f"C4D8B3F2-1234-5678-9ABC-{name_hash}12345678"
-        elif app_id.startswith('{') and app_id.endswith('}'):
-            # 移除现有的花括号，因为模板中已经有了
-            app_id = app_id.strip('{}')
-
-        # 确定源文件路径和可执行文件名
-        source_path_str = str(source_path).replace('/', '\\')
-        
-        if source_path.is_file():
-            # 单文件模式
-            source_files = f'Source: "{source_path_str}"; DestDir: "{{app}}"; Flags: ignoreversion'
-            exe_name = source_path.name
-        else:
-            # 目录模式
-            source_files = f'Source: "{source_path_str}\\*"; DestDir: "{{app}}"; Flags: ignoreversion recursesubdirs createallsubdirs'
-            exe_name = f"{app_name}.exe"
-
-        # 读取模板内容
-        with open(template_path, 'r', encoding='utf-8') as f:
-            template_content = f.read()
-
-        # 替换模板变量
-        replacements = {
-            '{{APP_ID}}': app_id,
-            '{{APP_NAME}}': app_name,
-            '{{APP_VERSION}}': app_version,
-            '{{APP_DISPLAY_NAME}}': display_name,
-            '{{APP_PUBLISHER}}': publisher,
-            '{{APP_URL}}': app_url,
-            '{{OUTPUT_DIR}}': str(output_path.parent).replace('/', '\\'),
-            '{{OUTPUT_FILENAME}}': output_path.stem,
-            '{{SOURCE_FILES}}': source_files,
-            '{{EXE_NAME}}': exe_name,
-        }
-
-        # 条件块处理
-        conditions = {
-            '{{#APP_URL}}': bool(app_url),
-            '{{#LICENSE_FILE}}': bool(config.get('license_file')) and os.path.exists(config.get('license_file', '')),
-            '{{#SETUP_ICON}}': bool(config.get('setup_icon')) and os.path.exists(config.get('setup_icon', '')),
-            '{{#CREATE_DESKTOP_ICON}}': config.get('create_desktop_icon', True),
-            '{{#CREATE_START_MENU_ICON}}': config.get('create_start_menu_icon', False),
-            '{{#RUN_AFTER_INSTALL}}': config.get('run_after_install', False),
-            '{{#CHINESE_SUPPORT}}': 'chinesesimplified' in config.get('languages', []) or 'chinese' in config.get('languages', []),
-        }
-
-        # 处理条件块 - 改进的处理逻辑
-        result = template_content
-        for condition, should_include in conditions.items():
-            start_tag = condition
-            end_tag = condition.replace('#', '/')
-            
-            # 查找条件块
-            start_idx = result.find(start_tag)
-            while start_idx != -1:
-                end_idx = result.find(end_tag, start_idx)
-                if end_idx == -1:
-                    break
-                    
-                if should_include:
-                    # 保留内容，移除标记
-                    content = result[start_idx + len(start_tag):end_idx]
-                    result = result[:start_idx] + content + result[end_idx + len(end_tag):]
-                    start_idx = result.find(start_tag, start_idx + len(content))
-                else:
-                    # 移除整个块
-                    result = result[:start_idx] + result[end_idx + len(end_tag):]
-                    start_idx = result.find(start_tag, start_idx)
-
-        # 处理特殊替换
-        if conditions['{{#LICENSE_FILE}}']:
-            result = result.replace('{{LICENSE_FILE}}', str(Path(config.get('license_file')).resolve()).replace('/', '\\'))
-        
-        if conditions['{{#SETUP_ICON}}']:
-            result = result.replace('{{SETUP_ICON}}', str(Path(config.get('setup_icon')).resolve()).replace('/', '\\'))
-            
-        if conditions['{{#CHINESE_SUPPORT}}']:
-            chinese_isl_path = self._get_chinese_isl_path()
-            result = result.replace('{{CHINESE_ISL_PATH}}', chinese_isl_path)
-        
-        # 清理其他特殊标记
-        result = result.replace('{{LICENSE_FILE}}', '')
-        result = result.replace('{{SETUP_ICON}}', '')
-        result = result.replace('{{CHINESE_ISL_PATH}}', '')
-
-        # 执行基本替换
-        for placeholder, value in replacements.items():
-            result = result.replace(placeholder, value)
-
-        # 清理剩余的模板标记
-        import re
-        # 移除任何剩余的 {{#...}} 和 {{/...}} 标记
-        result = re.sub(r'\{\{[#/][^}]+\}\}', '', result)
-        # 移除多余的空行
-        result = re.sub(r'\n\s*\n\s*\n', '\n\n', result)
-        
-        return result.strip()
+        return process_iss_template(
+            template_path=template_path,
+            app_config=self.config,
+            format_config=config,
+            source_path=source_path,
+            output_path=output_path,
+            chinese_isl_path=self._get_chinese_isl_path(),
+        )
 
     def _get_chinese_isl_path(self) -> str:
         """
@@ -537,133 +437,13 @@ class InnoSetupPackager(BasePackager):
         """
         内置ISS脚本生成逻辑 (回退方案).
         """
-        app_name = self.config.get("name", "MyApp")
-        app_version = self.config.get("version", "1.0.0")
-        publisher = self.config.get("publisher", "Unknown Publisher")
-        app_url = config.get("app_url", "")
-        display_name = self.config.get("display_name", app_name)
-
-        # 确定源文件路径 - 修复路径分隔符问题
-        source_path_str = str(source_path).replace('/', '\\')
-        
-        if source_path.is_file():
-            # 单文件模式
-            source_files = f'Source: "{source_path_str}"; DestDir: "{{app}}"; Flags: ignoreversion'
-            exe_name = source_path.name
-        else:
-            # 目录模式 - 确保正确的通配符路径
-            source_files = f'Source: "{source_path_str}\\*"; DestDir: "{{app}}"; Flags: ignoreversion recursesubdirs createallsubdirs'
-            # 在目录模式下，可执行文件通常是 app_name.exe
-            exe_name = f"{app_name}.exe"
-
-        # 构建Setup节 - 修复路径问题和空值处理
-        app_id = config.get('app_id', None)
-        if not app_id:
-            # 生成基于应用名称的伪GUID格式
-            import hashlib
-            name_hash = hashlib.md5(app_name.encode()).hexdigest()[:8].upper()
-            app_id = f"{{C4D8B3F2-1234-5678-9ABC-{name_hash}12345678}}"
-        elif not (app_id.startswith('{') and app_id.endswith('}')):
-            # 确保使用花括号格式
-            app_id = f"{{{app_id}}}"
-        
-        # 处理路径中的反斜杠
-        output_dir = str(output_path.parent).replace('/', '\\')
-        
-        setup_section = f"""[Setup]
-AppId={app_id}
-AppName={app_name}
-AppVersion={app_version}
-AppVerName={display_name} {app_version}
-AppPublisher={publisher}
-DefaultDirName={{autopf}}\\{app_name}
-DefaultGroupName={app_name}
-AllowNoIcons=yes
-OutputDir={output_dir}
-OutputBaseFilename={output_path.stem}
-Compression=lzma
-SolidCompression=yes
-WizardStyle=modern"""
-
-        # 只在存在时添加可选字段
-        if app_url:
-            setup_section += f"\nAppPublisherURL={app_url}"
-            setup_section += f"\nAppSupportURL={app_url}"
-            setup_section += f"\nAppUpdatesURL={app_url}"
-
-        license_file = config.get('license_file', '')
-        if license_file and os.path.exists(license_file):
-            license_path = str(Path(license_file)).replace('/', '\\')
-            setup_section += f"\nLicenseFile={license_path}"
-
-        setup_icon = config.get('setup_icon', '')
-        if setup_icon and os.path.exists(setup_icon):
-            setup_icon_path = str(Path(setup_icon)).replace('/', '\\')
-            setup_section += f"\nSetupIconFile={setup_icon_path}"
-
-        # 语言支持
-        languages_section = "[Languages]"
-        languages = config.get("languages", ["english"])
-        if "english" in languages:
-            languages_section += (
-                '\nName: "english"; MessagesFile: "compiler:Default.isl"'
-            )
-        if "chinesesimplified" in languages or "chinese" in languages:
-            # 优先使用项目自带的中文语言文件
-            if hasattr(self, "_project_chinese_file") and self._project_chinese_file:
-                # 使用项目自带的语言文件，需要转换为相对路径或绝对路径
-                chinese_file_path = os.path.abspath(self._project_chinese_file).replace(
-                    "\\", "\\\\"
-                )
-                languages_section += (
-                    f'\nName: "chinesesimplified"; MessagesFile: "{chinese_file_path}"'
-                )
-            else:
-                # 使用系统中的语言文件
-                languages_section += '\nName: "chinesesimplified"; MessagesFile: "compiler:Languages\\ChineseSimplified.isl"'
-
-        # 任务节
-        tasks_section = "[Tasks]"
-        if config.get("create_desktop_icon", True):
-            tasks_section += '\nName: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked'
-
-        # 文件节
-        files_section = f"[Files]\n{source_files}"
-
-        # 图标节 - 使用 display_name 作为快捷方式名称
-        icons_section = "[Icons]"
-        icons_section += f'\nName: "{{group}}\\{display_name}"; Filename: "{{app}}\\{exe_name}"'
-
-        if config.get("create_desktop_icon", True):
-            icons_section += f'\nName: "{{autodesktop}}\\{display_name}"; Filename: "{{app}}\\{exe_name}"; Tasks: desktopicon'
-        
-        # 添加卸载程序快捷方式
-        icons_section += f'\nName: "{{group}}\\{{cm:UninstallProgram,{display_name}}}"; Filename: "{{uninstallexe}}"'
-
-        # 运行节
-        run_section = "[Run]"
-        if config.get("run_after_install", False):
-            run_section += f'\nFilename: "{{app}}\\{exe_name}"; Description: "{{cm:LaunchProgram,{display_name}}}"; Flags: nowait postinstall skipifsilent'
-
-        # 组装完整脚本
-        iss_script = f"""; Script generated by UnifyPy 2.0
-; Inno Setup Script
-; Encoding: UTF-8
-
-{setup_section}
-
-{languages_section}
-
-{tasks_section}
-
-{files_section}
-
-{icons_section}
-
-{run_section}
-"""
-
-        return iss_script
+        return generate_iss_script(
+            app_config=self.config,
+            format_config=config,
+            source_path=source_path,
+            output_path=output_path,
+            project_chinese_file=getattr(self, "_project_chinese_file", None),
+        )
 
     def validate_config(self, format_type: str) -> List[str]:
         """

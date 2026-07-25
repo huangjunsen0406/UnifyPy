@@ -186,8 +186,13 @@ class ArgumentParser:
         """添加平台选项"""
         parser.add_argument(
             "--format",
-            help="输出格式 (exe,dmg,deb,rpm,appimage)",
+            help="输出格式 (exe,msi,dmg,deb,rpm,appimage)",
             default=None
+        )
+        parser.add_argument(
+            "--notarize",
+            help="macOS: 构建后使用 notarytool 公证并 staple（需凭据与 codesign identity）",
+            action="store_true",
         )
 
     @staticmethod

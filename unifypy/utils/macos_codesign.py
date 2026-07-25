@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 from .command_runner import get_subprocess_encoding
+from unifypy.core import logutil
 
 
 class MacOSCodeSigner:
@@ -25,7 +26,7 @@ class MacOSCodeSigner:
         只在 verbose 模式下打印信息.
         """
         if self.verbose:
-            print(message)
+            logutil.info(message)
 
     def sign_app_with_entitlements(
         self, app_path: Path, entitlements_path: Optional[Path] = None
@@ -40,7 +41,7 @@ class MacOSCodeSigner:
             bool: 签名是否成功
         """
         if not app_path.exists() or not app_path.name.endswith(".app"):
-            print(f"❌ 无效的 .app 包: {app_path}")  # 错误信息始终显示
+            logutil.error(f"❌ 无效的 .app 包: {app_path}")  # 错误信息始终显示
             return False
 
         self._print(f"🔐 开始 ad-hoc 代码签名: {app_path.name}")
@@ -90,15 +91,15 @@ class MacOSCodeSigner:
                     self._print("  ⚠️  签名验证失败，但应用仍可使用")
                     return True  # 即使验证失败，签名可能还是有效的
             else:
-                print("  ❌ 代码签名失败:")  # 错误信息始终显示
-                print(f"    错误输出: {result.stderr}")
+                logutil.error("  ❌ 代码签名失败:")  # 错误信息始终显示
+                logutil.error(f"    错误输出: {result.stderr}")
 
                 # 尝试基本的可执行权限设置
                 self._set_executable_permissions(app_path)
                 return False
 
         except Exception as e:
-            print(f"❌ 代码签名异常: {e}")  # 错误信息始终显示
+            logutil.error(f"❌ 代码签名异常: {e}")  # 错误信息始终显示
             return False
 
     def _remove_existing_signature(self, app_path: Path) -> bool:
@@ -204,7 +205,7 @@ class MacOSCodeSigner:
                 os.chmod(executable_path, 0o755)
                 self._print(f"  ✅ 设置可执行权限: {executable_path}")
         except Exception as e:
-            print(f"  ⚠️  设置可执行权限失败: {e}")  # 错误信息始终显示
+            logutil.error(f"  ⚠️  设置可执行权限失败: {e}")  # 错误信息始终显示
 
     def check_codesign_available(self) -> bool:
         """
@@ -247,7 +248,7 @@ class MacOSCodeSigner:
                 self._print(f"  ❌ {codesign_path} 异常: {e}")
                 continue
 
-        print(
+        logutil.error(
             "  ❌ codesign 工具不可用，请安装 Xcode Command Line Tools: xcode-select --install"
         )  # 错误信息始终显示
         return False

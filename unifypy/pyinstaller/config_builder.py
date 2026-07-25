@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 
 from ..utils.entitlements_generator import EntitlementsGenerator
 from ..utils.icon_converter import IconConverter
+from .options import BOOLEAN_OPTIONS, LIST_OPTIONS, PYINSTALLER_OPTIONS
 
 
 class PyInstallerConfigBuilder:
@@ -19,96 +20,10 @@ class PyInstallerConfigBuilder:
     PyInstaller配置构建器，支持所有选项.
     """
 
-    # 完整的PyInstaller选项映射
-    PYINSTALLER_OPTIONS = {
-        # 基本选项
-        "onefile": "--onefile",
-        "onedir": "--onedir",
-        "windowed": "--windowed",
-        "console": "--console",
-        "name": "--name",
-        "icon": "--icon",
-        # 路径选项
-        "distpath": "--distpath",
-        "workpath": "--workpath",
-        "specpath": "--specpath",
-        # 包含/排除选项
-        "add_data": "--add-data",
-        "add_binary": "--add-binary",
-        "hidden_import": "--hidden-import",
-        "exclude_module": "--exclude-module",
-        "additional_hooks_dir": "--additional-hooks-dir",
-        "runtime_hook": "--runtime-hook",
-        "collect_submodules": "--collect-submodules",
-        "collect_data": "--collect-data",
-        "collect_binaries": "--collect-binaries",
-        "collect_all": "--collect-all",
-        "copy_metadata": "--copy-metadata",
-        "recursive_copy_metadata": "--recursive-copy-metadata",
-        # 高级选项
-        "splash": "--splash",
-        "version_file": "--version-file",
-        "manifest": "--manifest",
-        "resource": "--resource",
-        "uac_admin": "--uac-admin",
-        "uac_uiaccess": "--uac-uiaccess",
-        # 压缩和优化选项
-        "upx_dir": "--upx-dir",
-        "upx_exclude": "--upx-exclude",
-        "noupx": "--noupx",
-        "strip": "--strip",
-        "debug": "--debug",
-        "optimize": "--optimize",
-        # 构建选项
-        "clean": "--clean",
-        "noconfirm": "--noconfirm",
-        "ascii": "--ascii",
-        "key": "--key",
-        "contents_directory": "--contents-directory",
-        # 日志选项
-        "log_level": "--log-level",
-        "quiet": "--quiet",
-        # 兼容性选项
-        "osx_bundle_identifier": "--osx-bundle-identifier",
-        "target_architecture": "--target-architecture",
-        "codesign_identity": "--codesign-identity",
-        "osx_entitlements_file": "--osx-entitlements-file",
-    }
-
-    # 布尔类型选项（不需要值）
-    BOOLEAN_OPTIONS = {
-        "onefile",
-        "onedir",
-        "windowed",
-        "console",
-        "clean",
-        "noconfirm",
-        "debug",
-        "strip",
-        "noupx",
-        "ascii",
-        "uac_admin",
-        "uac_uiaccess",
-        "quiet",
-    }
-
-    # 列表类型选项（可以多次指定）
-    LIST_OPTIONS = {
-        "add_data",
-        "add_binary",
-        "hidden_import",
-        "exclude_module",
-        "additional_hooks_dir",
-        "runtime_hook",
-        "collect_submodules",
-        "collect_data",
-        "collect_binaries",
-        "collect_all",
-        "copy_metadata",
-        "recursive_copy_metadata",
-        "upx_exclude",
-        "resource",
-    }
+    # Re-export constants on the class for backward-compatible attribute access
+    PYINSTALLER_OPTIONS = PYINSTALLER_OPTIONS
+    BOOLEAN_OPTIONS = BOOLEAN_OPTIONS
+    LIST_OPTIONS = LIST_OPTIONS
 
     def __init__(self, current_platform: Optional[str] = None, verbose: bool = False, progress_callback=None, project_dir: Optional[Path] = None):
         """初始化配置构建器.
@@ -708,7 +623,7 @@ app = BUNDLE(
         # 优先检查项目中是否有现成的 entitlements.plist
         project_entitlements = project_dir / "entitlements.plist"
         if project_entitlements.exists():
-            print(f"✅ 使用项目现有的 entitlements.plist: {project_entitlements}")
+            self._log(f"使用项目现有的 entitlements.plist: {project_entitlements}", 'success')
             return str(project_entitlements)
 
         # 检查是否已经指定了 entitlements 文件
