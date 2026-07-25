@@ -7,6 +7,7 @@ from pathlib import Path
 from unifypy.core.plugin import BasePlugin
 from unifypy.core.event_bus import EventBus
 from unifypy.core.events import GENERATE_INSTALLERS
+from unifypy.core.formats import resolve_requested_formats
 from unifypy.utils.parallel_builder import ParallelBuilder
 
 
@@ -129,29 +130,13 @@ class PackagingPlugin(BasePlugin):
             return False
 
     def _get_requested_formats(self, ctx, platform: str) -> List[str]:
-        # 优先命令行指定
-        if ctx.args.format:
-            return [ctx.args.format]
-
         platform_config = ctx.config.get("platforms", {}).get(platform, {})
-
-        # 优先使用显式 formats 列表
-        if "formats" in platform_config:
-            explicit_formats = platform_config["formats"]
-            if isinstance(explicit_formats, list) and explicit_formats:
-                return explicit_formats
-
-        # fallback: 遍历平台配置的 key，检测哪些是支持的格式
-        formats = []
-        for key in platform_config.keys():
-            if ctx.packager_registry.is_format_supported(platform, key):
-                formats.append(key)
-
-        if not formats:
-            default_formats = {
-                "windows": ["exe"],
-                "macos": ["dmg"],
-                "linux": ["deb"],
-            }
-            formats = default_formats.get(platform, [])
-        return formats
+        is_supported = None
+        if ctx.packager_registry:
+            is_supported = ctx.packager_registry.is_format_supported
+        return resolve_requested_formats(
+            platform,
+            cli_format=getattr(ctx.args, "format", None),
+            platform_config=platform_config,
+            is_format_supported=is_supported,
+        )

@@ -22,9 +22,9 @@ class InnoSetupPackager(BasePackager):
         self._project_chinese_file = None  # 项目自带的中文语言文件路径
         self._check_project_language_file()
         
-        # 初始化缓存管理器
+        # 初始化缓存管理器（使用项目根，而非进程 cwd）
         from ...utils.cache_manager import CacheManager
-        self.cache_manager = CacheManager(".")
+        self.cache_manager = CacheManager(str(self.project_dir))
 
     def _check_project_language_file(self):
         """

@@ -1,0 +1,4 @@
+{"file": ".trellis/tasks/07-25-p1-cleanup-formatresolver-eventbus-fail-fast-publish-workflow/prd.md", "reason": "P1 cleanup requirements"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Project conventions"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Error propagation expectations"}
+{"file": "AUDIT_REPORT.md", "reason": "P1 backlog items"}

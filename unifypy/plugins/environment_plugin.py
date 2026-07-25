@@ -4,6 +4,7 @@
 from unifypy.core.plugin import BasePlugin
 from unifypy.core.event_bus import EventBus
 from unifypy.core.events import ENVIRONMENT_CHECK
+from unifypy.core.formats import resolve_requested_formats
 from unifypy.core.validators.tool_validator import ToolValidator
 from unifypy.utils.tool_manager import ToolManager
 from unifypy.core.platforms import normalize_arch, is_supported_arch
@@ -89,21 +90,12 @@ class EnvironmentPlugin(BasePlugin):
         """从配置推断要打的格式列表."""
         platform = ctx.config.current_platform
         platform_config = ctx.config.get("platforms", {}).get(platform, {})
-
-        # 优先使用显式 formats 列表
-        if "formats" in platform_config:
-            explicit = platform_config["formats"]
-            if isinstance(explicit, list) and explicit:
-                return explicit
-
-        # fallback: 遍历 key 检测
-        formats = []
-        for key in platform_config.keys():
-            if ctx.packager_registry and ctx.packager_registry.is_format_supported(platform, key):
-                formats.append(key)
-
-        if not formats:
-            default_formats = {"windows": ["exe"], "macos": ["dmg"], "linux": ["deb"]}
-            formats = default_formats.get(platform, [])
-
-        return formats
+        is_supported = None
+        if ctx.packager_registry:
+            is_supported = ctx.packager_registry.is_format_supported
+        return resolve_requested_formats(
+            platform,
+            cli_format=getattr(ctx.args, "format", None),
+            platform_config=platform_config,
+            is_format_supported=is_supported,
+        )
