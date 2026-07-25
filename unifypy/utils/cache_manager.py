@@ -332,12 +332,16 @@ class CacheManager:
         return str(app_uuid).upper()
 
     def update_build_config_with_app_id(self, config_file_path: str, app_id: str) -> bool:
-        """将生成的 AppID 写入构建配置文件
-        
+        """将生成的 AppID 写入构建配置文件.
+
+        Deprecated: no longer used during builds. AppID is persisted only in
+        ``.unifypy/metadata.json`` via ``get_or_generate_app_id`` so user
+        ``build.json`` is not rewritten (CI-friendly). Kept for manual use.
+
         Args:
             config_file_path: 配置文件路径
             app_id: 应用 ID
-            
+
         Returns:
             bool: 是否成功更新
         """
@@ -345,7 +349,7 @@ class CacheManager:
             # 读取配置文件
             with open(config_file_path, "r", encoding="utf-8") as f:
                 config = json.load(f)
-            
+
             # 确保结构存在
             if "platforms" not in config:
                 config["platforms"] = {}
@@ -353,16 +357,16 @@ class CacheManager:
                 config["platforms"]["windows"] = {}
             if "inno_setup" not in config["platforms"]["windows"]:
                 config["platforms"]["windows"]["inno_setup"] = {}
-            
+
             # 设置 AppID
             config["platforms"]["windows"]["inno_setup"]["app_id"] = app_id
-            
+
             # 写回配置文件
             with open(config_file_path, "w", encoding="utf-8") as f:
                 json.dump(config, f, indent=2, ensure_ascii=False)
-            
+
             return True
-            
+
         except Exception as e:
             print(f"更新配置文件失败: {e}")
             return False

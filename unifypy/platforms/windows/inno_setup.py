@@ -111,21 +111,16 @@ class InnoSetupPackager(BasePackager):
                 )
                 return False
 
-        # 处理 AppID：确保存在并写回配置文件
+        # 处理 AppID：优先配置，否则 metadata，仅写 .unifypy/metadata.json（不改 build.json）
         app_id = self.cache_manager.get_or_generate_app_id(self.config)
-        if not self.config.get("platforms", {}).get("windows", {}).get("inno_setup", {}).get("app_id"):
-            # AppID 不在配置中，需要写回
-            if self.cache_manager.update_build_config_with_app_id(self.config_file_path, app_id):
-                self.progress.info(f"✅ AppID 已写入配置文件: {app_id}")
-                # 重新加载配置以包含新的 AppID
-                import json
-                try:
-                    with open(self.config_file_path, "r", encoding="utf-8") as f:
-                        updated_config = json.load(f)
-                    self.config = updated_config
-                    inno_config = self.get_format_config("inno_setup")
-                except Exception as e:
-                    self.progress.warning(f"重新加载配置失败: {e}")
+        # Ensure in-memory config has app_id for ISS generation without rewriting build.json
+        platforms = self.config.setdefault("platforms", {})
+        windows = platforms.setdefault("windows", {})
+        inno = windows.setdefault("inno_setup", {})
+        if not inno.get("app_id"):
+            inno["app_id"] = app_id
+            self.progress.info(f"✅ AppID 已保存到 .unifypy/metadata.json: {app_id}")
+        inno_config = self.get_format_config("inno_setup")
 
         # 创建 ISS 脚本
         iss_content = self._build_iss_script(inno_config, source_path, output_path)
