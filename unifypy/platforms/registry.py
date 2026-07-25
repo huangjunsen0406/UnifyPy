@@ -4,6 +4,7 @@
 打包器注册表 支持动态添加新的打包格式.
 """
 
+import importlib
 from typing import Dict, List, Optional, Type
 
 from .base import BasePackager
@@ -21,33 +22,32 @@ class PackagerRegistry:
         self._packagers: Dict[str, Dict[str, Type[BasePackager]]] = {}
         self._load_default_packagers()
 
+    def _try_register(
+        self, platform: str, fmt: str, import_path: str, class_name: str
+    ) -> None:
+        """Import and register one packager; log ImportError and continue."""
+        try:
+            module = importlib.import_module(import_path)
+            cls = getattr(module, class_name)
+            self.register_packager(platform, fmt, cls)
+        except ImportError as e:
+            from unifypy.core import logutil
+
+            logutil.warn(f"Packager unavailable {platform}/{fmt}: {e}")
+
     def _load_default_packagers(self):
         """
-        加载默认打包器.
+        加载默认打包器（各自独立导入，单个失败不影响其余）.
         """
-        try:
-            # Windows 打包器
-            from .windows.inno_setup import InnoSetupPackager
-
-            self.register_packager("windows", "exe", InnoSetupPackager)
-
-            # macOS 打包器
-            from .macos.dmg_packager import DMGPackager
-
-            self.register_packager("macos", "dmg", DMGPackager)
-
-            # Linux 打包器
-            from .linux.appimage_packager import AppImagePackager
-            from .linux.deb_packager import DEBPackager
-            from .linux.rpm_packager import RPMPackager
-
-            self.register_packager("linux", "appimage", AppImagePackager)
-            self.register_packager("linux", "deb", DEBPackager)
-            self.register_packager("linux", "rpm", RPMPackager)
-
-        except ImportError:
-            # 如果某些平台的打包器模块不存在，忽略错误
-            pass
+        defaults = [
+            ("windows", "exe", "unifypy.platforms.windows.inno_setup", "InnoSetupPackager"),
+            ("macos", "dmg", "unifypy.platforms.macos.dmg_packager", "DMGPackager"),
+            ("linux", "appimage", "unifypy.platforms.linux.appimage_packager", "AppImagePackager"),
+            ("linux", "deb", "unifypy.platforms.linux.deb_packager", "DEBPackager"),
+            ("linux", "rpm", "unifypy.platforms.linux.rpm_packager", "RPMPackager"),
+        ]
+        for platform, fmt, import_path, class_name in defaults:
+            self._try_register(platform, fmt, import_path, class_name)
 
     def register_packager(
         self, platform: str, format_type: str, packager_class: Type[BasePackager]

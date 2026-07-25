@@ -115,6 +115,10 @@ class MacOSPostProcessor:
         if display_name and display_name != app_name:
             self._write_localized_display_name(app_path, display_name)
 
+        # Apply permission descriptions from config when missing from BUNDLE
+        if not self._update_info_plist(app_path, config):
+            print("⚠️ Info.plist 更新失败，继续尝试代码签名")
+
         # 使用 entitlements 重新签名（确保权限生效）
         self._sign_app(app_path, project_dir)
 

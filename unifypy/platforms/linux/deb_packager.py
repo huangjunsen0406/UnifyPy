@@ -5,12 +5,22 @@ Linux DEB 打包器 创建Debian/Ubuntu格式的安装包.
 """
 
 import os
+import re
 import shutil
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List
 
 from ..base import BasePackager
+
+# Debian package name: lowercase alphanumerics, must start with alnum;
+# may contain + . - after the first character.
+_DEB_PACKAGE_RE = re.compile(r"^[a-z0-9][a-z0-9+.-]*$")
+
+
+def is_valid_deb_package_name(name: str) -> bool:
+    """Return True if *name* is a valid Debian package name."""
+    return bool(name and _DEB_PACKAGE_RE.match(name))
 
 
 class DEBPackager(BasePackager):
@@ -298,6 +308,14 @@ Terminal={str(config.get('terminal', False)).lower()}
         errors = []
 
         config = self.get_format_config("deb")
+
+        # Debian package name must match policy (package field or fallback name)
+        package_name = (config.get("package") or self.config.get("name") or "").lower()
+        if not package_name or not is_valid_deb_package_name(package_name):
+            errors.append(
+                f"无效的 DEB 包名: {package_name!r} "
+                f"(须匹配 ^[a-z0-9][a-z0-9+.-]*$)"
+            )
 
         # 检查 maintainer 字段（允许回退到 publisher）
         maintainer = config.get("maintainer") or self.config.get("publisher")
