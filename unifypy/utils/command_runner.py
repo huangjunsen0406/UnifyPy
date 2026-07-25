@@ -51,6 +51,9 @@ class SilentRunner:
         """
         self.progress = progress_manager
         self.log_buffer = []
+        self.last_stdout: Optional[str] = None
+        self.last_stderr: Optional[str] = None
+        self.last_returncode: Optional[int] = None
 
     def run_command(
         self,
@@ -115,6 +118,11 @@ class SilentRunner:
                     cwd=cwd,
                     env=env,
                 )
+
+            # 保留最近一次输出，供上层错误提示使用
+            self.last_stdout = getattr(result, "stdout", None)
+            self.last_stderr = getattr(result, "stderr", None)
+            self.last_returncode = result.returncode
 
             # 检查执行结果
             if result.returncode == 0:

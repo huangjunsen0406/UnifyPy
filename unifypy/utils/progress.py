@@ -281,15 +281,22 @@ class ProgressManager:
         )
         self.console.print(error_panel)
 
-        # 提供解决建议
-        self._show_error_suggestions(error, stage)
+        # 提供解决建议（传入 details，便于识别 non-empty dist 等线索）
+        self._show_error_suggestions(error, stage, details=details)
 
-    def _show_error_suggestions(self, error: Exception, stage: str):
-        """
-        显示错误解决建议.
+    @staticmethod
+    def build_error_suggestions(
+        error: Exception, stage: str, details: str = ""
+    ) -> list:
+        """Build user-facing recovery hints for a failed stage.
+
+        Non-empty dist / COLLECT failures must suggest ``--clean``, not a
+        misleading PyInstaller upgrade.
         """
         suggestions = []
         error_str = str(error).lower()
+        details_str = (details or "").lower()
+        combined = f"{error_str}\n{details_str}"
 
         if "permission" in error_str or "access" in error_str:
             suggestions.append("• 尝试以管理员权限运行")
@@ -299,7 +306,22 @@ class ProgressManager:
             suggestions.append("• 检查相关工具是否已安装")
             suggestions.append("• 确认PATH环境变量设置正确")
 
-        if "pyinstaller" in error_str:
+        # Non-empty dist / COLLECT dir: prefer --clean, not "upgrade PyInstaller"
+        non_empty_dist = (
+            "is not empty" in combined
+            or "not empty" in combined
+            or "remove the output directory" in combined
+            or "输出目录非空" in combined
+            or "非空" in error_str
+        )
+        if non_empty_dist or "--clean" in error_str:
+            suggestions.append(
+                "• 使用 `unifypy <project_dir> --clean` 清理输出目录后重试"
+            )
+            suggestions.append(
+                "• UnifyPy 默认对 pyinstaller 传入 `-y`；若仍失败请确认未绕过 UnifyPy 直接调用"
+            )
+        elif "pyinstaller" in error_str or "pyinstaller" in stage.lower():
             suggestions.append(
                 "• 尝试升级PyInstaller: pip install --upgrade pyinstaller"
             )
@@ -309,6 +331,11 @@ class ProgressManager:
             suggestions.append("• 确认配置文件格式正确")
             suggestions.append("• 检查项目目录结构")
 
+        return suggestions
+
+    def _show_error_suggestions(self, error: Exception, stage: str, details: str = ""):
+        """显示错误解决建议."""
+        suggestions = self.build_error_suggestions(error, stage, details=details)
         if suggestions:
             suggestion_text = "\n".join(suggestions)
             suggestion_panel = Panel(
@@ -345,9 +372,7 @@ class ProgressManager:
         for item_type, file_path in output_info.items():
             if isinstance(file_path, str) and file_path:
                 try:
-                    import os
-
-                    size = self._format_size(os.path.getsize(file_path))
+                    size = self._format_size(self._path_size(file_path))
                     table.add_row(item_type, file_path, size)
                 except Exception:
                     table.add_row(item_type, file_path, "未知")
@@ -356,6 +381,25 @@ class ProgressManager:
         self.console.print(
             "\n[green]✨ 打包完成！您可以分发这些文件给用户使用。[/green]"
         )
+
+    def _path_size(self, file_path: str) -> int:
+        """Total size of a file, or recursive size of a directory (.app, onedir)."""
+        import os
+        from pathlib import Path
+
+        path = Path(file_path)
+        if path.is_file():
+            return path.stat().st_size
+        if path.is_dir():
+            total = 0
+            for root, _dirs, files in os.walk(path):
+                for name in files:
+                    try:
+                        total += os.path.getsize(os.path.join(root, name))
+                    except OSError:
+                        continue
+            return total
+        return path.stat().st_size
 
     def _format_size(self, size: int) -> str:
         """

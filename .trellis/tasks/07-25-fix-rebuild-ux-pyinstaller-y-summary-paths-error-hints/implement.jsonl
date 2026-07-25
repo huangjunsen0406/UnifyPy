@@ -1,0 +1,4 @@
+{"file": ".trellis/tasks/07-25-fix-rebuild-ux-pyinstaller-y-summary-paths-error-hints/prd.md", "reason": "Rebuild UX requirements and AC"}
+{"file": "AUDIT_REPORT.md", "reason": "Related UX backlog context"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Project quality conventions"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Error message conventions"}

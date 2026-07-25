@@ -98,8 +98,8 @@ class PyInstallerPlugin(BasePlugin):
                 new_hash = ctx.cache_manager.calculate_config_hash(ctx.config.merged_config, ctx.config.current_platform)
                 ctx.cache_manager.save_config_hash(new_hash, ctx.config.current_platform)
 
-        # 使用 spec 文件打包
-        command = ["pyinstaller", str(spec_file)]
+        # 使用 spec 文件打包（始终 -y / noconfirm，避免非空 dist 二次构建失败）
+        command = self.build_pyinstaller_command(spec_file)
 
         # 在项目根目录执行命令（使用 cwd 参数，避免全局 chdir）
         if ctx.progress:
@@ -115,7 +115,7 @@ class PyInstallerPlugin(BasePlugin):
         )
 
         if not success:
-            raise RuntimeError("PyInstaller打包失败")
+            raise self._pyinstaller_failure_error(ctx)
 
         if ctx.progress:
             ctx.progress.update_stage(stage, 90, "验证输出文件", absolute=True)
@@ -130,6 +130,31 @@ class PyInstallerPlugin(BasePlugin):
 
         if ctx.progress:
             ctx.progress.complete_stage(stage)
+
+    @staticmethod
+    def build_pyinstaller_command(spec_file) -> list:
+        """Build the pyinstaller argv (always overwrite existing output)."""
+        return ["pyinstaller", "-y", str(spec_file)]
+
+    def _pyinstaller_failure_error(self, ctx) -> RuntimeError:
+        """Build a user-facing error for PyInstaller failures."""
+        stdout = getattr(ctx.runner, "last_stdout", None) or ""
+        stderr = getattr(ctx.runner, "last_stderr", None) or ""
+        combined = f"{stdout}\n{stderr}".lower()
+
+        if (
+            "is not empty" in combined
+            or "not empty" in combined
+            or "remove the output directory" in combined
+        ):
+            return RuntimeError(
+                "PyInstaller 打包失败：输出目录非空。"
+                "请使用 `unifypy <project_dir> --clean` 清理后重试；"
+                "UnifyPy 已在 pyinstaller 命令中传入 `-y`（noconfirm）以覆盖已有输出。"
+                "若问题仍在，确认未绕过 UnifyPy 直接调用未带 `-y` 的 pyinstaller。"
+            )
+
+        return RuntimeError("PyInstaller打包失败")
 
     def _verify_output(self, ctx):
         app_name = ctx.config.get("name")
