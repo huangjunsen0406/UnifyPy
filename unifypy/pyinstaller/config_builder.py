@@ -5,6 +5,7 @@ PyInstaller配置构建器 支持所有PyInstaller选项的配置化映射.
 """
 
 import os
+from ..core.macos_permissions import CONFIG_TO_PLIST_MAPPING
 from ..core.platforms import normalize_platform
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -534,74 +535,10 @@ pyz = {pyz_config}
         if "ui_element" in macos_config:
             info_plist["LSUIElement"] = macos_config["ui_element"]
 
-        # 添加完整的隐私权限描述配置
-        privacy_permissions = {
-            "microphone_usage_description": "NSMicrophoneUsageDescription",
-            "camera_usage_description": "NSCameraUsageDescription",
-            "audio_usage_description": "NSAudioUsageDescription",
-            "location_when_in_use_usage_description": "NSLocationWhenInUseUsageDescription",
-            "location_always_and_when_in_use_usage_description": "NSLocationAlwaysAndWhenInUseUsageDescription",
-            "contacts_usage_description": "NSContactsUsageDescription",
-            "calendars_usage_description": "NSCalendarsUsageDescription",
-            "reminders_usage_description": "NSRemindersUsageDescription",
-            "photo_library_usage_description": "NSPhotoLibraryUsageDescription",
-            "photo_library_add_usage_description": "NSPhotoLibraryAddUsageDescription",
-            "motion_usage_description": "NSMotionUsageDescription",
-            "health_share_usage_description": "NSHealthShareUsageDescription",
-            "health_update_usage_description": "NSHealthUpdateUsageDescription",
-            "home_kit_usage_description": "NSHomeKitUsageDescription",
-            "siri_usage_description": "NSSiriUsageDescription",
-            "speech_recognition_usage_description": "NSSpeechRecognitionUsageDescription",
-            "tv_provider_usage_description": "NSVideoSubscriberAccountUsageDescription",
-            "music_usage_description": "NSAppleMusicUsageDescription",
-            "bluetooth_always_usage_description": "NSBluetoothAlwaysUsageDescription",
-            "bluetooth_peripheral_usage_description": "NSBluetoothPeripheralUsageDescription",
-        }
-
-        for config_key, plist_key in privacy_permissions.items():
+        # 添加完整的隐私/系统/文件夹权限描述 (shared CONFIG_TO_PLIST_MAPPING)
+        for config_key, plist_key in CONFIG_TO_PLIST_MAPPING.items():
             if config_key in macos_config:
                 info_plist[plist_key] = macos_config[config_key]
-
-        # 系统访问权限
-        system_permissions = {
-            "apple_events_usage_description": "NSAppleEventsUsageDescription",
-            "system_administration_usage_description": "NSSystemAdministrationUsageDescription",
-            "accessibility_usage_description": "NSAccessibilityUsageDescription",
-        }
-
-        for config_key, plist_key in system_permissions.items():
-            if config_key in macos_config:
-                info_plist[plist_key] = macos_config[config_key]
-
-        # 文件夹访问权限
-        folder_permissions = {
-            "desktop_folder_usage_description": "NSDesktopFolderUsageDescription",
-            "documents_folder_usage_description": "NSDocumentsFolderUsageDescription",
-            "downloads_folder_usage_description": "NSDownloadsFolderUsageDescription",
-            "network_volumes_usage_description": "NSNetworkVolumesUsageDescription",
-            "removable_volumes_usage_description": "NSRemovableVolumesUsageDescription",
-        }
-
-        for config_key, plist_key in folder_permissions.items():
-            if config_key in macos_config:
-                info_plist[plist_key] = macos_config[config_key]
-
-        # 文件提供者权限
-        if "file_provider_presence_usage_description" in macos_config:
-            info_plist["NSFileProviderPresenceUsageDescription"] = macos_config[
-                "file_provider_presence_usage_description"
-            ]
-
-        if "file_provider_domain_usage_description" in macos_config:
-            info_plist["NSFileProviderDomainUsageDescription"] = macos_config[
-                "file_provider_domain_usage_description"
-            ]
-
-        # 网络访问权限
-        if "local_network_usage_description" in macos_config:
-            info_plist["NSLocalNetworkUsageDescription"] = macos_config[
-                "local_network_usage_description"
-            ]
 
         # App Transport Security 配置
         if "app_transport_security" in macos_config:
@@ -698,30 +635,13 @@ app = BUNDLE(
         if min_version and not self._is_valid_version(min_version):
             errors.append(f"系统最低版本格式无效: {min_version}")
 
-        # 检查权限描述是否为空
-        permission_keys = [
-            "microphone_usage_description",
-            "camera_usage_description",
-            "location_when_in_use_usage_description",
-            "location_always_and_when_in_use_usage_description",
-            "contacts_usage_description",
-            "calendars_usage_description",
-            "reminders_usage_description",
-            "photo_library_usage_description",
-            "apple_events_usage_description",
-            "system_administration_usage_description",
-            "accessibility_usage_description",
-            "desktop_folder_usage_description",
-            "documents_folder_usage_description",
-            "downloads_folder_usage_description",
-        ]
-
-        for key in permission_keys:
+        # 检查权限描述是否为空 (keys from shared CONFIG_TO_PLIST_MAPPING)
+        for key in CONFIG_TO_PLIST_MAPPING:
             if key in macos_config:
                 description = macos_config[key]
-                if not description or not description.strip():
+                if not description or not str(description).strip():
                     errors.append(f"macOS 权限描述不能为空: {key}")
-                elif len(description.strip()) < 10:
+                elif len(str(description).strip()) < 10:
                     errors.append(f"macOS 权限描述过短，建议提供更详细的说明: {key}")
 
         # 验证 App Transport Security 配置
@@ -840,30 +760,8 @@ app = BUNDLE(
         Returns:
             bool: 是否需要生成 entitlements
         """
-        # 检查是否有任何权限描述
-        permission_keys = [
-            "microphone_usage_description",
-            "camera_usage_description",
-            "location_when_in_use_usage_description",
-            "location_always_and_when_in_use_usage_description",
-            "contacts_usage_description",
-            "calendars_usage_description",
-            "reminders_usage_description",
-            "photo_library_usage_description",
-            "photo_library_add_usage_description",
-            "bluetooth_always_usage_description",
-            "bluetooth_peripheral_usage_description",
-            "local_network_usage_description",
-            "apple_events_usage_description",
-            "system_administration_usage_description",
-            "accessibility_usage_description",
-            "desktop_folder_usage_description",
-            "documents_folder_usage_description",
-            "downloads_folder_usage_description",
-        ]
-
-        # 如果有任何权限描述，需要 entitlements
-        for key in permission_keys:
+        # 如果有任何权限描述，需要 entitlements (shared CONFIG_TO_PLIST_MAPPING)
+        for key in CONFIG_TO_PLIST_MAPPING:
             if macos_config.get(key):
                 return True
 

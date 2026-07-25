@@ -7,11 +7,16 @@ MacOS Entitlements.plist 自动生成器 根据配置自动生成 entitlements.p
 from pathlib import Path
 from typing import Any, Dict, List
 
+from unifypy.core.macos_permissions import CONFIG_TO_PLIST_MAPPING
+
 
 class EntitlementsGenerator:
     """
     MacOS Entitlements.plist 自动生成器.
     """
+
+    # Shared config key → Info.plist NS*UsageDescription mapping
+    CONFIG_TO_PLIST_MAPPING = CONFIG_TO_PLIST_MAPPING
 
     # Info.plist 权限描述到 Entitlements 权限的映射
     #
@@ -108,37 +113,6 @@ class EntitlementsGenerator:
         "NSSystemAdministrationUsageDescription": [
             "com.apple.security.temporary-exception.files.absolute-path.read-write"
         ],
-    }
-
-    # 配置键到 Info.plist 键的映射
-    CONFIG_TO_PLIST_MAPPING = {
-        "microphone_usage_description": "NSMicrophoneUsageDescription",
-        "camera_usage_description": "NSCameraUsageDescription",
-        "screen_capture_usage_description": "NSScreenCaptureUsageDescription",
-        "location_usage_description": "NSLocationUsageDescription",
-        "location_when_in_use_usage_description": "NSLocationWhenInUseUsageDescription",
-        "location_always_and_when_in_use_usage_description": "NSLocationAlwaysAndWhenInUseUsageDescription",
-        "contacts_usage_description": "NSContactsUsageDescription",
-        "calendars_usage_description": "NSCalendarsUsageDescription",
-        "calendars_write_only_access_usage_description": "NSCalendarsWriteOnlyAccessUsageDescription",
-        "calendars_full_access_usage_description": "NSCalendarsFullAccessUsageDescription",
-        "reminders_usage_description": "NSRemindersUsageDescription",
-        "reminders_full_access_usage_description": "NSRemindersFullAccessUsageDescription",
-        "photo_library_usage_description": "NSPhotoLibraryUsageDescription",
-        "photo_library_add_usage_description": "NSPhotoLibraryAddUsageDescription",
-        "music_usage_description": "NSAppleMusicUsageDescription",
-        "speech_recognition_usage_description": "NSSpeechRecognitionUsageDescription",
-        "bluetooth_always_usage_description": "NSBluetoothAlwaysUsageDescription",
-        "bluetooth_peripheral_usage_description": "NSBluetoothPeripheralUsageDescription",
-        "local_network_usage_description": "NSLocalNetworkUsageDescription",
-        "apple_events_usage_description": "NSAppleEventsUsageDescription",
-        "system_administration_usage_description": "NSSystemAdministrationUsageDescription",
-        "accessibility_usage_description": "NSAccessibilityUsageDescription",
-        "desktop_folder_usage_description": "NSDesktopFolderUsageDescription",
-        "documents_folder_usage_description": "NSDocumentsFolderUsageDescription",
-        "downloads_folder_usage_description": "NSDownloadsFolderUsageDescription",
-        "network_volumes_usage_description": "NSNetworkVolumesUsageDescription",
-        "removable_volumes_usage_description": "NSRemovableVolumesUsageDescription",
     }
 
     def __init__(self, progress_callback=None):

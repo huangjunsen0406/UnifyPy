@@ -5,6 +5,7 @@ macOS 后处理器
 负责 macOS 平台特定的构建后处理操作
 """
 
+from unifypy.core.macos_permissions import CONFIG_TO_PLIST_MAPPING
 from unifypy.core.platforms import normalize_platform
 from pathlib import Path
 from typing import Optional
@@ -324,22 +325,10 @@ class MacOSPostProcessor:
                 if "platforms" in raw_config:
                     macos_config = raw_config["platforms"].get("macos", {})
 
-            # 检查权限描述键映射
-            permission_keys = {
-                "microphone_usage_description": "NSMicrophoneUsageDescription",
-                "camera_usage_description": "NSCameraUsageDescription",
-                "audio_usage_description": "NSAudioUsageDescription",
-                "speech_recognition_usage_description": "NSSpeechRecognitionUsageDescription",
-                "local_network_usage_description": "NSLocalNetworkUsageDescription",
-                "accessibility_usage_description": "NSAccessibilityUsageDescription",
-                "documents_folder_usage_description": "NSDocumentsFolderUsageDescription",
-                "downloads_folder_usage_description": "NSDownloadsFolderUsageDescription",
-                "apple_events_usage_description": "NSAppleEventsUsageDescription",
-            }
-
+            # 检查权限描述键映射 (shared CONFIG_TO_PLIST_MAPPING)
             missing = []
             present = []
-            for config_key, plist_key in permission_keys.items():
+            for config_key, plist_key in CONFIG_TO_PLIST_MAPPING.items():
                 if config_key in macos_config:
                     if plist_key in plist_data:
                         present.append(plist_key)

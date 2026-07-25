@@ -11,14 +11,24 @@ import locale
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from unifypy.core.platforms import normalize_arch, normalize_platform
+
+# Short platform prefixes used in internal_key / filenames (mac-arm64, win-x64).
+_PLATFORM_SHORT = {
+    "windows": "win",
+    "macos": "mac",
+    "linux": "linux",
+}
+
 
 class EnvironmentManager:
     """
     环境管理器 - 支持规范化架构映射和现代分发标准.
-    
-    内部架构键规范:
+
+    对外平台键: windows / macos / linux
+    内部架构键规范 (short form for filenames):
     - win-x64, win-arm64
-    - mac-arm64, mac-x64  
+    - mac-arm64, mac-x64
     - linux-x64-glibc, linux-arm64-glibc
     - linux-x64-musl, linux-arm64-musl
     """
@@ -38,17 +48,9 @@ class EnvironmentManager:
 
     def _detect_platform(self) -> str:
         """
-        检测当前平台.
+        检测当前平台 (windows / macos / linux).
         """
-        system = platform.system().lower()
-        if system == "darwin":
-            return "mac"
-        elif system == "windows":
-            return "win"
-        elif system == "linux":
-            return "linux"
-        else:
-            return system
+        return normalize_platform()
 
     def _detect_raw_architecture(self) -> str:
         """
@@ -59,26 +61,11 @@ class EnvironmentManager:
     def _normalize_architecture(self) -> str:
         """
         将各种系统返回的机型字符串规范化为内部架构键.
-        
+
         Returns:
             str: 规范化的架构标识 (x64, arm64)
         """
-        machine = self.current_arch
-        
-        # AMD64|x86_64 → x64
-        if machine in ["x86_64", "amd64"]:
-            return "x64"
-        
-        # ARM64|aarch64|arm64 → arm64  
-        elif machine in ["aarch64", "arm64", "armv8", "armv8l"]:
-            return "arm64"
-        
-        # 不再支持 32 位架构
-        elif machine in ["i386", "i686", "i586", "armv7", "armv7l", "armhf", "arm"]:
-            raise ValueError(f"不支持的 32 位架构: {machine}。UnifyPy 2.0 仅支持 64 位架构。")
-        
-        else:
-            raise ValueError(f"不支持的架构: {machine}")
+        return normalize_arch(self.current_arch)
 
     def _detect_c_runtime(self) -> Optional[str]:
         """
@@ -126,7 +113,7 @@ class EnvironmentManager:
         Returns:
             bool: 是否在 Rosetta 下运行
         """
-        if self.current_platform != "mac":
+        if self.current_platform != "macos":
             return False
 
         try:
@@ -145,16 +132,17 @@ class EnvironmentManager:
     def _generate_internal_key(self) -> str:
         """
         生成规范化的内部架构键.
-        
+
         Returns:
             str: 内部架构键 (如 mac-arm64, linux-x64-glibc)
         """
-        base_key = f"{self.current_platform}-{self.normalized_arch}"
-        
+        short = _PLATFORM_SHORT.get(self.current_platform, self.current_platform)
+        base_key = f"{short}-{self.normalized_arch}"
+
         # Linux 需要添加 C 运行时标识
         if self.current_platform == "linux":
             base_key += f"-{self.c_runtime}"
-        
+
         return base_key
 
     def get_internal_key(self) -> str:
@@ -173,9 +161,9 @@ class EnvironmentManager:
         Returns:
             Dict: Rosetta 信息
         """
-        if self.current_platform != "mac":
+        if self.current_platform != "macos":
             return {"supported": False, "running": False}
-            
+
         is_rosetta = self._is_rosetta()
         return {
             "supported": True,
@@ -320,18 +308,18 @@ class EnvironmentManager:
                 else:
                     return "aarch64-unknown-linux-gnu"
                     
-        elif self.current_platform == "mac":
+        elif self.current_platform == "macos":
             if self.normalized_arch == "x64":
                 return "x86_64-apple-darwin"
             elif self.normalized_arch == "arm64":
                 return "aarch64-apple-darwin"
-                
-        elif self.current_platform == "win":
+
+        elif self.current_platform == "windows":
             if self.normalized_arch == "x64":
                 return "x86_64-pc-windows-msvc"
             elif self.normalized_arch == "arm64":
                 return "aarch64-pc-windows-msvc"
-        
+
         raise ValueError(f"不支持的平台/架构组合: {self.current_platform}-{self.normalized_arch}")
 
     def get_recommended_targets(self) -> Dict[str, str]:
@@ -377,8 +365,8 @@ class EnvironmentManager:
                 "manylinux_tag": self.get_manylinux_tag(),
             })
         
-        # macOS 特定信息  
-        if self.current_platform == "mac":
+        # macOS 特定信息
+        if self.current_platform == "macos":
             rosetta_info = self.get_rosetta_info()
             info.update({
                 "rosetta": rosetta_info,
@@ -427,17 +415,17 @@ class EnvironmentManager:
             "architecture": self.normalized_arch,
         }
 
-        if self.current_platform == "win":
+        if self.current_platform == "windows":
             settings.update({
                 "pyinstaller": {
-                    "windowed": True, 
+                    "windowed": True,
                     "icon": "app.ico",
                     "target_architecture": self.normalized_arch
                 },
                 "installer_type": "inno_setup",
                 "recommended_formats": ["exe"],
             })
-        elif self.current_platform == "mac":
+        elif self.current_platform == "macos":
             settings.update({
                 "pyinstaller": {
                     "windowed": True,
@@ -447,12 +435,12 @@ class EnvironmentManager:
                 "installer_type": "dmg",
                 "recommended_formats": ["dmg"],
             })
-            
+
             # Rosetta 特殊建议
             rosetta_info = self.get_rosetta_info()
             if rosetta_info["running"]:
                 settings["rosetta_notice"] = "在 Rosetta 下运行，建议构建 arm64 和 universal2 版本"
-                
+
         elif self.current_platform == "linux":
             settings.update({
                 "pyinstaller": {
@@ -482,21 +470,21 @@ class EnvironmentManager:
         }
         
         # 主要构建目标 (6 档标准)
-        if self.current_platform == "win":
+        if self.current_platform == "windows":
             recommendations["primary_targets"] = ["win-x64", "win-arm64"]
             recommendations["naming_examples"] = {
                 "modern": f"myapp-1.2.3-{self.internal_key}.zip",
                 "traditional": "myapp-1.2.3.exe"
             }
-            
-        elif self.current_platform == "mac":
+
+        elif self.current_platform == "macos":
             recommendations["primary_targets"] = ["mac-arm64", "mac-x64"]
             recommendations["optional_targets"] = ["mac-universal2"]
             recommendations["naming_examples"] = {
                 "modern": f"myapp-1.2.3-{self.internal_key}.dmg",
                 "universal": "myapp-1.2.3-mac-universal2.dmg"
             }
-            
+
         elif self.current_platform == "linux":
             recommendations["primary_targets"] = [f"linux-{self.normalized_arch}-glibc", f"linux-{self.normalized_arch}-musl"]
             

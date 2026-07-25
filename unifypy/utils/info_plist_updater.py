@@ -8,6 +8,8 @@ import subprocess
 from pathlib import Path
 from typing import Any, Dict
 
+from unifypy.core.macos_permissions import CONFIG_TO_PLIST_MAPPING
+
 from .command_runner import get_subprocess_encoding
 
 
@@ -26,29 +28,8 @@ class InfoPlistUpdater:
         if self.verbose:
             print(message)
 
-    # 配置键到 Info.plist 权限描述键的映射
-    PERMISSION_MAPPING = {
-        "microphone_usage_description": "NSMicrophoneUsageDescription",
-        "camera_usage_description": "NSCameraUsageDescription",
-        "speech_recognition_usage_description": "NSSpeechRecognitionUsageDescription",
-        "local_network_usage_description": "NSLocalNetworkUsageDescription",
-        "audio_usage_description": "NSAudioUsageDescription",
-        "accessibility_usage_description": "NSAccessibilityUsageDescription",
-        "documents_folder_usage_description": "NSDocumentsFolderUsageDescription",
-        "downloads_folder_usage_description": "NSDownloadsFolderUsageDescription",
-        "desktop_folder_usage_description": "NSDesktopFolderUsageDescription",
-        "apple_events_usage_description": "NSAppleEventsUsageDescription",
-        "system_administration_usage_description": "NSSystemAdministrationUsageDescription",
-        "contacts_usage_description": "NSContactsUsageDescription",
-        "calendars_usage_description": "NSCalendarsUsageDescription",
-        "reminders_usage_description": "NSRemindersUsageDescription",
-        "photo_library_usage_description": "NSPhotoLibraryUsageDescription",
-        "photo_library_add_usage_description": "NSPhotoLibraryAddUsageDescription",
-        "location_when_in_use_usage_description": "NSLocationWhenInUseUsageDescription",
-        "location_always_and_when_in_use_usage_description": "NSLocationAlwaysAndWhenInUseUsageDescription",
-        "bluetooth_always_usage_description": "NSBluetoothAlwaysUsageDescription",
-        "bluetooth_peripheral_usage_description": "NSBluetoothPeripheralUsageDescription",
-    }
+    # Shared config key → Info.plist NS*UsageDescription mapping
+    PERMISSION_MAPPING = CONFIG_TO_PLIST_MAPPING
 
     def update_app_info_plist(
         self, app_path: Path, macos_config: Dict[str, Any]
