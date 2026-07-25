@@ -64,12 +64,14 @@ class ToolManager:
         self,
         tools_dir: Optional[str] = None,
         allow_auto_install: bool = True,
+        project_dir: Optional[str] = None,
     ):
         """初始化工具管理器.
 
         Args:
             tools_dir: 工具存储目录，默认为用户缓存目录下的unifypy_tools
             allow_auto_install: 是否允许自动安装缺失工具（默认 True，CI 友好）
+            project_dir: 用户项目根目录，用于 CacheManager；缺省时回退 cwd
         """
         self.allow_auto_install = allow_auto_install
 
@@ -87,10 +89,12 @@ class ToolManager:
 
         self.tools_dir.mkdir(parents=True, exist_ok=True)
 
-        # 初始化缓存管理器
+        # 初始化缓存管理器（使用项目目录，避免附着到进程 cwd）
         from .cache_manager import CacheManager
 
-        self.cache_manager = CacheManager(str(Path.cwd()))
+        self.cache_manager = CacheManager(
+            str(Path(project_dir).resolve() if project_dir else Path.cwd())
+        )
 
         # 当前平台信息
         self.current_platform = self._detect_platform()

@@ -1,8 +1,13 @@
 include LICENSE
 include README.md
 recursive-include unifypy/templates *.template
-recursive-include unifypy/tools *
+# create-dmg runtime only (exclude tests/examples/doc-project)
+include unifypy/tools/create-dmg/create-dmg
+include unifypy/tools/create-dmg/LICENSE
+include unifypy/tools/create-dmg/README.md
 include unifypy/tools/create-dmg/.this-is-the-create-dmg-repo
+recursive-include unifypy/tools/create-dmg/support *
+recursive-include unifypy/tools/create-dmg/builder *
 recursive-include unifypy/platforms *.py
 recursive-include unifypy/pyinstaller *.py
 recursive-include unifypy/cli *.py

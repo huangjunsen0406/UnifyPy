@@ -34,7 +34,8 @@ class EnvironmentPlugin(BasePlugin):
         # 工具检测（默认允许自动安装；可用 --no-allow-auto-install 关闭）
         allow_auto_install = bool(getattr(ctx.args, "allow_auto_install", True))
         ctx.tool_manager = ctx.tool_manager or ToolManager(
-            allow_auto_install=allow_auto_install
+            allow_auto_install=allow_auto_install,
+            project_dir=str(ctx.project_dir),
         )
         # Keep flag in sync if tool_manager was pre-created
         ctx.tool_manager.allow_auto_install = allow_auto_install

@@ -169,7 +169,10 @@ class ParallelBuilder:
             from ..utils.tool_manager import ToolManager
 
             runner = SilentRunner(self.progress)
-            tool_manager = ToolManager()
+            project_dir = getattr(packager, "project_dir", None)
+            tool_manager = ToolManager(
+                project_dir=str(project_dir) if project_dir is not None else None
+            )
 
             # 更新打包器的组件引用
             packager.runner = runner
